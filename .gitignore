@@ -1,0 +1,21 @@
+node_modules/
+dist/
+cache/
+artifacts/
+coverage/
+
+# Local deployment records and ledger state are never committed.
+deployments/
+  **/*.json
+  !deployments/README.md
+
+# Local devnet runtime state (Anvil cache) — never the ledger.
+.devnet/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log

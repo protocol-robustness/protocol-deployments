@@ -1,0 +1,12 @@
+;; ============================================================================
+;; Local runtime — how the local chain (31337) is provided.
+;;
+;; This is NOT part of the canonical deployment spec. It describes only how to
+;; obtain the target chain. No secrets are embedded inline; the local runtime
+;; uses a deterministic development key (never used in production).
+;; ============================================================================
+
+{:schemaVersion 1
+ :provider :anvil
+ :rpcUrl "http://127.0.0.1:8545"
+ :signer {:type :deterministic-local}}

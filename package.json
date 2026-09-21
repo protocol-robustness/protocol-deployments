@@ -1,0 +1,35 @@
+{
+  "name": "protocol-deployments",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deployment composition and governance/deployment configuration for PRF, SEW, and shared infrastructure. Owns declarative EDN config resolved into a deterministic deployment specification, executed via ordinary Ethereum JSON-RPC.",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "resolve:local": "ts-node src/cli/resolve.ts --env local",
+    "resolve:base-sepolia": "ts-node src/cli/resolve.ts --env base-sepolia",
+    "devnet:start": "ts-node src/cli/devnet.ts start local",
+    "devnet:stop": "ts-node src/cli/devnet.ts stop local",
+    "devnet:reset": "ts-node src/cli/devnet.ts reset local",
+    "devnet:status": "ts-node src/cli/devnet.ts status local",
+    "deploy:local": "ts-node src/cli/deploy.ts local",
+    "deploy:base-sepolia": "ts-node src/cli/deploy.ts base-sepolia"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@noble/hashes": "1.8.0",
+    "viem": "2.56.8",
+    "zod": "3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.0.0",
+    "ts-node": "10.9.0",
+    "typescript": "5.7.0",
+    "vitest": "3.0.0"
+  }
+}

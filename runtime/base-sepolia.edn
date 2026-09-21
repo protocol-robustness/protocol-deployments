@@ -1,0 +1,13 @@
+;; ============================================================================
+;; Base Sepolia runtime — how the testnet chain (84532) is provided.
+;;
+;; Secrets are NEVER inlined. The RPC URL and deployer key are resolved from
+;; environment variables by name. Nothing here enters the resolved spec or the
+;; deployment ledger (only the derived deployer address is recorded).
+;; ============================================================================
+
+{:schemaVersion 1
+ :provider :external
+ :rpcUrlEnv "BASE_SEPOLIA_RPC_URL"
+ :signer {:type :private-key-env
+          :env "BASE_SEPOLIA_DEPLOYER_KEY"}}

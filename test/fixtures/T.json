@@ -1,0 +1,56 @@
+{
+  "name": "T",
+  "contractName": "T",
+  "sourcePath": "T.sol",
+  "scopeHint": "sew",
+  "category": "core",
+  "abi": [
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "_v",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "_flag",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "flag",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "v",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    }
+  ],
+  "bytecode": "0x6080604052348015600e575f80fd5b50604051610120380380610120833981016040819052602b916045565b5f919091556001805460ff19169115159190911790556075565b5f80604083850312156055575f80fd5b8251915060208301518015158114606a575f80fd5b809150509250929050565b609f806100815f395ff3fe6080604052348015600e575f80fd5b50600436106030575f3560e01c80637c2efcba146034578063890eba6814604e575b5f80fd5b603b5f5481565b6040519081526020015b60405180910390f35b600154605a9060ff1681565b6040519015158152602001604556fea2646970667358221220a498b38a07e67928665e9603d6471568c9734b4bbdc5c18feec150c536e8656c64736f6c634300081a0033",
+  "deployedBytecode": "0x6080604052348015600e575f80fd5b50600436106030575f3560e01c80637c2efcba146034578063890eba6814604e575b5f80fd5b603b5f5481565b6040519081526020015b60405180910390f35b600154605a9060ff1681565b6040519015158152602001604556fea2646970667358221220a498b38a07e67928665e9603d6471568c9734b4bbdc5c18feec150c536e8656c64736f6c634300081a0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "metadata": ""
+}

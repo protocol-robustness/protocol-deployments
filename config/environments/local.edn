@@ -1,0 +1,36 @@
+;; ============================================================================
+;; Local environment overlay
+;;
+;; The environment overlay may override the initial VALUE of any parameter
+;; (immutable or governed) but may NOT change mutability or constraints, and
+;; may not introduce undeclared parameters. The explicit deployment order is
+;; authoritative; declared dependencies must be satisfied by it.
+;; ============================================================================
+
+{:schemaVersion 1
+ :environment :local
+
+ :chain {:logicalRole :local
+         :chainId 31337
+         :kind :local}
+
+ :overlays
+ { :shared/governance-token
+   {:parameters
+    { :name   {:value "Local Governance Token"}
+      :symbol {:value "LOCAL"}}}
+
+   :sew/escrow-vault
+   {:parameters
+    { :interestRateBps {:value 300N} } } }
+
+ :deploymentOrder
+ [ :shared/governance-token
+   :shared/timelock
+   :shared/governor
+   :prf/verifier-registry
+   :prf/allocation-verifier
+   :prf/statement-admission
+   :sew/escrow-vault
+   :sew/decentralized-resolution-module ]
+}

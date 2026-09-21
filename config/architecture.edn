@@ -1,0 +1,105 @@
+;; ============================================================================
+;; Deployment architecture
+;;
+;; Declares logical contracts, their scope (:prf / :sew / :shared), the pinned
+;; artifact source each deploys from, and a small explicit relationship
+;; vocabulary. Repository placement does NOT determine architectural ownership:
+;; a contract may be logically :shared even though its Solidity source lives in
+;; sew-protocol. This repo never compiles Solidity source — it consumes pinned
+;; deployable artifact bundles only.
+;; ============================================================================
+
+{:schemaVersion 1
+
+ ;; Named, pinned deployable artifact sources. These are the consumer boundary.
+ ;; Each points at a versioned package exposed by an authoritative source repo.
+ :artifactSources
+ { :sew/deployables
+   {:package "@sew/deployables"
+    :version "0.1.0"
+    :sourceRepo "sew/sew-protocol"
+    :kind :npm}
+
+   :prf/deployables
+   {:package "@protocol-robustness/prf-evm-deployables"
+    :version "0.1.0"
+    :sourceRepo "protocol-robustness/prf-evm"
+    :kind :npm}}
+
+ ;; Logical contracts. The map key is the logical identity.
+ :contracts
+ {    :shared/governance-token
+   {:scope :shared
+    :artifactSource :sew/deployables
+    :artifact "SewToken"
+    :parameters
+    { :name            {:value "Protocol Governance Token" :mutability :immutable}
+      :symbol          {:value "PRF"                      :mutability :immutable}
+      :initialSupply   {:value 1000000000000000000000000N :mutability :immutable}}}
+
+   :shared/timelock
+   {:scope :shared
+    :artifactSource :sew/deployables
+    :artifact "TimelockController"
+    :parameters
+    { :minDelaySec {:value 86400 :mutability :immutable}}}
+
+   :shared/governor
+   {:scope :shared
+    :artifactSource :sew/deployables
+    :artifact "GovGovernor"
+    :relationships {:dependsOn [:shared/timelock]}
+    :parameters
+    { :votingDelayBlocks  {:value 1     :mutability :immutable}
+      :votingPeriodBlocks {:value 50400 :mutability :immutable}
+      :proposalThreshold  {:value 50000000000000000000000N
+                           :mutability :governed
+                           :constraint {:range [0N 100000000000000000000000N]}}
+      :quorum             {:value 4000000000000000000000000N
+                           :mutability :governed
+                           :constraint {:range [0N 5000000000000000000000000N]}}}}
+
+   :prf/verifier-registry
+   {:scope :prf
+    :artifactSource :prf/deployables
+    :artifact "PrfVerifierRegistry"
+    :parameters
+    { :entryFee {:value 0N :mutability :governed :constraint {:range [0N 1000000000000000000N]}}}}
+
+   :prf/allocation-verifier
+   {:scope :prf
+    :artifactSource :prf/deployables
+    :artifact "PrfRealizedAllocationVerifierAdapter"
+    :parameters
+    { :verifierVersion {:value "v1.0.0" :mutability :immutable}}}
+
+   :prf/statement-admission
+   {:scope :prf
+    :artifactSource :prf/deployables
+    :artifact "PrfStatementAdmission"
+    :relationships {:registeredIn [:prf/verifier-registry]}
+    :parameters
+    { :maxStatementsPerBatch {:value 100N
+                              :mutability :governed
+                              :constraint {:range [1N 1000N]}}}}
+
+   :sew/escrow-vault
+   {:scope :sew
+    :artifactSource :sew/deployables
+    :artifact "EscrowVault"
+    :relationships {:administeredBy [:shared/timelock]}
+    :parameters
+    { :interestRateBps         {:value 500N  :mutability :governed :constraint {:range [0N 2000N]}}
+      :liquidationThresholdBps {:value 8500N :mutability :governed :constraint {:range [5000N 9500N]}}
+      :maxProtocolFeeBps       {:value 200N  :mutability :governed :constraint {:range [0N 500N]}}}}
+
+   :sew/decentralized-resolution-module
+   {:scope :sew
+    :artifactSource :sew/deployables
+    :artifact "DecentralizedResolutionModule"
+    :relationships {:dependsOn [:prf/allocation-verifier]
+                    :uses       [:prf/verifier-registry]}
+    :parameters
+    { :disputeStake {:value 100000000000000000000N
+                     :mutability :governed
+                     :constraint {:range [10000000000000000000N 1000000000000000000000N]}}}}}}

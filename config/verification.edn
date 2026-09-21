@@ -1,0 +1,49 @@
+;; ============================================================================
+;; Verification structure
+;;
+;; Distinguishes:
+;;   application              (e.g. :sew/dispute-resolution)
+;;     -> verification profile (e.g. :prf/dispute-closure-v1)
+;;     -> verifier implementation (e.g. :prf/sp1-verifier-v1)
+;;     -> concrete deployed verifier instance
+;;
+;; Do NOT assume one verifier address per application. Multiple PRF
+;; applications may share one verifier implementation while using different
+;; statement/program/VK/profile identities.
+;;
+;; Implementation is minimal in Phase 1: it establishes the structure and
+;; resolves the concrete deployed verifier instance per application. No
+;; proofs or deployment-conformance proofs are produced here.
+;; ============================================================================
+
+{:schemaVersion 1
+
+ ;; Applications that rely on a PRF verification profile.
+ :applications
+ { :sew/dispute-resolution
+   {:verificationProfile :prf/dispute-closure-v1}
+
+   :prf/statement-admission
+   {:verificationProfile :prf/statement-integration-v1} }
+
+ ;; Verification profiles (statement/program/VK identity).
+ :verificationProfiles
+ { :prf/dispute-closure-v1
+   {:verifierImplementation :prf/sp1-verifier-v1
+    :programId "dispute-closure:v0.1.0"
+    :vkHash "0x5a1c..."
+    :statement "dispute-closure"}
+
+   :prf/statement-integration-v1
+   {:verifierImplementation :prf/sp1-verifier-v1
+    :programId "statement-integration:v0.1.0"
+    :vkHash "0x9b3e..."
+    :statement "statement-admission"} }
+
+ ;; Verifier implementations -> the logical contract hosting the verifier.
+ ;; The PRF verifier *adapter* is the deployable implementation; it delegates
+ ;; cryptographic verification to an external SP1 verifier instance (resolved
+ ;; by the deployment layer, not encoded here).
+ :verifierImplementations
+ { :prf/sp1-verifier-v1
+   {:contract :prf/allocation-verifier} }}

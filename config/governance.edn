@@ -1,0 +1,74 @@
+;; ============================================================================
+;; Governance topology
+;;
+;; Model:  voting source -> governor -> execution lane -> operation group
+;;         -> governed operation / parameter
+;;
+;; The governance token is a voting SOURCE only. It is never the direct
+;; executor/authority. Execution flows through a Governor into a timelock
+;; execution lane. Several semantic groups may share the same token, Governor,
+;; and/or timelock.
+;; ============================================================================
+
+{:schemaVersion 1
+
+ ;; Voting sources (logical token contracts).
+ :tokens
+ { :sew/token {:contract :shared/governance-token} }
+
+ ;; Governors.
+ :governors
+ { :sew/governor
+   {:contract :shared/governor
+    :token :sew/token
+    :quorum 4000000000000000000000000N
+    :proposalThreshold 50000000000000000000000N} }
+
+ ;; Execution lanes (governor -> timelock). Multiple groups share these.
+ :lanes
+ { :sew/lane-1
+   {:governor :sew/governor
+    :timelock :shared/timelock} }
+
+ ;; Semantic operation groups. Distinct governance groups may use the same
+ ;; token, Governor, and timelock (all routed through :sew/lane-1).
+ :groups
+ { :sew/economics
+   {:lane :sew/lane-1
+    :operations
+    { :escrow/interestRate
+      {:target :sew/escrow-vault :parameter :interestRateBps}
+      :escrow/liquidationThreshold
+      {:target :sew/escrow-vault :parameter :liquidationThresholdBps}}}
+
+   :sew/architecture
+   {:lane :sew/lane-1
+    :operations
+    { :escrow/maxProtocolFee
+      {:target :sew/escrow-vault :parameter :maxProtocolFeeBps}}}
+
+   :sew/resolution
+   {:lane :sew/lane-1
+    :operations
+    { :resolution/disputeStake
+      {:target :sew/decentralized-resolution-module :parameter :disputeStake}}}
+
+   :prf/verifiers
+   {:lane :sew/lane-1
+    :operations
+    { :registry/entryFee
+      {:target :prf/verifier-registry :parameter :entryFee}}}
+
+   :prf/registries
+   {:lane :sew/lane-1
+    :operations
+    { :admission/maxStatementsPerBatch
+      {:target :prf/statement-admission :parameter :maxStatementsPerBatch}}}
+
+   :shared/deployment
+   {:lane :sew/lane-1
+    :operations
+    { :governor/proposalThreshold
+      {:target :shared/governor :parameter :proposalThreshold}
+      :governor/quorum
+      {:target :shared/governor :parameter :quorum}}}}}

@@ -1,0 +1,27 @@
+;; ============================================================================
+;; Base Sepolia testnet overlay
+;; ============================================================================
+
+{:schemaVersion 1
+ :environment :base-sepolia
+
+ :chain {:logicalRole :testnet
+         :chainId 84532
+         :kind :testnet}
+
+ :overlays
+ { :shared/governance-token
+   {:parameters
+    { :name   {:value "Protocol Governance Token"}
+      :symbol {:value "PRF"}}} }
+
+ :deploymentOrder
+ [ :shared/governance-token
+   :shared/timelock
+   :shared/governor
+   :prf/verifier-registry
+   :prf/allocation-verifier
+   :prf/statement-admission
+   :sew/escrow-vault
+   :sew/decentralized-resolution-module ]
+}
