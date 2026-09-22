@@ -1,0 +1,138 @@
+{:schemaVersion 1
+ :environment :pro-rata-v2-ratification-local
+ :chain {:logicalRole :local :chainId 31337 :kind :local}
+ :deploymentOrder
+ [:prf/local-token
+  :prf/governance-authority
+  :prf/genesis
+  :prf/verifier-registry
+  :prf/local-sp1-verifier
+  :prf/source-bound-verifier-adapter-v2
+  :prf/configuration-executor
+  :prf/statement-admission
+  :shortfall/prepared-operation-controller-v2
+  :shortfall/pro-rata-allocator-v2
+  :shortfall/shortfall-reserve-v2
+  :shortfall/source-bound-assurance-v2
+  :shortfall/ratification-controller-v2]
+ :registryRoots
+ [:shortfall/source-bound-assurance-v2
+  :shortfall/ratification-controller-v2
+  :shortfall/shortfall-reserve-v2
+  :shortfall/pro-rata-allocator-v2]
+ :localOnly true
+ :bootstrapActions
+ [{:id :prf/seal-genesis
+   :target :prf/genesis
+   :function "sealGenesis"
+   :args [{:literal "0x5555555555555555555555555555555555555555555555555555555555555555"}
+          {:runtimeCodeHash :prf/genesis}
+          {:runtimeCodeHash :prf/governance-authority}]}
+  {:id :shortfall-v2/bind-allocator-funding-authority
+   :target :shortfall/pro-rata-allocator-v2
+   :function "bindFundingAuthority"
+   :args [{:contractAddress :shortfall/shortfall-reserve-v2}]}
+  {:id :shortfall-v2/bind-assurance-ratification-controller
+   :target :shortfall/source-bound-assurance-v2
+   :function "bindRatificationController"
+   :args [{:contractAddress :shortfall/ratification-controller-v2}]}
+  {:id :shortfall-v2/bind-reserve-ratification-authority
+   :target :shortfall/shortfall-reserve-v2
+   :function "bindRatificationAuthority"
+   :args [{:contractAddress :shortfall/ratification-controller-v2}]}]
+ :bootstrapAssertions
+ [{:id :prf/genesis-sealed
+   :target :prf/genesis
+   :function "isSealedState"
+   :args []
+   :expected true}
+  {:id :local/token-is-deployed
+   :target :prf/local-token
+   :function "totalSupply"
+   :args []
+   :expected 1000}
+  {:id :shortfall-v2/allocator-funding-authority-bound
+   :target :shortfall/pro-rata-allocator-v2
+   :function "fundingAuthorityBound"
+   :args []
+   :expected true}
+  {:id :shortfall-v2/allocator-funding-authority
+   :target :shortfall/pro-rata-allocator-v2
+   :function "fundingAuthority"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/shortfall-reserve-v2}}
+  {:id :shortfall-v2/reserve-ratification-authority-bound
+   :target :shortfall/shortfall-reserve-v2
+   :function "ratificationAuthorityBound"
+   :args []
+   :expected true}
+  {:id :shortfall-v2/reserve-ratification-authority
+   :target :shortfall/shortfall-reserve-v2
+   :function "ratificationAuthority"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/ratification-controller-v2}}
+  {:id :shortfall-v2/reserve-allocator
+   :target :shortfall/shortfall-reserve-v2
+   :function "allocator"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/pro-rata-allocator-v2}}
+  {:id :shortfall-v2/assurance-controller-bound
+   :target :shortfall/source-bound-assurance-v2
+   :function "controllerBindingFinalized"
+   :args []
+   :expected true}
+  {:id :shortfall-v2/assurance-ratification-controller
+   :target :shortfall/source-bound-assurance-v2
+   :function "ratificationController"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/ratification-controller-v2}}
+  {:id :shortfall-v2/assurance-prepared-controller
+   :target :shortfall/source-bound-assurance-v2
+   :function "preparedController"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/prepared-operation-controller-v2}}
+  {:id :shortfall-v2/assurance-source-adapter
+   :target :shortfall/source-bound-assurance-v2
+   :function "sourceAdapter"
+   :args []
+   :expectedBinding {:contractAddress :prf/source-bound-verifier-adapter-v2}}
+  {:id :shortfall-v2/ratification-prepared-controller
+   :target :shortfall/ratification-controller-v2
+   :function "preparedController"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/prepared-operation-controller-v2}}
+  {:id :shortfall-v2/ratification-assurance
+   :target :shortfall/ratification-controller-v2
+   :function "assurance"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/source-bound-assurance-v2}}
+  {:id :shortfall-v2/ratification-reserve
+   :target :shortfall/ratification-controller-v2
+   :function "reserve"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/shortfall-reserve-v2}}
+  {:id :shortfall-v2/adapter-local-verifier
+   :target :prf/source-bound-verifier-adapter-v2
+   :function "sp1Verifier"
+   :args []
+   :expectedBinding {:contractAddress :prf/local-sp1-verifier}}
+  {:id :shortfall-v2/adapter-program-vkey
+   :target :prf/source-bound-verifier-adapter-v2
+   :function "programVKey"
+   :args []
+   :expected "0x6666666666666666666666666666666666666666666666666666666666666666"}
+  {:id :shortfall-v2/adapter-program-elf
+   :target :prf/source-bound-verifier-adapter-v2
+   :function "programElfSha256"
+   :args []
+   :expected "0x7777777777777777777777777777777777777777777777777777777777777777"}
+  {:id :shortfall-v2/adapter-statement-schema
+   :target :prf/source-bound-verifier-adapter-v2
+   :function "statementSchemaVersion"
+   :args []
+   :expected "0x1a6a1f7b90e40b7c254aba8cadbb8f4a7d4fec232b783c39cd648f10896b097a"}
+  {:id :shortfall-v2/adapter-public-values-schema
+   :target :prf/source-bound-verifier-adapter-v2
+   :function "publicValuesSchema"
+   :args []
+   :expected "0xa069c379e311996c73ea1f69edb070bfddbb573b770b3c5aec52bad4b255aa87"}]}

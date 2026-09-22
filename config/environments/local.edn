@@ -24,6 +24,21 @@
    {:parameters
     { :interestRateBps {:value 300N} } } }
 
+ :bootstrapActions
+ [ {:id :timelock/grant-governor-proposer
+    :target :shared/timelock
+    :function "grantRole"
+    :args [{:literal "0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1"}
+           {:contractAddress :shared/governor}]} ]
+
+ :bootstrapAssertions
+ [ {:id :timelock/governor-proposer
+    :target :shared/timelock
+    :function "hasRole"
+    :args [{:literal "0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1"}
+           {:contractAddress :shared/governor}]
+    :expected true} ]
+
  :deploymentOrder
  [ :shared/governance-token
    :shared/timelock

@@ -184,6 +184,12 @@ describe('Phase C — deployment engine + deployment record', () => {
     expect(loaded.contracts[':t']!.deployedParameters._v).toBe(42);
   }, 60000);
 
+  it('rejects CREATE2 until a concrete factory protocol exists', async () => {
+    const spec = makeSpec([{ name: '_v', value: 42 }, { name: '_flag', value: true }]);
+    await expect(deployContract({ spec, logicalId: ':t', bundle, transport, signer, mode: 'create2' }))
+      .rejects.toMatchObject({ code: 'CREATE2_UNSUPPORTED' });
+  }, 60000);
+
   it('derives a deterministic CREATE2 address matching a manual computation', () => {
     const factory: Address = '0x1234567890123456789012345678901234567890';
     const salt: Hex = '0x0000000000000000000000000000000000000000000000000000000000000001';

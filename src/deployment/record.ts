@@ -40,9 +40,35 @@ export interface GovernanceAction {
   blockNumber: string;
 }
 
+export interface ExecutionStepRecord {
+  status: 'planned' | 'submitted' | 'confirmed' | 'verified' | 'failed';
+  transactionHash?: Hex;
+  blockNumber?: string;
+  address?: Address;
+  error?: string;
+}
+
+export interface BootstrapActionRecord {
+  id: string;
+  status: 'planned' | 'submitted' | 'confirmed' | 'verified' | 'failed';
+  transactionHash?: Hex;
+  blockNumber?: string;
+  verification?: string;
+}
+
+export interface FinalAssertionRecord {
+  id: string;
+  status: 'passed' | 'failed';
+  verifiedAt: string;
+  detail?: string;
+}
+
 export interface DeploymentRecord {
   schemaVersion: 1;
+  /** Stable run identity; records are durable working evidence, not a registry. */
+  deploymentId?: string;
   specHash: string;
+  executionSpecHash?: string;
   environment: string;
   chainId: number;
   status: 'complete' | 'partial';
@@ -51,6 +77,11 @@ export interface DeploymentRecord {
   deployedAt?: string;
   contracts: Record<string, ContractDeploymentFact>;
   governanceActions: GovernanceAction[];
+  /** Durable transition history for deploy steps; used for reconciliation/resume. */
+  execution: Record<string, ExecutionStepRecord>;
+  /** Bootstrap-only calls; later protocol governance is intentionally out of scope. */
+  bootstrapActions: BootstrapActionRecord[];
+  finalAssertions: FinalAssertionRecord[];
 }
 
 export function artifactIdentityOf(contract: ResolvedContract): ArtifactIdentity {
@@ -74,6 +105,9 @@ export function emptyRecord(opts: { specHash: string; environment: string; chain
     status: 'partial',
     contracts: {},
     governanceActions: [],
+    execution: {},
+    bootstrapActions: [],
+    finalAssertions: [],
   };
 }
 
@@ -88,7 +122,9 @@ export function loadRecord(recordPath: string): DeploymentRecord | null {
 
 export function saveRecord(recordPath: string, record: DeploymentRecord): void {
   fs.mkdirSync(path.dirname(recordPath), { recursive: true });
-  fs.writeFileSync(recordPath, JSON.stringify(record, null, 2) + '\n');
+  const tmp = `${recordPath}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(record, null, 2) + '\n');
+  fs.renameSync(tmp, recordPath);
 }
 
 export function recordPathFor(deploymentsDir: string, environment: string): string {

@@ -31,6 +31,29 @@ export const parameterSchema = z
 
 export const parameterMapSchema = z.record(z.string(), parameterSchema);
 
+/** A deliberately closed constructor-value vocabulary; never arbitrary expressions. */
+export type RawBinding =
+  | { literal: string | number | boolean | bigint }
+  | { parameter: string }
+  | { contractAddress: string }
+  | { runtimeCodeHash: string }
+  | { deployer: true }
+  | { externalAddress: string }
+  | { array: RawBinding[] };
+
+export const bindingSchema: z.ZodType<RawBinding> = z.lazy(() =>
+  z.union([
+    z.object({ literal: z.union([z.string(), z.number(), z.boolean(), z.bigint()]) }).strict(),
+    z.object({ parameter: z.string().min(1) }).strict(),
+    z.object({ contractAddress: z.string().min(1) }).strict(),
+    z.object({ runtimeCodeHash: z.string().min(1) }).strict(),
+    z.object({ deployer: z.literal(true) }).strict(),
+    z.object({ externalAddress: z.string().min(1) }).strict(),
+    z.object({ array: z.array(bindingSchema) }).strict(),
+  ]),
+);
+export const constructorBindingMapSchema = z.record(z.string(), bindingSchema);
+
 // ---------------------------------------------------------------------------
 // Architecture
 // ---------------------------------------------------------------------------
@@ -71,6 +94,8 @@ export const logicalContractSchema = z
     artifactSource: z.string(),
     artifact: z.string(),
     parameters: parameterMapSchema.optional(),
+    /** ABI input name -> a typed, declarative constructor binding. */
+    constructorBindings: constructorBindingMapSchema.optional(),
     relationships: relationshipMapSchema.optional(),
   })
   .strict();
@@ -171,6 +196,27 @@ export const verificationSchema = z
 // Environment (chain identity only — NOT runtime/provider)
 // ---------------------------------------------------------------------------
 
+export const bootstrapActionSchema = z.object({
+  id: z.string().min(1),
+  target: z.string().min(1),
+  function: z.string().min(1),
+  args: z.array(bindingSchema).default([]),
+}).strict();
+
+export const bootstrapAssertionSchema = z.object({
+  id: z.string().min(1),
+  target: z.string().min(1),
+  function: z.string().min(1),
+  args: z.array(bindingSchema).default([]),
+  /** Literal expected value retained for simple scalar assertions. */
+  expected: z.union([z.string(), z.number(), z.boolean(), z.bigint()]).optional(),
+  /** Typed expected value for topology assertions such as contract-address equality. */
+  expectedBinding: bindingSchema.optional(),
+}).strict().refine(
+  (assertion) => (assertion.expected === undefined) !== (assertion.expectedBinding === undefined),
+  { message: 'Bootstrap assertion requires exactly one of expected or expectedBinding' },
+);
+
 export const chainBindingSchema = z
   .object({
     logicalRole: z.string(), // e.g. "local", "testnet", "mainnet"
@@ -198,6 +244,15 @@ export const environmentSchema = z
       )
       .optional(),
     deploymentOrder: z.array(z.string()), // explicit order of logical contract ids
+    /** Explicit application roots eligible for registry handoff; does not imply admission. */
+    registryRoots: z.array(z.string()).default([]),
+    /** Marks generated registry candidates as non-production synthetic output. */
+    localOnly: z.boolean().default(false),
+    /** Named addresses supplied by the environment, such as a canonical token. */
+    externalAddresses: z.record(z.string(), z.string()).optional(),
+    /** Constrained initial wiring only; not a general lifecycle/workflow language. */
+    bootstrapActions: z.array(bootstrapActionSchema).default([]),
+    bootstrapAssertions: z.array(bootstrapAssertionSchema).default([]),
   })
   .strict();
 

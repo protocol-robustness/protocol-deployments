@@ -20,6 +20,8 @@ export interface ConfigPaths {
   architecture?: string;
   governance?: string;
   verification?: string;
+  /** Optional isolated configuration profile directory. */
+  profileDir?: string;
 }
 
 function parseWith<T extends z.ZodTypeAny>(schema: T, value: unknown, label: string): z.infer<T> {
@@ -47,7 +49,8 @@ export function loadConfig(cfg: ConfigPaths): LoadedConfig {
     governance: 'governance.edn',
     verification: 'verification.edn',
   };
-  const join = (f: string) => path.join(cfg.configDir, f);
+  const baseDir = cfg.profileDir ?? cfg.configDir;
+  const join = (f: string) => path.join(baseDir, f);
 
   const architecture = parseWith(
     architectureSchema,
@@ -79,8 +82,9 @@ export function loadConfig(cfg: ConfigPaths): LoadedConfig {
 export function loadEnvironment(
   configDir: string,
   environmentName: string,
+  profileDir?: string,
 ): RawEnvironment {
-  const p = path.join(configDir, 'environments', `${environmentName}.edn`);
+  const p = path.join(profileDir ?? configDir, 'environments', `${environmentName}.edn`);
   const raw = readEdnFile(p) as Record<string, unknown>;
   const chain = raw.chain as Record<string, unknown> | undefined;
   if (chain && typeof chain === 'object' && 'network' in chain) {

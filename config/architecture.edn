@@ -35,14 +35,25 @@
     :parameters
     { :name            {:value "Protocol Governance Token" :mutability :immutable}
       :symbol          {:value "PRF"                      :mutability :immutable}
-      :initialSupply   {:value 1000000000000000000000000N :mutability :immutable}}}
+      :initialSupply   {:value 1000000000000000000000000N :mutability :immutable}
+      }
+    :constructorBindings
+    { :name {:parameter :name}
+      :symbol {:parameter :symbol}
+      :initialOwner {:deployer true}
+      :initialSupply {:parameter :initialSupply}}}
 
    :shared/timelock
    {:scope :shared
     :artifactSource :sew/deployables
     :artifact "TimelockController"
     :parameters
-    { :minDelaySec {:value 86400 :mutability :immutable}}}
+    { :minDelaySec {:value 86400 :mutability :immutable}}
+    :constructorBindings
+    { :minDelay {:parameter :minDelaySec}
+      :proposers {:array []}
+      :executors {:array [{:literal "0x0000000000000000000000000000000000000000"}]}
+      :admin {:deployer true}}}
 
    :shared/governor
    {:scope :shared
@@ -57,21 +68,39 @@
                            :constraint {:range [0N 100000000000000000000000N]}}
       :quorum             {:value 4000000000000000000000000N
                            :mutability :governed
-                           :constraint {:range [0N 5000000000000000000000000N]}}}}
+                           :constraint {:range [0N 5000000000000000000000000N]}}
+      }
+    :constructorBindings
+    { :token {:contractAddress :shared/governance-token}
+      :timelock {:contractAddress :shared/timelock}
+      :votingDelayBlocks {:parameter :votingDelayBlocks}
+      :votingPeriodBlocks {:parameter :votingPeriodBlocks}
+      :proposalThresholdTokens {:parameter :proposalThreshold}
+      :absoluteQuorumTokens {:parameter :quorum}
+      :initialNonCirculatingAddresses {:array []}}}
 
    :prf/verifier-registry
    {:scope :prf
     :artifactSource :prf/deployables
     :artifact "PrfVerifierRegistry"
     :parameters
-    { :entryFee {:value 0N :mutability :governed :constraint {:range [0N 1000000000000000000N]}}}}
+    { :entryFee {:value 0N :mutability :governed :constraint {:range [0N 1000000000000000000N]}}
+      }
+    :constructorBindings
+    { :governor_ {:contractAddress :shared/governor}}}
 
    :prf/allocation-verifier
    {:scope :prf
     :artifactSource :prf/deployables
     :artifact "PrfRealizedAllocationVerifierAdapter"
     :parameters
-    { :verifierVersion {:value "v1.0.0" :mutability :immutable}}}
+    { :verifierVersion {:value "v1.0.0" :mutability :immutable}}
+    :constructorBindings
+    { :sp1Verifier_ {:deployer true}
+      :programVKey_ {:literal "0x0000000000000000000000000000000000000000000000000000000000000000"}
+      :programElfSha256_ {:literal "0x0000000000000000000000000000000000000000000000000000000000000000"}
+      :statementSchemaVersion_ {:parameter :verifierVersion}
+      :publicValuesSchema_ {:literal "v1"}}}
 
    :prf/statement-admission
    {:scope :prf
@@ -81,7 +110,14 @@
     :parameters
     { :maxStatementsPerBatch {:value 100N
                               :mutability :governed
-                              :constraint {:range [1N 1000N]}}}}
+                              :constraint {:range [1N 1000N]}}
+      }
+    :constructorBindings
+    { :genesis_ {:deployer true}
+      :configurationExecutor_ {:deployer true}
+      :verifierRegistry_ {:contractAddress :prf/verifier-registry}
+      :expectedConfigurationRoot_ {:literal "0x0000000000000000000000000000000000000000000000000000000000000000"}
+      :expectedConfigurationEpoch_ {:literal 0}}}
 
    :sew/escrow-vault
    {:scope :sew
@@ -91,7 +127,12 @@
     :parameters
     { :interestRateBps         {:value 500N  :mutability :governed :constraint {:range [0N 2000N]}}
       :liquidationThresholdBps {:value 8500N :mutability :governed :constraint {:range [5000N 9500N]}}
-      :maxProtocolFeeBps       {:value 200N  :mutability :governed :constraint {:range [0N 500N]}}}}
+      :maxProtocolFeeBps       {:value 200N  :mutability :governed :constraint {:range [0N 500N]}}
+      }
+    :constructorBindings
+    { :escrowFeeBps {:literal 0}
+      :feeAddress {:deployer true}
+      :moduleManagementAddress {:deployer true}}}
 
    :sew/decentralized-resolution-module
    {:scope :sew
@@ -102,4 +143,7 @@
     :parameters
     { :disputeStake {:value 100000000000000000000N
                      :mutability :governed
-                     :constraint {:range [10000000000000000000N 1000000000000000000000N]}}}}}}
+                     :constraint {:range [10000000000000000000N 1000000000000000000000N]}}
+      }
+    :constructorBindings
+    { :initialOwner {:deployer true}}}}}

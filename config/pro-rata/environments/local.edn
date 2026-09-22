@@ -1,0 +1,42 @@
+{:schemaVersion 1
+ :environment :pro-rata-local
+ :chain {:logicalRole :local :chainId 31337 :kind :local}
+ :deploymentOrder
+ [:prf/local-token
+  :prf/governance-authority
+  :prf/genesis
+  :prf/verifier-registry
+  :prf/configuration-executor
+  :prf/statement-admission
+  :prf/shortfall-reserve
+  :prf/pro-rata-allocator]
+ :registryRoots [:prf/shortfall-reserve :prf/pro-rata-allocator]
+ :localOnly true
+ :bootstrapActions
+ [{:id :prf/seal-genesis
+   :target :prf/genesis
+   :function "sealGenesis"
+   :args [{:literal "0x5555555555555555555555555555555555555555555555555555555555555555"}
+          {:runtimeCodeHash :prf/genesis}
+          {:runtimeCodeHash :prf/governance-authority}]}
+  {:id :shortfall/bind-allocator
+   :target :prf/shortfall-reserve
+   :function "bindAllocator"
+   :args [{:contractAddress :prf/pro-rata-allocator}]}]
+ :bootstrapAssertions
+ [{:id :prf/genesis-sealed
+   :target :prf/genesis
+   :function "isSealedState"
+   :args []
+   :expected true}
+  {:id :local/token-is-deployed
+   :target :prf/local-token
+   :function "totalSupply"
+   :args []
+   :expected 1000}
+  {:id :shortfall/allocator-bound
+   :target :prf/shortfall-reserve
+   :function "allocatorBound"
+   :args []
+   :expected true}
+]}

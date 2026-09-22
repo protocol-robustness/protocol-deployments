@@ -20,9 +20,10 @@ export function resolveDeployment(opts: {
   configDir: string;
   environment: string;
   fixtureRoot: string;
+  profileDir?: string;
 }): ResolvedDeploymentOutput {
-  const config = loadConfig({ configDir: opts.configDir });
-  const environment = loadEnvironment(opts.configDir, opts.environment);
+  const config = loadConfig({ configDir: opts.configDir, profileDir: opts.profileDir });
+  const environment = loadEnvironment(opts.configDir, opts.environment, opts.profileDir);
   const bundle = new BundleConsumer(new FixtureBundleLocator(opts.fixtureRoot));
 
   const spec = resolve(

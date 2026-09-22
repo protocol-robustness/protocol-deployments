@@ -1,0 +1,88 @@
+{:schemaVersion 1
+ :artifactSources
+ {:prf/deployables
+  {:package "@protocol-robustness/prf-evm-deployables"
+   :version "0.1.0"
+   :sourceRepo "protocol-robustness/prf-evm"
+   :kind :npm}}
+ :contracts
+ {:prf/local-token
+  {:scope :prf
+   :artifactSource :prf/deployables
+   :artifact "LocalSnapshotToken"
+   :constructorBindings
+   {:recipient {:deployer true}}}
+
+  :prf/governance-authority
+  {:scope :prf
+   :artifactSource :prf/deployables
+   :artifact "PrfLocalAuthorityAdapter"
+   :constructorBindings
+   {:protocolGenesisRoot_ {:literal "0x1111111111111111111111111111111111111111111111111111111111111111"}
+    :governor_ {:deployer true}
+    :initialAuthorityStateRoot_ {:literal "0x2222222222222222222222222222222222222222222222222222222222222222"}}}
+
+  :prf/genesis
+  {:scope :prf
+   :artifactSource :prf/deployables
+   :artifact "PrfChainInstanceGenesis"
+   :relationships {:dependsOn [:prf/governance-authority]}
+   :constructorBindings
+   {:protocolGenesisRoot_ {:literal "0x1111111111111111111111111111111111111111111111111111111111111111"}
+    :executionChainId_ {:literal 31337}
+    :settlementChainId_ {:literal 31337}
+    :authorityAdapter_ {:contractAddress :prf/governance-authority}
+    :initialAuthorityStateRoot_ {:literal "0x2222222222222222222222222222222222222222222222222222222222222222"}
+    :initialConfigurationRoot_ {:literal "0x3333333333333333333333333333333333333333333333333333333333333333"}
+    :sealer_ {:deployer true}}}
+
+  :prf/verifier-registry
+  {:scope :prf
+   :artifactSource :prf/deployables
+   :artifact "PrfVerifierRegistry"
+   :constructorBindings {:governor_ {:deployer true}}}
+
+  :prf/configuration-executor
+  {:scope :prf
+   :artifactSource :prf/deployables
+   :artifact "SewConfigurationExecutor"
+   :relationships {:dependsOn [:prf/genesis :prf/verifier-registry]}
+   :constructorBindings
+   {:genesis_ {:contractAddress :prf/genesis}
+    :authority_ {:contractAddress :prf/governance-authority}
+    :verifierRegistry_ {:contractAddress :prf/verifier-registry}
+    :initialVerifierRegistryRoot_ {:literal "0x4444444444444444444444444444444444444444444444444444444444444444"}}}
+
+  :prf/statement-admission
+  {:scope :prf
+   :artifactSource :prf/deployables
+   :artifact "PrfStatementAdmission"
+   :relationships {:dependsOn [:prf/genesis :prf/configuration-executor :prf/verifier-registry]}
+   :constructorBindings
+   {:genesis_ {:contractAddress :prf/genesis}
+    :configurationExecutor_ {:contractAddress :prf/configuration-executor}
+    :verifierRegistry_ {:contractAddress :prf/verifier-registry}
+    :expectedConfigurationRoot_ {:literal "0x3333333333333333333333333333333333333333333333333333333333333333"}
+    :expectedConfigurationEpoch_ {:literal 0}}}
+
+  :prf/shortfall-reserve
+  {:scope :prf
+   :artifactSource :prf/deployables
+   :artifact "OnchainShortfallReserveV1"
+   :parameters
+   {:protectedCapital {:value 0N :mutability :immutable}
+    :reservationWindowSeconds {:value 86400 :mutability :immutable}}
+   :constructorBindings
+   {:token_ {:contractAddress :prf/local-token}
+    :applicationAuthority_ {:deployer true}
+    :protectedCapital_ {:parameter :protectedCapital}
+    :reservationWindow_ {:parameter :reservationWindowSeconds}}}
+
+  :prf/pro-rata-allocator
+  {:scope :prf
+   :artifactSource :prf/deployables
+   :artifact "ProductionProRataAllocatorV1"
+   :relationships {:dependsOn [:prf/shortfall-reserve]}
+   :constructorBindings
+   {:admission_ {:contractAddress :prf/statement-admission}
+    :authority_ {:contractAddress :prf/shortfall-reserve}}}}}

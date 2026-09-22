@@ -18,6 +18,41 @@ deployment engine (JSON-RPC)
 immutable deployment record / observed results
 ```
 
+## Ownership boundary — frozen
+
+**Deployment Ledger owns deployment through bootstrap verification; registry releases own discovery and selection; PRF derives and proves mutable protocol state from registered roots rather than duplicating it.**
+
+This boundary is intentional and frozen. New functionality must not move registry, protocol-state, or evidentiary responsibilities into this repository merely because deployment knows the original installation details.
+
+### Deployment Ledger owns
+
+- deployment configuration and frozen architecture/execution specifications;
+- pinned artifact and runtime-code identity;
+- typed constructor and bootstrap bindings;
+- deployment transaction execution;
+- bootstrap-only initialization actions;
+- durable submission, confirmation, verification, failure, and resume records;
+- post-deployment assertions and genesis sealing;
+- immutable deployment manifests;
+- small registry-binding candidate production.
+
+### Deployment Ledger does not own
+
+- registry admission or admission policy;
+- canonical protocol selection or release selection;
+- scope, cohort, or applicability interpretation;
+- present-tense or `active` protocol state;
+- later governance transitions;
+- ownership, guardian, fee, cap, or module changes after bootstrap;
+- chain-state projections;
+- research/evidentiary claims or attestations;
+- registry query databases, indexes, or APIs;
+- generic lifecycle/category/tag infrastructure.
+
+This repository therefore ends its authority at an immutable deployment manifest and an optional registry-binding candidate. Post-genesis protocol state is never maintained as mutable Deployment Ledger truth. The Ledger may observe post-genesis state for deployment verification, but registry semantics and subsequent protocol-state claims belong to downstream consumers such as PRF.
+
+A candidate is a deterministic projection of the sealed manifest plus an explicit candidate projection/schema. Its `candidateRoot` commits the manifest root, filtering projection, local-only classification, and selected roots. It is a handoff artifact, not an admission decision. PRF/registry tooling owns admission, discovery, selection, scope semantics, mutable-state derivation, claims, and attestations.
+
 ## Runtime boundary
 
 The **canonical world** (architecture/governance/verification/environment EDN →
@@ -230,8 +265,9 @@ npm run deploy:local       # resolve + deploy against the local runtime, write d
   `sew-protocol` and `prf-evm` exporters (schema/hash aligned).
 - **Phase 3:** chain-vs-runtime separation; JSON-RPC transport + signer
   abstraction; Anvil local runtime with persistent state; deployment engine
-  (raw signed txs, runtime-code verification, CREATE2 mode); immutable
-  deployment record. Hardhat removed (independent path proven).
+  (raw signed txs and runtime-code verification); immutable deployment evidence.
+  CREATE2 is deliberately disabled until a concrete factory protocol is needed and
+  implemented end-to-end. Hardhat removed (independent path proven).
 
 ## PRF compatibility
 

@@ -6,6 +6,7 @@ import type {
   RawLogicalContract,
   RawParameter,
   RawArtifactSource,
+  RawBinding,
   RawEnvironment,
   RelationshipKey,
 } from './config/raw-types';
@@ -24,6 +25,7 @@ import type {
   ResolvedDeploymentPlan,
   DeploymentPlanStep,
   ResolvedRelationship,
+  ResolvedBinding,
 } from './canonical';
 
 const REL: readonly RelationshipKey[] = REL_KEYS;
@@ -57,6 +59,38 @@ function paramValueToJson(v: RawParameter['value']): string | number | boolean {
 
 function bigintToJson(v: bigint): string {
   return v.toString();
+}
+
+function resolveBinding(
+  binding: RawBinding,
+  logicalId: string,
+  parameters: Record<string, RawParameter>,
+  contractIds: ReadonlySet<string>,
+  externalAddresses: Record<string, string> | undefined,
+): ResolvedBinding {
+  if ('literal' in binding) return { kind: 'literal', value: paramValueToJson(binding.literal) };
+  if ('parameter' in binding) {
+    if (!parameters[binding.parameter]) {
+      throw new ConfigError('UNKNOWN_BINDING_PARAMETER', `Constructor binding '${logicalId}.${binding.parameter}' references an undeclared parameter`);
+    }
+    return { kind: 'parameter', parameter: binding.parameter };
+  }
+  if ('contractAddress' in binding) {
+    requireKnown(binding.contractAddress, contractIds, 'UNKNOWN_BINDING_CONTRACT', 'constructor binding contract');
+    return { kind: 'contract-address', contract: binding.contractAddress };
+  }
+  if ('runtimeCodeHash' in binding) {
+    requireKnown(binding.runtimeCodeHash, contractIds, 'UNKNOWN_BINDING_CONTRACT', 'runtime code hash binding contract');
+    return { kind: 'runtime-code-hash', contract: binding.runtimeCodeHash };
+  }
+  if ('deployer' in binding) return { kind: 'deployer' };
+  if ('externalAddress' in binding) {
+    if (!externalAddresses?.[binding.externalAddress]) {
+      throw new ConfigError('UNKNOWN_EXTERNAL_ADDRESS', `Constructor binding '${logicalId}' references unknown external address '${binding.externalAddress}'`);
+    }
+    return { kind: 'external-address', name: binding.externalAddress };
+  }
+  return { kind: 'array', values: binding.array.map((v) => resolveBinding(v, logicalId, parameters, contractIds, externalAddresses)) };
 }
 
 export function resolve(input: ResolveInput, options: ResolveOptions = {}): ResolvedSpec {
@@ -161,6 +195,7 @@ export function resolve(input: ResolveInput, options: ResolveOptions = {}): Reso
   // 8. Resolve deployment order (explicit) + dependency satisfaction.
   // ---------------------------------------------------------------------
   const deployment = resolveDeploymentOrder(environment, contractIds, rawContracts);
+  validateConstructorBindings(rawContracts, artifacts, deployment);
 
   // ---------------------------------------------------------------------
   // 9. Assemble resolved contracts.
@@ -207,6 +242,12 @@ export function resolve(input: ResolveInput, options: ResolveOptions = {}): Reso
       artifactName: rc.artifact,
       artifact,
       parameters,
+      constructorBindings: rc.constructorBindings
+        ? Object.fromEntries(Object.entries(rc.constructorBindings).map(([name, binding]) => [
+            name,
+            resolveBinding(binding, logicalId, params, contractIds, environment.externalAddresses),
+          ]))
+        : undefined,
       relationships,
       deploymentOrder: orderOf[logicalId] ?? 0,
       governedByGroups: governanceResult.contractToGroups[logicalId] ?? [],
@@ -228,6 +269,7 @@ export function resolve(input: ResolveInput, options: ResolveOptions = {}): Reso
     specVersion: 1,
     environment: environment.environment,
     chain,
+    externalAddresses: environment.externalAddresses,
     artifacts,
     contracts,
     governance: governanceResult.governance,
@@ -240,6 +282,41 @@ export function resolve(input: ResolveInput, options: ResolveOptions = {}): Reso
   };
 
   return spec;
+}
+
+function validateConstructorBindings(
+  contracts: Record<string, RawLogicalContract>,
+  artifacts: Record<string, ResolvedArtifact>,
+  deployment: ResolvedDeploymentPlan,
+): void {
+  const order = Object.fromEntries(deployment.steps.map((step) => [step.logicalId, step.order]));
+  for (const [logicalId, contract] of Object.entries(contracts)) {
+    if (!contract.constructorBindings) continue;
+    const artifact = artifacts[`${contract.artifactSource}/${contract.artifact}`]!;
+    const constructor = (artifact.abi as Array<{ type?: string; inputs?: Array<{ name?: string }> }>).find((entry) => entry.type === 'constructor');
+    const inputs = constructor?.inputs ?? [];
+    const expected = new Set(inputs.map((input) => input.name ?? ''));
+    for (const name of Object.keys(contract.constructorBindings)) {
+      if (!expected.has(name)) throw new ConfigError('UNKNOWN_CONSTRUCTOR_BINDING', `Constructor binding '${logicalId}.${name}' is not an ABI input`);
+    }
+    for (const input of inputs) {
+      if (!input.name || !contract.constructorBindings[input.name]) {
+        throw new ConfigError('UNRESOLVED_CONSTRUCTOR_ARG', `Constructor input '${input.name ?? '<unnamed>'}' for '${logicalId}' has no typed binding`);
+      }
+    }
+    const checkOrder = (binding: RawBinding): void => {
+      if ('contractAddress' in binding || 'runtimeCodeHash' in binding) {
+        const referenced = 'contractAddress' in binding ? binding.contractAddress : binding.runtimeCodeHash;
+        const referencedOrder = order[referenced];
+        const currentOrder = order[logicalId];
+        if (referencedOrder === undefined || currentOrder === undefined || referencedOrder >= currentOrder) {
+          throw new ConfigError('CONSTRUCTOR_BINDING_ORDER', `Constructor binding '${logicalId}' references '${referenced}' before it is deployed`);
+        }
+      }
+      if ('array' in binding) binding.array.forEach(checkOrder);
+    };
+    Object.values(contract.constructorBindings).forEach(checkOrder);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -463,8 +540,11 @@ function resolveVerification(
 function resolveDeploymentOrder(
   environment: RawEnvironment,
   contractIds: ReadonlySet<string>,
-  contracts: Record<string, RawLogicalContract>,
+  rawContracts: Record<string, RawLogicalContract>,
 ): ResolvedDeploymentPlan {
+  for (const root of environment.registryRoots) {
+    requireKnown(root, contractIds, 'UNKNOWN_REGISTRY_ROOT', 'registry root');
+  }
   const order = environment.deploymentOrder;
   const seen = new Set<string>();
   const steps: DeploymentPlanStep[] = [];
@@ -483,7 +563,7 @@ function resolveDeploymentOrder(
     }
     seen.add(id);
 
-    const dependsOn = contracts[id]?.relationships?.dependsOn ?? [];
+    const dependsOn = rawContracts[id]?.relationships?.dependsOn ?? [];
     const prior = order.slice(0, idx);
     const priorSet = new Set(prior);
     for (const d of dependsOn) {
@@ -507,5 +587,32 @@ function resolveDeploymentOrder(
     }
   }
 
-  return { steps, chainId: environment.chain.chainId };
+  const resolveBootstrap = (action: { id: string; target: string; function: string; args: RawBinding[] }) => {
+    requireKnown(action.target, contractIds, 'UNKNOWN_LOGICAL_CONTRACT', 'bootstrap action target');
+    return {
+      id: action.id,
+      target: action.target,
+      function: action.function,
+      args: action.args.map((binding) => resolveBinding(
+        binding,
+        action.target,
+        rawContracts[action.target]?.parameters ?? {},
+        contractIds,
+        environment.externalAddresses,
+      )),
+    };
+  };
+  return {
+    steps,
+    chainId: environment.chain.chainId,
+    bootstrapActions: environment.bootstrapActions.map(resolveBootstrap),
+    bootstrapAssertions: environment.bootstrapAssertions.map((assertion) => ({
+      ...resolveBootstrap(assertion),
+      expected: assertion.expectedBinding
+        ? resolveBinding(assertion.expectedBinding, assertion.target, {}, contractIds, environment.externalAddresses)
+        : paramValueToJson(assertion.expected!),
+    })), 
+    registryRoots: environment.registryRoots,
+    localOnly: environment.localOnly,
+  };
 }

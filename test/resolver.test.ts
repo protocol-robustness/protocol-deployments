@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { resolveEdn } from './helpers';
 import { resolveDeployment } from '../src/resolve-deployment';
 import { CONFIG_DIR, FIXTURE_ROOT } from './helpers';
+import * as path from 'path';
+import { materializeExecutionSpec } from '../src/deployment/execution-spec';
 
 describe('resolver happy path', () => {
   it('resolves the baseline into a fully explicit spec', () => {
@@ -36,10 +38,65 @@ describe('resolver happy path', () => {
     expect(out.spec.chain.logicalRole).toBe('testnet');
   });
 
+  it('resolves runtime-code-hash bootstrap bindings and preserves them in the execution spec', () => {
+    const out = resolveDeployment({
+      configDir: CONFIG_DIR,
+      environment: 'local',
+      profileDir: path.join(CONFIG_DIR, 'pro-rata'),
+      fixtureRoot: FIXTURE_ROOT,
+    });
+    const seal = out.spec.deployment.bootstrapActions!.find((action) => action.id === 'prf/seal-genesis');
+    expect(seal).toBeDefined();
+    expect(seal!.args[1]).toEqual({ kind: 'runtime-code-hash', contract: 'prf/genesis' });
+    expect(seal!.args[2]).toEqual({ kind: 'runtime-code-hash', contract: 'prf/governance-authority' });
+
+    const materialized = materializeExecutionSpec(out.spec, out.specHash, '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+    expect(materialized.executionSpecHash).toMatch(/^0x[0-9a-f]{64}$/);
+  });
+
   it('spec hash is deterministic across runs', () => {
     const a = resolveDeployment({ configDir: CONFIG_DIR, environment: 'local', fixtureRoot: FIXTURE_ROOT });
     const b = resolveDeployment({ configDir: CONFIG_DIR, environment: 'local', fixtureRoot: FIXTURE_ROOT });
     expect(a.specHash).toBe(b.specHash);
     expect(a.canonicalJson).toBe(b.canonicalJson);
+  });
+
+  it('keeps the V2 optimistic Shortfall profile distinct from the stable V1 profile', () => {
+    const v1 = resolveDeployment({
+      configDir: CONFIG_DIR,
+      environment: 'local',
+      profileDir: path.join(CONFIG_DIR, 'pro-rata'),
+      fixtureRoot: FIXTURE_ROOT,
+    });
+    const v2 = resolveDeployment({
+      configDir: CONFIG_DIR,
+      environment: 'local',
+      profileDir: path.join(CONFIG_DIR, 'pro-rata-v2-ratification'),
+      fixtureRoot: FIXTURE_ROOT,
+    });
+
+    expect(v1.specHash).not.toBe(v2.specHash);
+    expect(v1.spec.deployment.registryRoots).toEqual(['prf/shortfall-reserve', 'prf/pro-rata-allocator']);
+    expect(v2.spec.deployment.registryRoots).toEqual([
+      'shortfall/source-bound-assurance-v2',
+      'shortfall/ratification-controller-v2',
+      'shortfall/shortfall-reserve-v2',
+      'shortfall/pro-rata-allocator-v2',
+    ]);
+    expect(v2.spec.deployment.localOnly).toBe(true);
+    expect(v2.spec.contracts['shortfall/pro-rata-allocator-v2']?.artifactName).toBe('ProductionProRataAllocatorV2');
+    expect(v2.spec.contracts['shortfall/source-bound-assurance-v2']?.constructorBindings?.sourceAdapter_)
+      .toEqual({ kind: 'contract-address', contract: 'prf/source-bound-verifier-adapter-v2' });
+  });
+
+  it('resolves typed final assertion bindings for the V2 topology', () => {
+    const { spec } = resolveDeployment({
+      configDir: CONFIG_DIR,
+      environment: 'local',
+      profileDir: path.join(CONFIG_DIR, 'pro-rata-v2-ratification'),
+      fixtureRoot: FIXTURE_ROOT,
+    });
+    const authority = spec.deployment.bootstrapAssertions?.find((assertion) => assertion.id === 'shortfall-v2/allocator-funding-authority');
+    expect(authority?.expected).toEqual({ kind: 'contract-address', contract: 'shortfall/shortfall-reserve-v2' });
   });
 });

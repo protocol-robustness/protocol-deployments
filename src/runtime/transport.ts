@@ -69,6 +69,10 @@ export class RpcTransport {
     }
   }
 
+  async call(req: CallRequest): Promise<Hex> {
+    return this.publicClient.call({ ...req, account: req.from }).then((result) => result.data ?? '0x');
+  }
+
   async estimateGas(req: CallRequest): Promise<bigint> {
     return this.publicClient.estimateGas({ ...req, account: req.from });
   }

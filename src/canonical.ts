@@ -36,6 +36,16 @@ export interface ResolvedRelationship {
   target: string; // logical contract id
 }
 
+/** Closed binding vocabulary retained in the frozen intent, then materialized per execution. */
+export type ResolvedBinding =
+  | { kind: 'literal'; value: string | number | boolean }
+  | { kind: 'parameter'; parameter: string }
+  | { kind: 'contract-address'; contract: string }
+  | { kind: 'runtime-code-hash'; contract: string }
+  | { kind: 'deployer' }
+  | { kind: 'external-address'; name: string }
+  | { kind: 'array'; values: ResolvedBinding[] };
+
 export interface ResolvedContract {
   logicalId: string;
   scope: Scope;
@@ -43,6 +53,8 @@ export interface ResolvedContract {
   artifactName: string;
   artifact: ResolvedArtifact;
   parameters: ResolvedParameter[];
+  /** Explicit ABI-input bindings. Absence preserves legacy parameter-name binding. */
+  constructorBindings?: Record<string, ResolvedBinding>;
   relationships: ResolvedRelationship[];
   deploymentOrder: number;
   /** governance groups that govern parameters on this contract (derived). */
@@ -124,8 +136,26 @@ export interface DeploymentPlanStep {
   dependsOn: string[];
 }
 
+export interface ResolvedBootstrapAction {
+  id: string;
+  target: string;
+  function: string;
+  args: ResolvedBinding[];
+}
+
+export interface ResolvedBootstrapAssertion extends ResolvedBootstrapAction {
+  /** A scalar literal or typed binding, resolved only during final verification. */
+  expected: string | number | boolean | ResolvedBinding;
+}
+
 export interface ResolvedDeploymentPlan {
   steps: DeploymentPlanStep[];
+  bootstrapActions?: ResolvedBootstrapAction[];
+  bootstrapAssertions?: ResolvedBootstrapAssertion[];
+  /** Explicit application roots eligible for registry handoff. */
+  registryRoots?: string[];
+  /** Whether registry candidates from this environment are synthetic/local only. */
+  localOnly?: boolean;
   /** chain id declared in config; the execution layer must verify the
    *  connected RPC reports this same chain id. */
   chainId: number;
@@ -135,6 +165,7 @@ export interface ResolvedSpec {
   specVersion: number;
   environment: string;
   chain: ResolvedChain;
+  externalAddresses?: Record<string, string>;
   artifacts: Record<string, ResolvedArtifact>; // keyed by "sourceId/artifactName"
   contracts: Record<string, ResolvedContract>; // keyed by logicalId
   governance: ResolvedGovernance;

@@ -19,8 +19,9 @@ function main(): void {
 
   const configDir = arg('config-dir') ?? path.resolve(process.cwd(), 'config');
   const fixtureRoot = arg('fixtures') ?? path.resolve(process.cwd(), 'fixtures', 'packages');
+  const profileDir = arg('profile') ? path.resolve(process.cwd(), arg('profile')!) : undefined;
 
-  const out = resolveDeployment({ configDir, environment, fixtureRoot });
+  const out = resolveDeployment({ configDir, environment, fixtureRoot, profileDir });
 
   const outPath =
     arg('out') ?? path.resolve(process.cwd(), 'deployments', `${environment}.resolved.json`);
