@@ -45,8 +45,14 @@ export class RpcTransport {
     return this.publicClient.getBlockNumber();
   }
 
-  async getCode(address: Address): Promise<Hex | undefined> {
-    return this.publicClient.getCode({ address });
+  async getBlock(blockNumber?: bigint): Promise<{ number: bigint; hash: Hex }> {
+    const block = await this.publicClient.getBlock(blockNumber === undefined ? {} : { blockNumber });
+    if (block.number === null || block.hash === null) throw new Error('RPC returned an incomplete block identity');
+    return { number: block.number, hash: block.hash };
+  }
+
+  async getCode(address: Address, blockNumber?: bigint): Promise<Hex | undefined> {
+    return this.publicClient.getCode(blockNumber === undefined ? { address } : { address, blockNumber });
   }
 
   async getTransactionCount(address: Address): Promise<number> {
@@ -69,8 +75,8 @@ export class RpcTransport {
     }
   }
 
-  async call(req: CallRequest): Promise<Hex> {
-    return this.publicClient.call({ ...req, account: req.from }).then((result) => result.data ?? '0x');
+  async call(req: CallRequest, blockNumber?: bigint): Promise<Hex> {
+    return this.publicClient.call({ ...req, account: req.from, blockNumber }).then((result) => result.data ?? '0x');
   }
 
   async estimateGas(req: CallRequest): Promise<bigint> {

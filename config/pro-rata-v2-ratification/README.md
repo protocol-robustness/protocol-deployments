@@ -8,6 +8,13 @@ allocation profile.
 npm run resolve:pro-rata-v2-ratification-local
 npm run devnet:reset
 npm run deploy:pro-rata-v2-ratification-local
+
+# Against the still-running local chain, verify the sealed manifest again at a
+# pinned live block and emit a separate immutable verification artifact.
+npm run verify:live -- \
+  --manifest deployments/<manifest>.deployment-manifest.v1.json \
+  --resolved deployments/pro-rata-v2-ratification-local.resolved.json \
+  --rpc-url http://127.0.0.1:8545
 ```
 
 The local profile deploys and runtime-verifies:
@@ -20,6 +27,12 @@ The local profile deploys and runtime-verifies:
 - the V2 allocator, reserve, assurance, and ratification controller;
 - the allocator → reserve, assurance → ratification-controller, and reserve →
   ratification-controller one-time bindings.
+
+The resolved profile also carries typed read-only assertions for those bindings,
+all V2 controller relationships, the adapter's verifier/program/schema identity,
+and genesis sealing. `verify:live` evaluates those assertions against the exact
+block recorded in its verification artifact; it does not update the deployment
+manifest or create protocol lifecycle state.
 
 Its registry-binding candidate contains only the V2 assurance, ratification
 controller, reserve, and allocator roots, and is marked `localOnly: true`.

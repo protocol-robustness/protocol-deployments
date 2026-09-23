@@ -20,7 +20,8 @@
     "devnet:reset": "ts-node src/cli/devnet.ts reset local",
     "devnet:status": "ts-node src/cli/devnet.ts status local",
     "deploy:local": "ts-node src/cli/deploy.ts local",
-    "deploy:base-sepolia": "ts-node src/cli/deploy.ts base-sepolia"
+    "deploy:base-sepolia": "ts-node src/cli/deploy.ts base-sepolia",
+    "verify:live": "ts-node src/cli/verify-live.ts"
   },
   "engines": {
     "node": ">=20"
