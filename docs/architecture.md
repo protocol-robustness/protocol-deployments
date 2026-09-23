@@ -53,6 +53,46 @@ This repository therefore ends its authority at an immutable deployment manifest
 
 A candidate is a deterministic projection of the sealed manifest plus an explicit candidate projection/schema. Its `candidateRoot` commits the manifest root, filtering projection, local-only classification, and selected roots. It is a handoff artifact, not an admission decision. PRF/registry tooling owns admission, discovery, selection, scope semantics, mutable-state derivation, claims, and attestations.
 
+## Pro-rata completion levels
+
+Deployment and protocol readiness are deliberately reported at separate levels:
+
+| Level | V1 | V2 optimistic Shortfall |
+|---|---|---|
+| Contract implementation and conformance | Complete | Complete/tested in `prf-evm` |
+| Deployable local topology | Complete | Complete: runtime-verified, bootstrap-bound, assertion-checked, manifest-sealed, candidate-producing |
+| Operational production proof-admission configuration | As applicable to the selected V1 verifier/configuration | Not activated by the Ledger local profile |
+
+### Named follow-up: V2 governed verifier activation
+
+The V2 local profile does not represent an operational production proof-admission
+configuration. The remaining transition is explicitly downstream of the Ledger:
+
+```text
+adaptor deployment fact
+        ↓
+verifier-registry entry/snapshot construction
+        ↓
+canonical registry-root commitment
+        ↓
+governed configuration transition
+        ↓
+sealed/selected verifier-registry state
+        ↓
+real V2 proof admission
+```
+
+This is the named work item **V2 governed verifier activation**. It must not be
+implemented as Deployment Ledger bootstrap, registry mutation, current-verifier
+tracking, or lifecycle state in this repository. The later Registry Admission /
+Observation work should verify the resulting selected adapter from a release and
+block-pinned chain observation.
+
+The current candidate model intentionally emits one candidate projection per
+sealed deployment manifest. A future concrete combined V1+V2 deployment may
+require one manifest to produce multiple independently rooted candidates; that
+is deferred until such a deployment exists.
+
 ## Runtime boundary
 
 The **canonical world** (architecture/governance/verification/environment EDN →

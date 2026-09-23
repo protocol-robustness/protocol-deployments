@@ -37,6 +37,11 @@ manifest or create protocol lifecycle state.
 Its registry-binding candidate contains only the V2 assurance, ratification
 controller, reserve, and allocator roots, and is marked `localOnly: true`.
 
+## Completion status
+
+This profile is complete at the contract-conformance and deployable-local-topology
+levels. It is not an operational production proof-admission configuration.
+
 ## Real-verifier identity
 
 The profile deploys the official SP1 Groth16 verifier and binds the V2
@@ -48,7 +53,7 @@ ELF SHA-256: 0x1994d8b67004de3d5dfffc176434ae63f3d7ac32ae875d72093943ff8e82247b
 verifier:    SP1VerifierGroth16 (sp1-contracts v6.1.0, sp1 release 6.3.1, Groth16)
 ```
 
-## Deliberate limit
+## Named follow-up: V2 governed verifier activation
 
 The profile does not claim that the V2 verifier entry is active in the PRF
 verifier-registry snapshot. That snapshot root commits the deployed adapter
@@ -58,3 +63,17 @@ later governed configuration transition, not a Deployment Ledger bootstrap
 action. The adapter is bound to the real verifier as a topology/proof-format
 fact, but real V2 proof admission also requires the governed configuration
 selection; it is not merely a mock fixture.
+
+The follow-up sequence is:
+
+```text
+adapter deployment fact
+  → verifier-registry entry/snapshot
+  → canonical registry root
+  → governed configuration transition
+  → sealed/selected registry state
+  → real V2 proof admission
+```
+
+That work belongs to PRF/registry tooling and governed protocol operations, not
+to Deployment Ledger bootstrap.
