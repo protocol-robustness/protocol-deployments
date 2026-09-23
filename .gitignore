@@ -2,6 +2,10 @@ node_modules/
 dist/
 cache/
 artifacts/
+# The real SEW/PRF exporter bundles under fixtures/packages are tracked (not ignored)
+# so that a fresh clone can resolve without re-running the exporters.
+!fixtures/packages/**/artifacts/
+!fixtures/packages/**/artifacts/**
 coverage/
 
 # Local deployment records and ledger state are never committed.

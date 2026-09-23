@@ -15,6 +15,8 @@
 
 ### Changed
 
+- Real SEW/PRF exporter bundles under `fixtures/packages/**/artifacts/` are now tracked in git (previously ignored by the bare `artifacts/` rule), so a fresh clone can `resolve:*` against the SEW/PRF fixtures without re-running the exporters.
+
 - Bootstrap actions are executed when their target and declared contract dependencies are available, rather than only after every deployment step.
 - CREATE2 remains explicitly unsupported until a concrete, verified factory deployment protocol is implemented.
 

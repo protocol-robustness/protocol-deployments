@@ -1,0 +1,58 @@
+{
+  "name": "SEWGovernor",
+  "abi": [
+    {
+      "type": "constructor",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        {
+          "name": "initialOwner",
+          "type": "address"
+        },
+        {
+          "name": "param0",
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "version",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "name",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "name": "SEWGovernorDeployed",
+      "inputs": [
+        {
+          "name": "who",
+          "type": "address",
+          "indexed": true
+        }
+      ],
+      "anonymous": false
+    }
+  ],
+  "bytecode": "0x60f96ef67f6d46ba4b6ef975cbf115ea0ad737314402e05dfe1884087881284880",
+  "deployedBytecode": "0x608592d48974adaa983a6a893334ecd17fb577ad8dfa4bc16d2c29f4e3fe9db500",
+  "metadata": "ipfs://mock-0.1.0-sewgovernor"
+}

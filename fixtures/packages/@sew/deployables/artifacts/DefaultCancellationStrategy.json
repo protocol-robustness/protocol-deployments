@@ -1,0 +1,253 @@
+{
+  "abi": [
+   {
+    "inputs": [
+     {
+      "internalType": "uint256",
+      "name": "workflowId",
+      "type": "uint256"
+    },
+     {
+      "internalType": "address",
+      "name": "caller",
+      "type": "address"
+    },
+     {
+      "components": [
+       {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+       {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+       {
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+       {
+        "internalType": "address",
+        "name": "disputeResolver",
+        "type": "address"
+      },
+       {
+        "internalType": "uint256",
+        "name": "amountAfterFee",
+        "type": "uint256"
+      },
+       {
+        "internalType": "uint64",
+        "name": "autoReleaseTime",
+        "type": "uint64"
+      },
+       {
+        "internalType": "uint64",
+        "name": "autoCancelTime",
+        "type": "uint64"
+      },
+       {
+        "internalType": "enum EscrowState",
+        "name": "escrowState",
+        "type": "uint8"
+      },
+       {
+        "internalType": "enum SenderStatus",
+        "name": "senderStatus",
+        "type": "uint8"
+      },
+       {
+        "internalType": "enum RecipientStatus",
+        "name": "recipientStatus",
+        "type": "uint8"
+      }
+     ],
+      "internalType": "struct EscrowTransfer",
+      "name": "et",
+      "type": "tuple"
+    }
+   ],
+    "name": "canCancel",
+    "outputs": [
+     {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "uint256",
+      "name": "workflowId",
+      "type": "uint256"
+    },
+     {
+      "internalType": "address",
+      "name": "caller",
+      "type": "address"
+    },
+     {
+      "components": [
+       {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+       {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+       {
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+       {
+        "internalType": "address",
+        "name": "disputeResolver",
+        "type": "address"
+      },
+       {
+        "internalType": "uint256",
+        "name": "amountAfterFee",
+        "type": "uint256"
+      },
+       {
+        "internalType": "uint64",
+        "name": "autoReleaseTime",
+        "type": "uint64"
+      },
+       {
+        "internalType": "uint64",
+        "name": "autoCancelTime",
+        "type": "uint64"
+      },
+       {
+        "internalType": "enum EscrowState",
+        "name": "escrowState",
+        "type": "uint8"
+      },
+       {
+        "internalType": "enum SenderStatus",
+        "name": "senderStatus",
+        "type": "uint8"
+      },
+       {
+        "internalType": "enum RecipientStatus",
+        "name": "recipientStatus",
+        "type": "uint8"
+      }
+     ],
+      "internalType": "struct EscrowTransfer",
+      "name": "et",
+      "type": "tuple"
+    }
+   ],
+    "name": "canCancelUnilaterally",
+    "outputs": [
+     {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+   ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "uint256",
+      "name": "workflowId",
+      "type": "uint256"
+    },
+     {
+      "internalType": "address",
+      "name": "caller",
+      "type": "address"
+    },
+     {
+      "internalType": "bool",
+      "name": "isSuccess",
+      "type": "bool"
+    }
+   ],
+    "name": "onCancelAttempt",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "uint256",
+      "name": "",
+      "type": "uint256"
+    }
+   ],
+    "name": "pendingCancel",
+    "outputs": [
+     {
+      "internalType": "address",
+      "name": "",
+      "type": "address"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes4",
+      "name": "interfaceId",
+      "type": "bytes4"
+    }
+   ],
+    "name": "supportsInterface",
+    "outputs": [
+     {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "uint256",
+      "name": "workflowId",
+      "type": "uint256"
+    },
+     {
+      "internalType": "address",
+      "name": "caller",
+      "type": "address"
+    }
+   ],
+    "name": "NotAuthorizedToCancelYet",
+    "type": "error"
+  }
+ ],
+  "bytecode": "0x60808060405234601557610333908161001a8239f35b5f80fdfe6080806040526004361015610012575f80fd5b5f3560e01c90816301ffc9a71461016a575080630eb1b6d81461014f5780633ccff1ba1461011e578063464bcce41461007a576371241e9814610053575f80fd5b3461007657602061006c610066366101a0565b916101eb565b6040519015158152f35b5f80fd5b34610076576060366003190112610076576024356001600160a01b0381169060043590829003610076576044358015158103610076575f828152602081905260409020546001600160a01b03166100f4576100d157005b5f525f60205260405f20906bffffffffffffffffffffffff60a01b825416179055005b9091506100fd57005b5f525f60205260405f206bffffffffffffffffffffffff60a01b8154169055005b34610076576020366003190112610076576004355f525f602052602060018060a01b0360405f205416604051908152f35b346100765761015d366101a0565b50505060206040515f8152f35b34610076576020366003190112610076576004359063ffffffff60e01b821680920361007657602091630e77992960e21b148152f35b61018060031982011261007657600435916024356001600160a01b0381168103610076576101409092604319011261007657604490565b356001600160a01b03811681036100765790565b6040830191906001600160a01b03610202846101d7565b6001600160a01b039093169216821415806102df575b6102d7575f908152602081905260409020546001600160a01b03169081156102ce576001600160a01b0361024b846101d7565b16811493846102af575b8415610263575b5050505090565b92935090916001600160a01b039061027d906020016101d7565b16149182610291575b50505f80808061025c565b9091506001600160a01b03906102a6906101d7565b16145f80610286565b93506001600160a01b036102c5602086016101d7565b16821493610255565b50505050600190565b505050505f90565b506001600160a01b036102f4602086016101d7565b1682141561021856fea2646970667358221220a9fcb9ba697aba762f0f50b5b1ea97640c3f14e48423d3651b58f50d61e63e1964736f6c63430008250033",
+  "category": "governance",
+  "contractName": "DefaultCancellationStrategy",
+  "deployedBytecode": "0x6080806040526004361015610012575f80fd5b5f3560e01c90816301ffc9a71461016a575080630eb1b6d81461014f5780633ccff1ba1461011e578063464bcce41461007a576371241e9814610053575f80fd5b3461007657602061006c610066366101a0565b916101eb565b6040519015158152f35b5f80fd5b34610076576060366003190112610076576024356001600160a01b0381169060043590829003610076576044358015158103610076575f828152602081905260409020546001600160a01b03166100f4576100d157005b5f525f60205260405f20906bffffffffffffffffffffffff60a01b825416179055005b9091506100fd57005b5f525f60205260405f206bffffffffffffffffffffffff60a01b8154169055005b34610076576020366003190112610076576004355f525f602052602060018060a01b0360405f205416604051908152f35b346100765761015d366101a0565b50505060206040515f8152f35b34610076576020366003190112610076576004359063ffffffff60e01b821680920361007657602091630e77992960e21b148152f35b61018060031982011261007657600435916024356001600160a01b0381168103610076576101409092604319011261007657604490565b356001600160a01b03811681036100765790565b6040830191906001600160a01b03610202846101d7565b6001600160a01b039093169216821415806102df575b6102d7575f908152602081905260409020546001600160a01b03169081156102ce576001600160a01b0361024b846101d7565b16811493846102af575b8415610263575b5050505090565b92935090916001600160a01b039061027d906020016101d7565b16149182610291575b50505f80808061025c565b9091506001600160a01b03906102a6906101d7565b16145f80610286565b93506001600160a01b036102c5602086016101d7565b16821493610255565b50505050600190565b505050505f90565b506001600160a01b036102f4602086016101d7565b1682141561021856fea2646970667358221220a9fcb9ba697aba762f0f50b5b1ea97640c3f14e48423d3651b58f50d61e63e1964736f6c63430008250033",
+  "deployedLinkReferences": {},
+  "linkReferences": {},
+  "metadata": "eyJjb21waWxlciI6eyJ2ZXJzaW9uIjoiMC44LjM3K2NvbW1pdC5mNDAxNzgyZCJ9LCJsYW5ndWFnZSI6IlNvbGlkaXR5Iiwib3V0cHV0Ijp7ImFiaSI6W3siaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJ1aW50MjU2IiwibmFtZSI6IndvcmtmbG93SWQiLCJ0eXBlIjoidWludDI1NiJ9LHsiaW50ZXJuYWxUeXBlIjoiYWRkcmVzcyIsIm5hbWUiOiJjYWxsZXIiLCJ0eXBlIjoiYWRkcmVzcyJ9XSwidHlwZSI6ImVycm9yIiwibmFtZSI6Ik5vdEF1dGhvcml6ZWRUb0NhbmNlbFlldCJ9LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJ1aW50MjU2IiwibmFtZSI6IndvcmtmbG93SWQiLCJ0eXBlIjoidWludDI1NiJ9LHsiaW50ZXJuYWxUeXBlIjoiYWRkcmVzcyIsIm5hbWUiOiJjYWxsZXIiLCJ0eXBlIjoiYWRkcmVzcyJ9LHsiaW50ZXJuYWxUeXBlIjoic3RydWN0IEVzY3Jvd1RyYW5zZmVyIiwibmFtZSI6ImV0IiwidHlwZSI6InR1cGxlIiwiY29tcG9uZW50cyI6W3siaW50ZXJuYWxUeXBlIjoiYWRkcmVzcyIsIm5hbWUiOiJ0b2tlbiIsInR5cGUiOiJhZGRyZXNzIn0seyJpbnRlcm5hbFR5cGUiOiJhZGRyZXNzIiwibmFtZSI6InRvIiwidHlwZSI6ImFkZHJlc3MifSx7ImludGVybmFsVHlwZSI6ImFkZHJlc3MiLCJuYW1lIjoiZnJvbSIsInR5cGUiOiJhZGRyZXNzIn0seyJpbnRlcm5hbFR5cGUiOiJhZGRyZXNzIiwibmFtZSI6ImRpc3B1dGVSZXNvbHZlciIsInR5cGUiOiJhZGRyZXNzIn0seyJpbnRlcm5hbFR5cGUiOiJ1aW50MjU2IiwibmFtZSI6ImFtb3VudEFmdGVyRmVlIiwidHlwZSI6InVpbnQyNTYifSx7ImludGVybmFsVHlwZSI6InVpbnQ2NCIsIm5hbWUiOiJhdXRvUmVsZWFzZVRpbWUiLCJ0eXBlIjoidWludDY0In0seyJpbnRlcm5hbFR5cGUiOiJ1aW50NjQiLCJuYW1lIjoiYXV0b0NhbmNlbFRpbWUiLCJ0eXBlIjoidWludDY0In0seyJpbnRlcm5hbFR5cGUiOiJlbnVtIEVzY3Jvd1N0YXRlIiwibmFtZSI6ImVzY3Jvd1N0YXRlIiwidHlwZSI6InVpbnQ4In0seyJpbnRlcm5hbFR5cGUiOiJlbnVtIFNlbmRlclN0YXR1cyIsIm5hbWUiOiJzZW5kZXJTdGF0dXMiLCJ0eXBlIjoidWludDgifSx7ImludGVybmFsVHlwZSI6ImVudW0gUmVjaXBpZW50U3RhdHVzIiwibmFtZSI6InJlY2lwaWVudFN0YXR1cyIsInR5cGUiOiJ1aW50OCJ9XX1dLCJzdGF0ZU11dGFiaWxpdHkiOiJ2aWV3IiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImNhbkNhbmNlbCIsIm91dHB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJvb2wiLCJuYW1lIjoiIiwidHlwZSI6ImJvb2wifV19LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJ1aW50MjU2IiwibmFtZSI6IndvcmtmbG93SWQiLCJ0eXBlIjoidWludDI1NiJ9LHsiaW50ZXJuYWxUeXBlIjoiYWRkcmVzcyIsIm5hbWUiOiJjYWxsZXIiLCJ0eXBlIjoiYWRkcmVzcyJ9LHsiaW50ZXJuYWxUeXBlIjoic3RydWN0IEVzY3Jvd1RyYW5zZmVyIiwibmFtZSI6ImV0IiwidHlwZSI6InR1cGxlIiwiY29tcG9uZW50cyI6W3siaW50ZXJuYWxUeXBlIjoiYWRkcmVzcyIsIm5hbWUiOiJ0b2tlbiIsInR5cGUiOiJhZGRyZXNzIn0seyJpbnRlcm5hbFR5cGUiOiJhZGRyZXNzIiwibmFtZSI6InRvIiwidHlwZSI6ImFkZHJlc3MifSx7ImludGVybmFsVHlwZSI6ImFkZHJlc3MiLCJuYW1lIjoiZnJvbSIsInR5cGUiOiJhZGRyZXNzIn0seyJpbnRlcm5hbFR5cGUiOiJhZGRyZXNzIiwibmFtZSI6ImRpc3B1dGVSZXNvbHZlciIsInR5cGUiOiJhZGRyZXNzIn0seyJpbnRlcm5hbFR5cGUiOiJ1aW50MjU2IiwibmFtZSI6ImFtb3VudEFmdGVyRmVlIiwidHlwZSI6InVpbnQyNTYifSx7ImludGVybmFsVHlwZSI6InVpbnQ2NCIsIm5hbWUiOiJhdXRvUmVsZWFzZVRpbWUiLCJ0eXBlIjoidWludDY0In0seyJpbnRlcm5hbFR5cGUiOiJ1aW50NjQiLCJuYW1lIjoiYXV0b0NhbmNlbFRpbWUiLCJ0eXBlIjoidWludDY0In0seyJpbnRlcm5hbFR5cGUiOiJlbnVtIEVzY3Jvd1N0YXRlIiwibmFtZSI6ImVzY3Jvd1N0YXRlIiwidHlwZSI6InVpbnQ4In0seyJpbnRlcm5hbFR5cGUiOiJlbnVtIFNlbmRlclN0YXR1cyIsIm5hbWUiOiJzZW5kZXJTdGF0dXMiLCJ0eXBlIjoidWludDgifSx7ImludGVybmFsVHlwZSI6ImVudW0gUmVjaXBpZW50U3RhdHVzIiwibmFtZSI6InJlY2lwaWVudFN0YXR1cyIsInR5cGUiOiJ1aW50OCJ9XX1dLCJzdGF0ZU11dGFiaWxpdHkiOiJwdXJlIiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImNhbkNhbmNlbFVuaWxhdGVyYWxseSIsIm91dHB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJvb2wiLCJuYW1lIjoiIiwidHlwZSI6ImJvb2wifV19LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJ1aW50MjU2IiwibmFtZSI6IndvcmtmbG93SWQiLCJ0eXBlIjoidWludDI1NiJ9LHsiaW50ZXJuYWxUeXBlIjoiYWRkcmVzcyIsIm5hbWUiOiJjYWxsZXIiLCJ0eXBlIjoiYWRkcmVzcyJ9LHsiaW50ZXJuYWxUeXBlIjoiYm9vbCIsIm5hbWUiOiJpc1N1Y2Nlc3MiLCJ0eXBlIjoiYm9vbCJ9XSwic3RhdGVNdXRhYmlsaXR5Ijoibm9ucGF5YWJsZSIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJvbkNhbmNlbEF0dGVtcHQifSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoidWludDI1NiIsIm5hbWUiOiIiLCJ0eXBlIjoidWludDI1NiJ9XSwic3RhdGVNdXRhYmlsaXR5IjoidmlldyIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJwZW5kaW5nQ2FuY2VsIiwib3V0cHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYWRkcmVzcyIsIm5hbWUiOiIiLCJ0eXBlIjoiYWRkcmVzcyJ9XX0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzNCIsIm5hbWUiOiJpbnRlcmZhY2VJZCIsInR5cGUiOiJieXRlczQifV0sInN0YXRlTXV0YWJpbGl0eSI6InZpZXciLCJ0eXBlIjoiZnVuY3Rpb24iLCJuYW1lIjoic3VwcG9ydHNJbnRlcmZhY2UiLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJib29sIiwibmFtZSI6IiIsInR5cGUiOiJib29sIn1dfV0sImRldmRvYyI6eyJraW5kIjoiZGV2IiwibWV0aG9kcyI6eyJjYW5DYW5jZWwodWludDI1NixhZGRyZXNzLChhZGRyZXNzLGFkZHJlc3MsYWRkcmVzcyxhZGRyZXNzLHVpbnQyNTYsdWludDY0LHVpbnQ2NCx1aW50OCx1aW50OCx1aW50OCkpIjp7ImRldGFpbHMiOiJGaXJzdCBjYWxsZXIgKGFueSBwYXJ0aWNpcGFudCk6IGNhbiBpbml0aWF0ZSByZXF1ZXN0U2Vjb25kIGNhbGxlciAob3RoZXIgcGFydGljaXBhbnQpOiBjYW4gZXhlY3V0ZSJ9LCJvbkNhbmNlbEF0dGVtcHQodWludDI1NixhZGRyZXNzLGJvb2wpIjp7ImRldGFpbHMiOiJTdG9yZXMgaW5pdGlhdGluZyBwYXJ0eSBvbiBmaXJzdCBjYWxsLCBjbGVhcnMgb24gc3VjY2Vzc2Z1bCBzZWNvbmQgY2FsbCJ9LCJzdXBwb3J0c0ludGVyZmFjZShieXRlczQpIjp7InBhcmFtcyI6eyJpbnRlcmZhY2VJZCI6IlRoZSBpbnRlcmZhY2UgaWRlbnRpZmllciwgYXMgc3BlY2lmaWVkIGluIEVSQy0xNjUifSwicmV0dXJucyI6eyJfMCI6IlRydWUgaWYgdGhlIGNvbnRyYWN0IGltcGxlbWVudHMgaW50ZXJmYWNlSWQifX19LCJ2ZXJzaW9uIjoxfSwidXNlcmRvYyI6eyJraW5kIjoidXNlciIsIm1ldGhvZHMiOnsiY2FuQ2FuY2VsKHVpbnQyNTYsYWRkcmVzcywoYWRkcmVzcyxhZGRyZXNzLGFkZHJlc3MsYWRkcmVzcyx1aW50MjU2LHVpbnQ2NCx1aW50NjQsdWludDgsdWludDgsdWludDgpKSI6eyJub3RpY2UiOiJDaGVjayBpZiBjYW5jZWxsYXRpb24gaXMgYWxsb3dlZCJ9LCJjYW5DYW5jZWxVbmlsYXRlcmFsbHkodWludDI1NixhZGRyZXNzLChhZGRyZXNzLGFkZHJlc3MsYWRkcmVzcyxhZGRyZXNzLHVpbnQyNTYsdWludDY0LHVpbnQ2NCx1aW50OCx1aW50OCx1aW50OCkpIjp7Im5vdGljZSI6IkRlZmF1bHQgc3RyYXRlZ3kgcmVxdWlyZXMgbXV0dWFsIGNvbnNlbnQgLSBuZXZlciB1bmlsYXRlcmFsIn0sIm9uQ2FuY2VsQXR0ZW1wdCh1aW50MjU2LGFkZHJlc3MsYm9vbCkiOnsibm90aWNlIjoiVHJhY2sgY2FuY2VsbGF0aW9uIGF0dGVtcHQifSwicGVuZGluZ0NhbmNlbCh1aW50MjU2KSI6eyJub3RpY2UiOiJUcmFjayB3aGljaCBwYXJ0eSBoYXMgaW5pdGlhdGVkIGNhbmNlbGxhdGlvbiBmb3IgZWFjaCBlc2Nyb3cifSwic3VwcG9ydHNJbnRlcmZhY2UoYnl0ZXM0KSI6eyJub3RpY2UiOiJFUkMtMTY1IGludGVyZmFjZSBkZXRlY3Rpb24ifX0sInZlcnNpb24iOjF9fSwic2V0dGluZ3MiOnsicmVtYXBwaW5ncyI6WyJAb3BlbnplcHBlbGluLz1ub2RlX21vZHVsZXMvQG9wZW56ZXBwZWxpbi8iLCJmb3JnZS1zdGQvPWxpYi9mb3JnZS1zdGQvc3JjLyIsImhhbG1vcy1jaGVhdGNvZGVzLz1saWIvaGFsbW9zLWNoZWF0Y29kZXMvIl0sIm9wdGltaXplciI6eyJlbmFibGVkIjp0cnVlLCJydW5zIjoyMDB9LCJtZXRhZGF0YSI6eyJieXRlY29kZUhhc2giOiJpcGZzIn0sImNvbXBpbGF0aW9uVGFyZ2V0Ijp7ImNvbnRyYWN0cy9tb2R1bGVzL0RlZmF1bHRDYW5jZWxsYXRpb25TdHJhdGVneS5zb2wiOiJEZWZhdWx0Q2FuY2VsbGF0aW9uU3RyYXRlZ3kifSwiZXZtVmVyc2lvbiI6Im9zYWthIiwibGlicmFyaWVzIjp7fSwidmlhSVIiOnRydWV9LCJzb3VyY2VzIjp7ImNvbnRyYWN0cy9pbnRlcmZhY2VzL0lDYW5jZWxsYXRpb25TdHJhdGVneS5zb2wiOnsia2VjY2FrMjU2IjoiMHgzYjgzMmJiZTk2M2UxNjI4ZDFlMWMxMmRjMDFkZjA1MjcxMDVhMmZmNmIyY2Q3MDQyOTc5NzY3YjRiNjYyNGJiIiwidXJscyI6WyJienotcmF3Oi8vZGNlZTdjMDk4MGVmNjI0ZmYxZDMzNzczZDUxMTRhOTNjYjU2OGI5ZWRmZWY0MmNhY2Q0ODI2MmMzNGFlYTQ1OCIsImR3ZWI6L2lwZnMvUW1SUWMzdmR5Y3hyS3hORmhhYUFyaGtnTTZmRG5OY2NpSzVGdjIzOU5TaXh6UCJdLCJsaWNlbnNlIjoiQXBhY2hlLTIuMCJ9LCJjb250cmFjdHMvbW9kdWxlcy9EZWZhdWx0Q2FuY2VsbGF0aW9uU3RyYXRlZ3kuc29sIjp7ImtlY2NhazI1NiI6IjB4NDFmY2Y5YWQwNzQ0ZjY0NzI2MGY2YTVkNDYyYTg4MzFlYjg0YzAwMzg2YmUyY2E1MzliYTQyY2JhZjVkMzM2YyIsInVybHMiOlsiYnp6LXJhdzovL2M2NjI4N2M3NDY0MDAzNDU1YTExMzU3ZDE4YWZiMjYyY2RkOTRmYmMzYzQxOWYzOTIxN2I4NTBlM2Y1MDRhZTciLCJkd2ViOi9pcGZzL1FtTnVvTDhCd2tGQ2o3YWdLZ0N0aXZrQXRqcGpMdzdXWWlSdWZtbXplYnNGelAiXSwibGljZW5zZSI6IkFwYWNoZS0yLjAifSwiY29udHJhY3RzL3R5cGVzL0VzY3Jvd1R5cGVzLnNvbCI6eyJrZWNjYWsyNTYiOiIweGFjZjdkNDY0NTgyNDgzNjNjODk1MGU4ZmY2MzQwNjFkMjJhNTgwZGQ1ZDBkNjBlYTQ1Y2M3NzBhODdkMGQzMDQiLCJ1cmxzIjpbImJ6ei1yYXc6Ly8yMTQ5Nzg2NTM5NzNmYzdiOGU4NWUyMGNlODUwNjAzM2ViOTQ4MGU3ZWEzZDNjMTI5NDQ1ZWFjOTJmZGE1ZDI4IiwiZHdlYjovaXBmcy9RbWZQb1A1d1hmeEFVRzgyOFNhS3BoS2MzUXp4a3dUVDg0U1BRTDl4U0VSV2VrIl0sImxpY2Vuc2UiOiJBcGFjaGUtMi4wIn0sImNvbnRyYWN0cy90eXBlcy9ZaWVsZFByZXNldHMuc29sIjp7ImtlY2NhazI1NiI6IjB4M2RlN2JjOTkyNTNmOGE3ODg0YjVkZDM1NzZmNzVkZTZlZDJmMzIyMGI2MDhjNWViNTE3NjY4NTQ1NDQ5NDlhMyIsInVybHMiOlsiYnp6LXJhdzovLzk4OTE2NmNlYWY4ZWQwMjllOWY2ZmE1NTMyNzIzYWY2Y2FjNDM1NGYxNTU4MzRiY2U1YWQ2YzMxYWZmODM3YjEiLCJkd2ViOi9pcGZzL1FtWDdCSkFNbjl1WlA3dmVUWWdEZmg0WWpObkI3RktuODhvR1BLeUtrQ2JUdUYiXSwibGljZW5zZSI6IkFwYWNoZS0yLjAifSwibm9kZV9tb2R1bGVzL0BvcGVuemVwcGVsaW4vY29udHJhY3RzL3V0aWxzL2ludHJvc3BlY3Rpb24vSUVSQzE2NS5zb2wiOnsia2VjY2FrMjU2IjoiMHg4ODkxNzM4ZmZlOTEwZjBjZjJkYTA5NTY2OTI4NTg5YmY1ZDYzZjQ1MjRkZDczNGZkOWNlZGJhYzMyNzRkZDVjIiwidXJscyI6WyJienotcmF3Oi8vOTcxZjk1NDQ0MmRmNWMyZWY1YjVlYmYxZWIyNDVkNzEwNWQ5ZmJhY2M3Mzg2ZWU1Yzc5NmRmMWQ0NWIyMTYxNyIsImR3ZWI6L2lwZnMvUW1hZFJqSGJraWN3cXd3aDYxcmFVRWFwYVZFdGFMTWNZYlFaV3M5Z1VrZ2ozdSJdLCJsaWNlbnNlIjoiTUlUIn19LCJ2ZXJzaW9uIjoxfQ==",
+  "name": "DefaultCancellationStrategy",
+  "scopeHint": "shared",
+  "sourcePath": "contracts/modules/DefaultCancellationStrategy.sol"
+}

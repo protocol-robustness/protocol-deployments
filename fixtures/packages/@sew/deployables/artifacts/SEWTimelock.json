@@ -1,0 +1,58 @@
+{
+  "name": "SEWTimelock",
+  "abi": [
+    {
+      "type": "constructor",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        {
+          "name": "initialOwner",
+          "type": "address"
+        },
+        {
+          "name": "param0",
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "version",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "name",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "name": "SEWTimelockDeployed",
+      "inputs": [
+        {
+          "name": "who",
+          "type": "address",
+          "indexed": true
+        }
+      ],
+      "anonymous": false
+    }
+  ],
+  "bytecode": "0x604796744ac73e9e1d550b76673830d32218b934cd52b3e760383091f17650d680",
+  "deployedBytecode": "0x60bd695cf8120ad20ab458907dcb1f2ce159298a5181e204ed5a5964794b24d900",
+  "metadata": "ipfs://mock-0.1.0-sewtimelock"
+}

@@ -1,0 +1,58 @@
+{
+  "name": "SEWGovToken",
+  "abi": [
+    {
+      "type": "constructor",
+      "stateMutability": "nonpayable",
+      "inputs": [
+        {
+          "name": "initialOwner",
+          "type": "address"
+        },
+        {
+          "name": "param0",
+          "type": "uint256"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "version",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "name",
+      "stateMutability": "view",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "name": "SEWGovTokenDeployed",
+      "inputs": [
+        {
+          "name": "who",
+          "type": "address",
+          "indexed": true
+        }
+      ],
+      "anonymous": false
+    }
+  ],
+  "bytecode": "0x60e32a8e3e1b90fd9f08f5549a780c37fdaa10ef01b6d985fff42b6e646f0dba80",
+  "deployedBytecode": "0x60fedb598aa3c01b59c5151cfb890ec5efb2b79f6d6a16f69da2e250aa1a8eee00",
+  "metadata": "ipfs://mock-0.1.0-sewgovtoken"
+}
