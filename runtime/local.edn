@@ -9,4 +9,5 @@
 {:schemaVersion 1
  :provider :anvil
  :rpcUrl "http://127.0.0.1:8545"
+ :stateInterval 10
  :signer {:type :deterministic-local}}

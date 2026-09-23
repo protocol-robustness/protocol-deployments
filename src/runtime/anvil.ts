@@ -8,6 +8,8 @@ export interface AnvilOptions {
   chainId?: number;
   /** Persisted-state file (anvil --state): loaded if present, dumped on exit. */
   stateFile?: string;
+  /** Periodic persisted-state interval in seconds. */
+  stateInterval?: number;
   /** Fork configuration (optional). */
   forkUrl?: string;
   forkBlock?: number;
@@ -66,6 +68,7 @@ export class AnvilRuntime {
       fs.mkdirSync(path.dirname(this.opts.stateFile), { recursive: true });
       args.push('--state', this.opts.stateFile);
     }
+    if (this.opts.stateInterval !== undefined) args.push('--state-interval', String(this.opts.stateInterval));
     args.push('--silent');
 
     const proc = spawn('anvil', args, {

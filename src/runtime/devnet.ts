@@ -82,6 +82,7 @@ export class DevnetManager {
       port: runtime.port ?? 8545,
       chainId,
       stateFile: this.stateFile(env),
+      stateInterval: runtime.stateInterval,
       forkUrl,
       forkBlock,
     });

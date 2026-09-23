@@ -268,6 +268,7 @@ export const runtimeSchema = z
     // anvil / anvil-fork
     rpcUrl: z.string().optional(),
     port: z.number().int().optional(),
+    stateInterval: z.number().int().positive().optional(),
     // external
     rpcUrlEnv: z.string().optional(),
     // anvil-fork
