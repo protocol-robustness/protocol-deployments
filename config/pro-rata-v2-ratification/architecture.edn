@@ -41,20 +41,20 @@
    :artifact "PrfVerifierRegistry"
    :constructorBindings {:governor_ {:deployer true}}}
 
-  :prf/local-sp1-verifier
+  :prf/sp1-verifier-groth16
   {:scope :prf
    :artifactSource :prf/deployables
-   :artifact "SP1MockVerifier"}
+   :artifact "SP1VerifierGroth16"}
 
   :prf/source-bound-verifier-adapter-v2
   {:scope :prf
    :artifactSource :prf/deployables
    :artifact "PrfSourceBoundStatementVerifierAdapterV2"
-   :relationships {:dependsOn [:prf/local-sp1-verifier]}
+   :relationships {:dependsOn [:prf/sp1-verifier-groth16]}
    :constructorBindings
-   {:verifier_ {:contractAddress :prf/local-sp1-verifier}
-    :vkey_ {:literal "0x6666666666666666666666666666666666666666666666666666666666666666"}
-    :elfSha256_ {:literal "0x7777777777777777777777777777777777777777777777777777777777777777"}}}
+   {:verifier_ {:contractAddress :prf/sp1-verifier-groth16}
+    :vkey_ {:literal "0x0089abceac18acb8d0686b81ea542b933339353807924bc021a9fe3820888127"}
+    :elfSha256_ {:literal "0x1994d8b67004de3d5dfffc176434ae63f3d7ac32ae875d72093943ff8e82247b"}}}
 
   :prf/configuration-executor
   {:scope :prf

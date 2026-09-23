@@ -6,7 +6,7 @@
   :prf/governance-authority
   :prf/genesis
   :prf/verifier-registry
-  :prf/local-sp1-verifier
+  :prf/sp1-verifier-groth16
   :prf/source-bound-verifier-adapter-v2
   :prf/configuration-executor
   :prf/statement-admission
@@ -115,17 +115,17 @@
    :target :prf/source-bound-verifier-adapter-v2
    :function "sp1Verifier"
    :args []
-   :expectedBinding {:contractAddress :prf/local-sp1-verifier}}
+   :expectedBinding {:contractAddress :prf/sp1-verifier-groth16}}
   {:id :shortfall-v2/adapter-program-vkey
    :target :prf/source-bound-verifier-adapter-v2
    :function "programVKey"
    :args []
-   :expected "0x6666666666666666666666666666666666666666666666666666666666666666"}
+   :expected "0x0089abceac18acb8d0686b81ea542b933339353807924bc021a9fe3820888127"}
   {:id :shortfall-v2/adapter-program-elf
    :target :prf/source-bound-verifier-adapter-v2
    :function "programElfSha256"
    :args []
-   :expected "0x7777777777777777777777777777777777777777777777777777777777777777"}
+   :expected "0x1994d8b67004de3d5dfffc176434ae63f3d7ac32ae875d72093943ff8e82247b"}
   {:id :shortfall-v2/adapter-statement-schema
    :target :prf/source-bound-verifier-adapter-v2
    :function "statementSchemaVersion"
