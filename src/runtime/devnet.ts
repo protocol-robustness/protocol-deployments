@@ -47,6 +47,10 @@ export class DevnetManager {
     return path.join(this.stateDir(label), 'state.json');
   }
 
+  private pidFile(label: string): string {
+    return path.join(this.stateDir(label), 'anvil.pid');
+  }
+
   loadEnvAndRuntime(env: string): { environment: RawEnvironment; runtime: RawRuntime } {
     return {
       environment: loadEnvironment(this.cfg.configDir, env),
@@ -82,6 +86,7 @@ export class DevnetManager {
       port: runtime.port ?? 8545,
       chainId,
       stateFile: this.stateFile(env),
+      pidFile: this.pidFile(env),
       stateInterval: runtime.stateInterval,
       forkUrl,
       forkBlock,
@@ -94,9 +99,10 @@ export class DevnetManager {
     return anvil;
   }
 
-  async stop(env: string): Promise<void> {
+  /** Returns true when a running devnet was actually stopped. */
+  async stop(env: string): Promise<boolean> {
     const anvil = this.buildRuntime(env);
-    await anvil.stop();
+    return anvil.stop();
   }
 
   async reset(env: string): Promise<void> {

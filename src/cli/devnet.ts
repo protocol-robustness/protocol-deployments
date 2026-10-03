@@ -10,8 +10,10 @@
  */
 import * as path from 'path';
 import { DevnetManager } from '../runtime/devnet';
+import { loadDefaultEnvFile } from '../config/env-file';
 
 function main(): void {
+  loadDefaultEnvFile();
   const [cmd, env] = process.argv.slice(2);
   if (!cmd || !env) {
     console.error('Usage: devnet.ts <start|stop|reset|status> <environment>');
@@ -29,8 +31,12 @@ function main(): void {
         break;
       }
       case 'stop': {
-        await manager.stop(env);
-        console.log(`✅ devnet '${env}' stopped (state persisted under .devnet/anvil/${env})`);
+        const stopped = await manager.stop(env);
+        console.log(
+          stopped
+            ? `✅ devnet '${env}' stopped (state persisted under .devnet/anvil/${env})`
+            : `devnet '${env}' was not running`,
+        );
         break;
       }
       case 'reset': {
