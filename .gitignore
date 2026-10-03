@@ -6,7 +6,11 @@ artifacts/
 # so that a fresh clone can resolve without re-running the exporters.
 !fixtures/packages/**/artifacts/
 !fixtures/packages/**/artifacts/**
+# src/artifacts is required TypeScript source (bundle consumer, hashing, types), not build output.
+!src/artifacts/
+!src/artifacts/**
 coverage/
+lib
 
 # Local deployment records and ledger state are never committed.
 deployments/
