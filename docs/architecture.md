@@ -192,7 +192,7 @@ source only — never the direct executor/authority**.
 
 ### Parameters
 A deliberately small mutability model: `:immutable` | `:governed`.
-Governed parameters support only simple constraints: `:range`, `:one-of`.
+Governed parameters support only simple constraints: `:range`, `:oneOf`.
 No arbitrary expressions or policy DSLs.
 
 ### `verification.edn`
@@ -294,7 +294,29 @@ npm run devnet:status      # is it running?
 npm run devnet:stop        # stop (dumps persisted state)
 npm run devnet:reset       # stop + clear persisted state (clean chain)
 npm run deploy:local       # resolve + deploy against the local runtime, write deployment record
+npm run verify:live -- --manifest <path> --resolved <path> --rpc-url <url>
 ```
+
+The devnet lifecycle is pid-file backed (`.devnet/anvil/<env>/anvil.pid`), so
+`devnet:stop`/`devnet:reset` work from a fresh process rather than only from
+the one that spawned Anvil. `deploy` reuses a devnet that is already running
+and leaves it up for follow-up `verify:live` runs; it only tears down an Anvil
+it spawned itself.
+
+## Live-network hardening
+
+- Fees are read from the chain (`estimateFeesPerGas`) rather than hardcoded;
+  `--max-fee`/`--priority-fee` override them.
+- Receipt waits have a configurable timeout (`--receipt-timeout-ms`, default
+  180s) with distinct `DEPLOY_RECEIPT_TIMEOUT`/`BOOTSTRAP_RECEIPT_TIMEOUT` codes.
+- A funding preflight (`src/deployment/preflight.ts`) checks the deployer
+  balance before the first transaction; `--dry-run` stops after preflight and
+  `--yes` acknowledges a non-local deploy.
+- Artifact provenance is enforced on non-local chains: fixtures are not used
+  and each bundle must be a clean `dirty=false` git checkout
+  (`BUNDLE_PROVENANCE_UNPINNED`). `runtime/base-sepolia-fork.edn` +
+  `config/environments/base-sepolia-fork.edn` rehearse the testnet topology on a
+  local fork.
 
 ## Phases
 

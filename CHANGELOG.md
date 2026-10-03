@@ -4,6 +4,11 @@
 
 ### Added
 
+- Live-network hardening: EIP-1559 fees are read from the chain (with `--max-fee`/`--priority-fee` overrides), receipt waits are configurable (`--receipt-timeout-ms`) with distinct timeout codes, and a funding preflight (`--dry-run`/`--yes`) runs before the first transaction.
+- Pinned artifact resolution: `NpmBundleLocator`/`SourceMapBundleLocator` and a `BUNDLE_PROVENANCE_UNPINNED` gate that refuses fixture or dirty bundles on non-local chains.
+- A dependency-free `.env` loader (`.env.example` added) so `BASE_SEPOLIA_RPC_URL`/`BASE_SEPOLIA_DEPLOYER_KEY` need not be exported manually.
+- A Base Sepolia fork rehearsal environment (`base-sepolia-fork`) plus `resolve:base-sepolia-pinned`, `deploy:base-sepolia:resume` scripts.
+- Testnet governance bootstrap for `base-sepolia`: the governor is granted `PROPOSER_ROLE` on the timelock and the grant is asserted.
 - Added a pro-rata-only local deployment profile covering the synthetic settlement token, PRF authority/genesis and admission roots, shortfall reserve, and pro-rata allocator.
 - Added typed deployment bindings for contract addresses, deployer addresses, parameters, runtime code hashes, external addresses, literals, and arrays.
 - Added deployment-derived runtime-code-hash bindings for bootstrap verification, including genesis sealing before dependent deployment.
@@ -15,6 +20,8 @@
 
 ### Changed
 
+- Non-local (`testnet`/`mainnet`) deploys now refuse fixtures and unpinned bundles, require explicit confirmation (`--yes`), and use live chain fees instead of hardcoded constants.
+- `runtime/base-fork.edn` (dead mainnet-fork config) was replaced by `runtime/base-sepolia-fork.edn` matched to a real environment.
 - Real SEW/PRF exporter bundles under `fixtures/packages/**/artifacts/` are now tracked in git (previously ignored by the bare `artifacts/` rule), so a fresh clone can `resolve:*` against the SEW/PRF fixtures without re-running the exporters.
 
 - Bootstrap actions are executed when their target and declared contract dependencies are available, rather than only after every deployment step.

@@ -38,6 +38,19 @@ describe('resolver happy path', () => {
     expect(out.spec.chain.logicalRole).toBe('testnet');
   });
 
+  it('wires testnet governance so the governor can propose, and asserts it', () => {
+    const { spec } = resolveDeployment({ configDir: CONFIG_DIR, environment: 'base-sepolia', fixtureRoot: FIXTURE_ROOT });
+    const grant = spec.deployment.bootstrapActions?.find((action) => action.id === 'timelock/grant-governor-proposer');
+    expect(grant).toBeDefined();
+    expect(grant?.target).toBe('shared/timelock');
+    expect(grant?.function).toBe('grantRole');
+    expect(grant?.args[1]).toEqual({ kind: 'contract-address', contract: 'shared/governor' });
+
+    const assertion = spec.deployment.bootstrapAssertions?.find((entry) => entry.id === 'timelock/governor-proposer');
+    expect(assertion?.target).toBe('shared/timelock');
+    expect(assertion?.expected).toBe(true);
+  });
+
   it('resolves runtime-code-hash bootstrap bindings and preserves them in the execution spec', () => {
     const out = resolveDeployment({
       configDir: CONFIG_DIR,

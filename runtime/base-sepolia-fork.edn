@@ -1,0 +1,12 @@
+;; ============================================================================
+;; Base Sepolia fork runtime — rehearse the exact base-sepolia topology against
+;; a local Anvil fork of Base Sepolia, without testnet ETH or a funded key.
+;;
+;; Chain identity stays 84532 (the only difference from the real runtime is HOW
+;; the chain is obtained). Uses an Anvil dev account, so no secret is required.
+;; ============================================================================
+
+{:schemaVersion 1
+ :provider :anvil-fork
+ :sourceRpcEnv "BASE_SEPOLIA_RPC_URL"
+ :signer {:type :deterministic-local}}

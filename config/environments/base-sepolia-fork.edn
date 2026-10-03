@@ -1,0 +1,44 @@
+;; ============================================================================
+;; Base Sepolia fork rehearsal overlay. Mirrors the base-sepolia topology and
+;; wiring exactly, but is a LOCAL runtime (:kind :local) so it reads fixture
+;; bundles and needs no funded key. Rehearse here before the real testnet run.
+;; ============================================================================
+
+{:schemaVersion 1
+ :environment :base-sepolia-fork
+
+ :chain {:logicalRole :testnet
+         :chainId 84532
+         :kind :local}
+
+ :overlays
+ { :shared/governance-token
+   {:parameters
+    { :name   {:value "Protocol Governance Token"}
+      :symbol {:value "PRF"}}} }
+
+ :bootstrapActions
+ [ {:id :timelock/grant-governor-proposer
+    :target :shared/timelock
+    :function "grantRole"
+    :args [{:literal "0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1"}
+           {:contractAddress :shared/governor}]} ]
+
+ :bootstrapAssertions
+ [ {:id :timelock/governor-proposer
+    :target :shared/timelock
+    :function "hasRole"
+    :args [{:literal "0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1"}
+           {:contractAddress :shared/governor}]
+    :expected true} ]
+
+ :deploymentOrder
+ [ :shared/governance-token
+   :shared/timelock
+   :shared/governor
+   :prf/verifier-registry
+   :prf/allocation-verifier
+   :prf/statement-admission
+   :sew/escrow-vault
+   :sew/decentralized-resolution-module ]
+}

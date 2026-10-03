@@ -39,10 +39,35 @@
 - **A successful receipt is not enough** — the engine requires deployed runtime
   code to match the expected artifact bytecode.
 
+## Testnet readiness decisions
+
+The code paths for a Base Sepolia deployment are in place (live fees,
+configurable receipt timeout, funding preflight, pinned-artifact provenance
+gate, fork rehearsal, env-file loading). The following inputs/decisions are
+still required before a real testnet run, and are intentionally not invented
+here:
+
+- **SP1 verifier identity** — the canonical `SP1VerifierGroth16` address (or a
+  decision to deploy it from the pinned artifact as the pro-rata-v2 profile
+  does) plus the real `programVKey_`/`programElfSha256_` for the realized
+  allocation adapter. Until supplied, `prf/allocation-verifier` binds the
+  verifier to the deployer and all-zero program identity.
+- **Ownership/role model** — whether escrow module management and resolution
+  ownership move to the timelock/governor, and whether the deployer retains
+  `DEFAULT_ADMIN_ROLE`. Only the timelock `PROPOSER_ROLE` grant is currently
+  wired.
+- **Artifact release** — tagged `@sew/deployables` /
+  `@protocol-robustness/prf-evm-deployables` packages with clean git
+  provenance. Current fixtures are `dirty=true` (and the SEW one is jj-sourced),
+  so `deploy:base-sepolia` fails closed until they are released.
+
+On-chain source verification (Basescan/Sourcify) is intentionally out of scope:
+this repo consumes compiled artifact bundles and holds no Solidity source; source
+verification belongs to the source repositories that emit the bundles.
+
 ## Deferred work
 
-- **Shared governance proposal tooling** (later, where appropriate).
-- **Topological ordering** as a diagnostics/test aid only (never to silently
+- **Shared governance proposal tooling** (later, where appropriate).- **Topological ordering** as a diagnostics/test aid only (never to silently
   replace the explicit plan).
 - **On-chain CREATE2 deployment test** (address derivation + assertion are
   implemented and unit-tested; a live factory deploy test is deferred).

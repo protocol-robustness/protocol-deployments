@@ -15,6 +15,26 @@
     { :name   {:value "Protocol Governance Token"}
       :symbol {:value "PRF"}}} }
 
+ ;; The timelock is constructed with an empty proposer set and the deployer as
+ ;; admin. Governance is inert until the governor is granted PROPOSER_ROLE, so
+ ;; the deployment must wire it and assert the result. Broader ownership
+ ;; transfer (escrow module management, resolution owner) still follows the
+ ;; explicit decision on the testnet governance model.
+ :bootstrapActions
+ [ {:id :timelock/grant-governor-proposer
+    :target :shared/timelock
+    :function "grantRole"
+    :args [{:literal "0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1"}
+           {:contractAddress :shared/governor}]} ]
+
+ :bootstrapAssertions
+ [ {:id :timelock/governor-proposer
+    :target :shared/timelock
+    :function "hasRole"
+    :args [{:literal "0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1"}
+           {:contractAddress :shared/governor}]
+    :expected true} ]
+
  :deploymentOrder
  [ :shared/governance-token
    :shared/timelock

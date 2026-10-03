@@ -1,9 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { resolveDeployment } from '../resolve-deployment';
+import { loadDefaultEnvFile } from '../config/env-file';
 
 function usage(): never {
-  console.error('Usage: resolve.ts --env <environment> [--config-dir <dir>] [--fixtures <dir>] [--out <file>]');
+  console.error('Usage: resolve.ts --env <environment> [--config-dir <dir>] [--fixtures <dir>] [--out <file>] [--pinned-artifacts]');
   process.exit(2);
 }
 
@@ -14,14 +15,23 @@ function arg(name: string): string | undefined {
 }
 
 function main(): void {
+  loadDefaultEnvFile();
   const environment = arg('env');
   if (!environment) usage();
 
   const configDir = arg('config-dir') ?? path.resolve(process.cwd(), 'config');
   const fixtureRoot = arg('fixtures') ?? path.resolve(process.cwd(), 'fixtures', 'packages');
   const profileDir = arg('profile') ? path.resolve(process.cwd(), arg('profile')!) : undefined;
+  const pinned = process.argv.includes('--pinned-artifacts');
 
-  const out = resolveDeployment({ configDir, environment, fixtureRoot, profileDir });
+  const out = resolveDeployment({
+    configDir,
+    environment,
+    fixtureRoot,
+    profileDir,
+    preferFixtures: !pinned,
+    requirePinnedProvenance: pinned,
+  });
 
   const outPath =
     arg('out') ?? path.resolve(process.cwd(), 'deployments', `${environment}.resolved.json`);

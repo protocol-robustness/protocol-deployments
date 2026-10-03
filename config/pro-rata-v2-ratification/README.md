@@ -7,14 +7,18 @@ allocation profile.
 ```bash
 npm run resolve:pro-rata-v2-ratification-local
 npm run devnet:reset
+npm run devnet:start
 npm run deploy:pro-rata-v2-ratification-local
 
-# Against the still-running local chain, verify the sealed manifest again at a
-# pinned live block and emit a separate immutable verification artifact.
+# The devnet started above is still running: `deploy` reuses an already-running
+# devnet instead of spawning (and then killing) its own. Re-check the sealed
+# manifest at a pinned live block and emit a separate immutable artifact.
 npm run verify:live -- \
   --manifest deployments/<manifest>.deployment-manifest.v1.json \
   --resolved deployments/pro-rata-v2-ratification-local.resolved.json \
   --rpc-url http://127.0.0.1:8545
+
+npm run devnet:stop
 ```
 
 The local profile deploys and runtime-verifies:
