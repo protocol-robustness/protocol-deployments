@@ -30,6 +30,9 @@ export interface BundleLocator {
   resolve(sourceId: string, pkg: string): string;
 }
 
+/** How an artifact source is meant to be obtained. */
+export type ArtifactSourceKind = 'npm' | 'fixture';
+
 export class FixtureBundleLocator implements BundleLocator {
   constructor(private readonly fixtureRoot: string) {}
 
@@ -39,9 +42,47 @@ export class FixtureBundleLocator implements BundleLocator {
   }
 }
 
+/** Resolve a published artifact package from an installed node_modules tree. */
+export class NpmBundleLocator implements BundleLocator {
+  constructor(private readonly nodeModulesDir: string) {}
+
+  resolve(_sourceId: string, pkg: string): string {
+    return path.join(this.nodeModulesDir, ...pkg.split('/'));
+  }
+}
+
+/**
+ * Route each artifact source to fixtures or an installed package based on its
+ * declared `kind`. Used for pinned (non-local) resolution; local development
+ * reads fixtures for every source.
+ */
+export class SourceMapBundleLocator implements BundleLocator {
+  constructor(
+    private readonly kinds: Record<string, ArtifactSourceKind>,
+    private readonly fixture: BundleLocator,
+    private readonly npm: BundleLocator,
+  ) {}
+
+  resolve(sourceId: string, pkg: string): string {
+    return (this.kinds[sourceId] === 'fixture' ? this.fixture : this.npm).resolve(sourceId, pkg);
+  }
+}
+
+/** Integrity constraints applied to every bundle the consumer loads. */
+export interface BundlePolicy {
+  /**
+   * Require the exporter bundle to come from a clean, committed git checkout
+   * (a 40-hex commit and `dirty: false`). Set for non-local deployments so a
+   * dirty local build can never be mistaken for a pinned release.
+   */
+  requirePinnedProvenance?: boolean;
+}
+
+const GIT_COMMIT = /^[0-9a-f]{40}$/;
+
 /** Loads and validates a deployable bundle in the SEW/PRF exporter format. */
 export class BundleConsumer {
-  constructor(private readonly locator: BundleLocator) {}
+  constructor(private readonly locator: BundleLocator, private readonly policy: BundlePolicy = {}) {}
 
   private manifestDir(sourceId: string, pkg: string): string {
     const dir = this.locator.resolve(sourceId, pkg);
@@ -90,6 +131,16 @@ export class BundleConsumer {
         'BUNDLE_ROOT_MISMATCH',
         `Bundle root mismatch for source '${sourceId}': expected ${bundleRoot}, got ${recomputed}`,
       );
+    }
+    if (this.policy.requirePinnedProvenance) {
+      const { dirty, commit, commitSource } = parsed.data.source;
+      if (dirty || commitSource !== 'git' || !GIT_COMMIT.test(commit)) {
+        throw new ConfigError(
+          'BUNDLE_PROVENANCE_UNPINNED',
+          `Bundle for source '${sourceId}' is not a pinned release (commitSource '${commitSource}', commit '${commit}', dirty ${dirty}); rebuild it from a clean tagged git checkout before deploying to a non-local chain`,
+          { path: path.join(dir, 'manifest.json'), details: { commitSource, commit, dirty } },
+        );
+      }
     }
     return parsed.data;
   }
@@ -214,4 +265,30 @@ export class BundleConsumer {
         : undefined,
     };
   }
+}
+
+/**
+ * Build a bundle consumer for a set of declared artifact sources.
+ *
+ * Local development (`preferFixtures`) reads every source from the fixture
+ * tree. Otherwise each source is resolved by its declared `kind`, and pinned
+ * provenance can be required so an unpinned build cannot reach a live chain.
+ */
+export function createBundleConsumer(opts: {
+  sources: Record<string, { kind?: ArtifactSourceKind }>;
+  fixtureRoot: string;
+  nodeModulesDir?: string;
+  preferFixtures?: boolean;
+  requirePinnedProvenance?: boolean;
+}): BundleConsumer {
+  const fixture = new FixtureBundleLocator(opts.fixtureRoot);
+  if (opts.preferFixtures ?? true) {
+    return new BundleConsumer(fixture, { requirePinnedProvenance: opts.requirePinnedProvenance });
+  }
+  const kinds: Record<string, ArtifactSourceKind> = {};
+  for (const [id, source] of Object.entries(opts.sources)) kinds[id] = source.kind ?? 'npm';
+  const npm = new NpmBundleLocator(opts.nodeModulesDir ?? path.resolve(process.cwd(), 'node_modules'));
+  return new BundleConsumer(new SourceMapBundleLocator(kinds, fixture, npm), {
+    requirePinnedProvenance: opts.requirePinnedProvenance,
+  });
 }

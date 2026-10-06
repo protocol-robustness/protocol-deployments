@@ -1,5 +1,5 @@
 import { loadConfig, loadEnvironment } from './config/load';
-import { BundleConsumer, FixtureBundleLocator } from './artifacts/bundle';
+import { createBundleConsumer } from './artifacts/bundle';
 import { resolve } from './resolver';
 import { computeSpecHash } from './spec-hash';
 import { canonicalJson } from './canonical-json';
@@ -21,10 +21,21 @@ export function resolveDeployment(opts: {
   environment: string;
   fixtureRoot: string;
   profileDir?: string;
+  nodeModulesDir?: string;
+  /** Local development reads every source from fixtures (default true). */
+  preferFixtures?: boolean;
+  /** Require clean-git provenance for every loaded bundle. */
+  requirePinnedProvenance?: boolean;
 }): ResolvedDeploymentOutput {
   const config = loadConfig({ configDir: opts.configDir, profileDir: opts.profileDir });
   const environment = loadEnvironment(opts.configDir, opts.environment, opts.profileDir);
-  const bundle = new BundleConsumer(new FixtureBundleLocator(opts.fixtureRoot));
+  const bundle = createBundleConsumer({
+    sources: config.architecture.artifactSources,
+    fixtureRoot: opts.fixtureRoot,
+    nodeModulesDir: opts.nodeModulesDir,
+    preferFixtures: opts.preferFixtures,
+    requirePinnedProvenance: opts.requirePinnedProvenance,
+  });
 
   const spec = resolve(
     { config, environment, bundle },
