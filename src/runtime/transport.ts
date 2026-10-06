@@ -8,12 +8,19 @@ import {
   type PublicClient,
   type TransactionReceipt,
 } from 'viem';
+import { ConfigError } from '../errors';
 
 export interface CallRequest {
   to?: Address;
   from?: Address;
   data?: Hex;
   value?: bigint;
+}
+
+/** EIP-1559 fee parameters used for an unsigned transaction. */
+export interface TxFees {
+  maxFeePerGas: bigint;
+  maxPriorityFeePerGas: bigint;
 }
 
 /**
@@ -81,6 +88,23 @@ export class RpcTransport {
 
   async estimateGas(req: CallRequest): Promise<bigint> {
     return this.publicClient.estimateGas({ ...req, account: req.from });
+  }
+
+  /**
+   * Read live EIP-1559 fee parameters from the chain. Falls back to the legacy
+   * `gasPrice` (with zero priority fee) on chains that do not expose 1559 fees,
+   * so a deployment is never underpriced by a hardcoded constant.
+   */
+  async estimateFeesPerGas(): Promise<TxFees> {
+    const fees = await this.publicClient.estimateFeesPerGas();
+    if ('maxFeePerGas' in fees && fees.maxFeePerGas !== undefined && fees.maxFeePerGas !== null) {
+      return { maxFeePerGas: fees.maxFeePerGas, maxPriorityFeePerGas: fees.maxPriorityFeePerGas ?? 0n };
+    }
+    const gasPrice = 'gasPrice' in fees ? fees.gasPrice : undefined;
+    if (gasPrice === undefined || gasPrice === null) {
+      throw new ConfigError('FEE_ESTIMATE_UNAVAILABLE', 'RPC did not return EIP-1559 fees or a legacy gas price');
+    }
+    return { maxFeePerGas: gasPrice, maxPriorityFeePerGas: 0n };
   }
 
   /** Submit a raw (already-signed) transaction. Canonical submission path. */
