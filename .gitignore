@@ -12,13 +12,18 @@ artifacts/
 coverage/
 lib
 
-# Local deployment records and ledger state are never committed.
-deployments/
-  **/*.json
-  !deployments/README.md
+# Local deployment records and ledger state are never committed. Use
+# `deployments/*` (not `deployments/`) so the README can still be re-included:
+# git cannot un-ignore a file inside an ignored directory.
+deployments/*
+!deployments/README.md
 
-# Local devnet runtime state (Anvil cache) — never the ledger.
+# Local devnet runtime state (Anvil cache + pid) — never the ledger.
 .devnet/
+
+# Tooling caches are regenerated locally and never meaningful to share.
+.clj-kondo/
+.lsp/
 
 # Environment secrets
 .env
