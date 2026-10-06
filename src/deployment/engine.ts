@@ -4,16 +4,24 @@ import {
   type Address,
   type Hex,
   type Abi,
+  type TransactionReceipt,
 } from 'viem';
 import { ConfigError } from '../errors';
 import type { BundleConsumer } from '../artifacts/bundle';
-import type { RpcTransport } from '../runtime/transport';
+import type { RpcTransport, TxFees } from '../runtime/transport';
 import type { Signer } from '../runtime/signer';
 import type { ResolvedSpec, ResolvedContract, ResolvedParameter } from '../canonical';
 import { assertChainIdMatches } from '../validate/checks';
 import { normalizeBytecode } from '../artifacts/hash';
+import { resolveBindingValue, type BindingScope, type ResolvedBindingValue } from './bindings';
 
 export type DeploymentMode = 'create' | 'create2';
+
+/**
+ * How long to wait for a transaction receipt before giving up. The default is
+ * sized for a live testnet, not a local Anvil block, and is overridable per run.
+ */
+export const DEFAULT_RECEIPT_TIMEOUT_MS = 180_000;
 
 interface ConstructorInput {
   name?: string;
@@ -31,12 +39,14 @@ export interface DeployContractInput {
   transport: RpcTransport;
   signer: Signer;
   mode?: DeploymentMode;
-  salt?: Hex;
-  create2Factory?: Address;
   /** Addresses confirmed by earlier deployment steps, keyed by logical ID. */
   resolvedAddresses?: Record<string, Address>;
   /** Materialized environment address bindings. */
   externalAddresses?: Record<string, Address>;
+  /** Override the live EIP-1559 fees (otherwise read from the chain). */
+  fees?: TxFees;
+  /** Override the receipt wait timeout in milliseconds. */
+  receiptTimeoutMs?: number;
   /** Called synchronously at durable transaction boundaries by the ledger owner. */
   onTransition?: (transition: { status: 'submitted' | 'confirmed' | 'verified'; transactionHash: Hex; blockNumber?: bigint; address?: Address }) => Promise<void> | void;
 }
@@ -102,7 +112,7 @@ export async function deployContract(input: DeployContractInput): Promise<Deploy
   const deployer = await signer.getAddress();
   const nonce = await transport.getTransactionCount(deployer);
   const gas = (await transport.estimateGas({ from: deployer, data: initCode })) + 30000n;
-  const gasPrice = { maxFeePerGas: 2000000000n, maxPriorityFeePerGas: 1000000000n };
+  const gasPrice = input.fees ?? (await transport.estimateFeesPerGas());
 
   const raw = await signer.signTransaction({
     chainId,
@@ -114,10 +124,10 @@ export async function deployContract(input: DeployContractInput): Promise<Deploy
 
   const txHash = await transport.sendRawTransaction(raw);
   await input.onTransition?.({ status: 'submitted', transactionHash: txHash });
-  const receipt = await waitReceipt(transport, txHash);
-  if (!receipt || receipt.status !== 'success') {
+  const receipt = await waitReceipt(transport, txHash, input.receiptTimeoutMs ?? DEFAULT_RECEIPT_TIMEOUT_MS);
+  if (receipt.status !== 'success') {
     throw new ConfigError('DEPLOY_REVERTED', `Deployment of '${logicalId}' did not succeed`, {
-      details: { txHash, status: receipt?.status ?? 'missing' },
+      details: { txHash, status: receipt.status },
     });
   }
 
@@ -153,9 +163,15 @@ function encodeInitCode(
     return creationBytecode;
   }
   const params = new Map(contract.parameters.map((p) => [p.name, p]));
+  const scope: BindingScope = {
+    parameters: new Map(contract.parameters.map((p) => [p.name, p.value])),
+    addresses: resolvedAddresses,
+    externalAddresses,
+    deployer,
+  };
   const args = constructorAbi.inputs.map((inp) => {
     const binding = inp.name !== undefined ? contract.constructorBindings?.[inp.name] : undefined;
-    if (binding) return convertArg(resolveBinding(binding, params, resolvedAddresses, externalAddresses, deployer), inp.type);
+    if (binding) return convertArg(resolveBindingValue(binding, scope), inp.type);
     const p = inp.name !== undefined ? params.get(inp.name) : undefined;
     if (!p) {
       throw new ConfigError(
@@ -168,39 +184,7 @@ function encodeInitCode(
   return encodeDeployData({ abi: [constructorAbi] as unknown as Abi, bytecode: creationBytecode, args });
 }
 
-/** Convert a resolved parameter value (string/number/boolean) to an ABI arg. */
-function resolveBinding(
-  binding: NonNullable<ResolvedContract['constructorBindings']>[string],
-  parameters: Map<string, ResolvedParameter>,
-  addresses: Record<string, Address>,
-  externalAddresses: Record<string, Address>,
-  deployer: Address,
-): string | number | boolean | Array<string | number | boolean> {
-  switch (binding.kind) {
-    case 'literal': return binding.value;
-    case 'parameter': {
-      const parameter = parameters.get(binding.parameter);
-      if (!parameter) throw new ConfigError('UNKNOWN_BINDING_PARAMETER', `Unknown bound parameter '${binding.parameter}'`);
-      return parameter.value;
-    }
-    case 'contract-address': {
-      const address = addresses[binding.contract];
-      if (!address) throw new ConfigError('UNRESOLVED_CONTRACT_ADDRESS', `Contract address '${binding.contract}' is not yet available`);
-      return address;
-    }
-    case 'runtime-code-hash':
-      throw new ConfigError('RUNTIME_CODE_HASH_CONSTRUCTOR_UNSUPPORTED', `Runtime code hash binding '${binding.contract}' is only valid for bootstrap actions`);
-    case 'external-address': {
-      const address = externalAddresses[binding.name];
-      if (!address) throw new ConfigError('UNKNOWN_EXTERNAL_ADDRESS', `External address '${binding.name}' is not available`);
-      return address;
-    }
-    case 'deployer': return deployer;
-    case 'array': return binding.values.map((v) => resolveBinding(v, parameters, addresses, externalAddresses, deployer)) as Array<string | number | boolean>;
-  }
-}
-
-export function convertArg(value: string | number | boolean | Array<string | number | boolean>, abiType: string): unknown {
+export function convertArg(value: ResolvedBindingValue, abiType: string): unknown {
   if (abiType.endsWith('[]')) {
     if (!Array.isArray(value)) throw new ConfigError('ABI_BINDING_TYPE_MISMATCH', `Expected array for ABI type '${abiType}'`);
     return value.map((item) => convertArg(item, abiType.slice(0, -2)));
@@ -266,11 +250,16 @@ export function runtimeMatches(
   return true;
 }
 
-async function waitReceipt(transport: RpcTransport, hash: Hex) {
-  for (let i = 0; i < 60; i++) {
-    const r = await transport.getTransactionReceipt(hash);
-    if (r) return r;
+async function waitReceipt(transport: RpcTransport, hash: Hex, timeoutMs: number): Promise<TransactionReceipt> {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const receipt = await transport.getTransactionReceipt(hash);
+    if (receipt) return receipt;
     await new Promise((r) => setTimeout(r, 200));
   }
-  return null;
+  throw new ConfigError(
+    'DEPLOY_RECEIPT_TIMEOUT',
+    `No receipt for transaction ${hash} within ${timeoutMs}ms; the transaction may still be pending`,
+    { details: { transactionHash: hash, timeoutMs } },
+  );
 }
