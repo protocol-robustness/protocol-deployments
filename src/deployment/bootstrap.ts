@@ -1,29 +1,23 @@
-import { decodeFunctionResult, encodeFunctionData, keccak256, type Abi, type Address, type Hex } from 'viem';
+import { decodeFunctionResult, encodeFunctionData, type Abi, type Address, type Hex } from 'viem';
 import type { ResolvedBinding, ResolvedContract } from '../canonical';
-import type { RpcTransport } from '../runtime/transport';
+import type { RpcTransport, TxFees } from '../runtime/transport';
 import type { Signer } from '../runtime/signer';
 import { ConfigError } from '../errors';
+import { resolveBindingValueAsync, type BindingScope } from './bindings';
+import { DEFAULT_RECEIPT_TIMEOUT_MS } from './engine';
 
-async function value(binding: ResolvedBinding, addresses: Record<string, Address>, deployer: Address, transport: RpcTransport): Promise<unknown> {
-  switch (binding.kind) {
-    case 'literal': return binding.value;
-    case 'deployer': return deployer;
-    case 'contract-address': {
-      const address = addresses[binding.contract];
-      if (!address) throw new ConfigError('UNRESOLVED_CONTRACT_ADDRESS', `Bootstrap binding '${binding.contract}' is unavailable`);
-      return address;
-    }
-    case 'runtime-code-hash': {
-      const address = addresses[binding.contract];
-      if (!address) throw new ConfigError('UNRESOLVED_CONTRACT_ADDRESS', `Runtime code hash binding '${binding.contract}' is unavailable`);
-      const code = await transport.getCode(address);
-      if (!code || code === '0x') throw new ConfigError('RUNTIME_CODE_UNAVAILABLE', `No runtime code found for '${binding.contract}'`);
-      return keccak256(code);
-    }
-    case 'external-address': throw new ConfigError('UNKNOWN_EXTERNAL_ADDRESS', `Bootstrap external address '${binding.name}' was not materialized`);
-    case 'parameter': throw new ConfigError('BOOTSTRAP_PARAMETER_UNSUPPORTED', `Bootstrap parameter binding '${binding.parameter}' requires explicit literal materialization`);
-    case 'array': return Promise.all(binding.values.map((item) => value(item, addresses, deployer, transport)));
-  }
+function bindingScope(input: {
+  addresses: Record<string, Address>;
+  externalAddresses?: Record<string, Address>;
+  transport: RpcTransport;
+  deployer: Address;
+}): BindingScope {
+  return {
+    addresses: input.addresses,
+    externalAddresses: input.externalAddresses,
+    transport: input.transport,
+    deployer: input.deployer,
+  };
 }
 
 function abiFunction(contract: ResolvedContract, name: string) {
@@ -39,21 +33,30 @@ export async function executeBootstrapAction(input: {
   function: string;
   args: ResolvedBinding[];
   addresses: Record<string, Address>;
+  externalAddresses?: Record<string, Address>;
   transport: RpcTransport;
   signer: Signer;
+  /** Override the live EIP-1559 fees (otherwise read from the chain). */
+  fees?: TxFees;
+  /** Override the receipt wait timeout in milliseconds. */
+  receiptTimeoutMs?: number;
   onTransition?: (transition: { status: 'submitted' | 'confirmed'; transactionHash: Hex; blockNumber?: bigint }) => Promise<void> | void;
 }): Promise<{ transactionHash: Hex; blockNumber: bigint }> {
   const deployer = await input.signer.getAddress();
+  const scope = bindingScope({ addresses: input.addresses, externalAddresses: input.externalAddresses, transport: input.transport, deployer });
   const abi = [abiFunction(input.contract, input.function)] as unknown as Abi;
-  const args = await Promise.all(input.args.map((arg) => value(arg, input.addresses, deployer, input.transport)));
+  const args = await Promise.all(input.args.map((arg) => resolveBindingValueAsync(arg, scope)));
   const data = encodeFunctionData({ abi, functionName: input.function, args });
   const chainId = await input.transport.getChainId();
   const nonce = await input.transport.getTransactionCount(deployer);
   const gas = (await input.transport.estimateGas({ from: deployer, to: input.address, data })) + 30000n;
-  const raw = await input.signer.signTransaction({ chainId, to: input.address, data, nonce, gas, maxFeePerGas: 2000000000n, maxPriorityFeePerGas: 1000000000n });
+  const fees = input.fees ?? (await input.transport.estimateFeesPerGas());
+  const raw = await input.signer.signTransaction({ chainId, to: input.address, data, nonce, gas, ...fees });
   const transactionHash = await input.transport.sendRawTransaction(raw);
   await input.onTransition?.({ status: 'submitted', transactionHash });
-  for (let i = 0; i < 60; i++) {
+  const timeoutMs = input.receiptTimeoutMs ?? DEFAULT_RECEIPT_TIMEOUT_MS;
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
     const receipt = await input.transport.getTransactionReceipt(transactionHash);
     if (receipt) {
       if (receipt.status !== 'success') throw new ConfigError('BOOTSTRAP_REVERTED', `Bootstrap action '${input.function}' reverted`);
@@ -62,7 +65,7 @@ export async function executeBootstrapAction(input: {
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
-  throw new ConfigError('BOOTSTRAP_RECEIPT_TIMEOUT', `Bootstrap action '${input.function}' receipt timed out`);
+  throw new ConfigError('BOOTSTRAP_RECEIPT_TIMEOUT', `Bootstrap action '${input.function}' receipt timed out after ${timeoutMs}ms`);
 }
 
 /** Read-only final bootstrap assertion against the pinned ABI. */
@@ -73,18 +76,20 @@ export async function assertBootstrap(input: {
   args: ResolvedBinding[];
   expected: string | number | boolean | ResolvedBinding;
   addresses: Record<string, Address>;
+  externalAddresses?: Record<string, Address>;
   transport: RpcTransport;
   signer: Signer;
 }): Promise<void> {
   const deployer = await input.signer.getAddress();
+  const scope = bindingScope({ addresses: input.addresses, externalAddresses: input.externalAddresses, transport: input.transport, deployer });
   const entry = abiFunction(input.contract, input.function);
   const abi = [entry] as unknown as Abi;
-  const args = await Promise.all(input.args.map((arg) => value(arg, input.addresses, deployer, input.transport)));
+  const args = await Promise.all(input.args.map((arg) => resolveBindingValueAsync(arg, scope)));
   const data = encodeFunctionData({ abi, functionName: input.function, args });
   const result = await input.transport.call({ to: input.address, data });
   const actual = decodeFunctionResult({ abi, functionName: input.function, data: result });
   const expected = typeof input.expected === 'object'
-    ? await value(input.expected, input.addresses, deployer, input.transport)
+    ? await resolveBindingValueAsync(input.expected, scope)
     : input.expected;
   if (String(actual).toLowerCase() !== String(expected).toLowerCase()) {
     throw new ConfigError('BOOTSTRAP_ASSERTION_FAILED', `Bootstrap assertion '${input.function}' on '${input.contract.logicalId}' failed`, { details: { expected: String(expected), actual: String(actual) } });

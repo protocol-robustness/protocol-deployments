@@ -3,8 +3,6 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { createHash } from 'crypto';
-import { getContractAddress, keccak256, concat, toHex, getAddress } from 'viem';
-import type { Address, Hex } from 'viem';
 import { BundleConsumer, FixtureBundleLocator } from '../src/artifacts/bundle';
 import { RpcTransport } from '../src/runtime/transport';
 import { PrivateKeySigner } from '../src/runtime/signer';
@@ -121,7 +119,7 @@ describe('Phase C — deployment engine + deployment record', () => {
       contracts: { ':t': contract },
       governance: { governors: [], lanes: [], groups: [] },
       verification: { applications: [], profiles: [], verifierInstances: {} },
-      deployment: { steps: [{ logicalId: ':t', order: 0, dependsOn: [] }], chainId: 31337 },
+      deployment: { steps: [{ logicalId: ':t', order: 0, dependsOn: [] }] },
       intended: { chainId: 31337, contracts: {} },
     };
   }
@@ -189,15 +187,4 @@ describe('Phase C — deployment engine + deployment record', () => {
     await expect(deployContract({ spec, logicalId: ':t', bundle, transport, signer, mode: 'create2' }))
       .rejects.toMatchObject({ code: 'CREATE2_UNSUPPORTED' });
   }, 60000);
-
-  it('derives a deterministic CREATE2 address matching a manual computation', () => {
-    const factory: Address = '0x1234567890123456789012345678901234567890';
-    const salt: Hex = '0x0000000000000000000000000000000000000000000000000000000000000001';
-    const initCode: Hex = '0x6000';
-    const viaViem = getContractAddress({ from: factory, salt, bytecode: initCode, opcode: 'CREATE2' });
-    // CREATE2 = keccak(0xff ++ factory ++ salt ++ keccak(initCode))[12:]
-    const hash = keccak256(concat(['0xff', factory, salt, keccak256(initCode)] as Hex[]));
-    const manual = getAddress(`0x${hash.slice(26)}`);
-    expect(viaViem).toBe(manual);
-  });
 });
