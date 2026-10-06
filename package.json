@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "resolve:local": "ts-node src/cli/resolve.ts --env local",
     "resolve:base-sepolia": "ts-node src/cli/resolve.ts --env base-sepolia",
+    "resolve:base-sepolia-pinned": "ts-node src/cli/resolve.ts --env base-sepolia --pinned-artifacts",
     "resolve:pro-rata-local": "ts-node src/cli/resolve.ts --env local --profile config/pro-rata --out deployments/pro-rata-local.resolved.json",
     "deploy:pro-rata-local": "ts-node src/cli/deploy.ts local --profile config/pro-rata",
     "resolve:pro-rata-v2-ratification-local": "ts-node src/cli/resolve.ts --env local --profile config/pro-rata-v2-ratification --out deployments/pro-rata-v2-ratification-local.resolved.json",
@@ -20,7 +21,10 @@
     "devnet:reset": "ts-node src/cli/devnet.ts reset local",
     "devnet:status": "ts-node src/cli/devnet.ts status local",
     "deploy:local": "ts-node src/cli/deploy.ts local",
+    "resolve:base-sepolia-fork": "ts-node src/cli/resolve.ts --env base-sepolia-fork",
+    "deploy:base-sepolia-fork": "ts-node src/cli/deploy.ts base-sepolia-fork",
     "deploy:base-sepolia": "ts-node src/cli/deploy.ts base-sepolia",
+    "deploy:base-sepolia:resume": "ts-node src/cli/deploy.ts base-sepolia --resume",
     "verify:live": "ts-node src/cli/verify-live.ts"
   },
   "engines": {
@@ -29,12 +33,12 @@
   "dependencies": {
     "@noble/hashes": "1.8.0",
     "viem": "2.56.8",
-    "zod": "3.25.0"
+    "zod": "3.25.76"
   },
   "devDependencies": {
-    "@types/node": "22.0.0",
-    "ts-node": "10.9.0",
-    "typescript": "5.7.0",
-    "vitest": "3.0.0"
+    "@types/node": "22.20.4",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
   }
 }
