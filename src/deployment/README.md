@@ -1,7 +1,17 @@
 # Deployment execution
 
-This directory contains the deployment engine (`engine.ts`) and the immutable
-deployment record (`record.ts`).
+This directory contains the deployment engine and the immutable deployment
+evidence it produces:
+
+| File | Responsibility |
+| --- | --- |
+| `engine.ts` | deploy one logical contract from the frozen resolved spec |
+| `bootstrap.ts` | run declared initialization calls and their read-only assertions |
+| `bindings.ts` | shared resolution of typed bindings against observed runtime facts |
+| `execution-spec.ts` | materialize constructor bindings into the hashed execution spec |
+| `record.ts` | the durable deployment record (reconciliation + `--resume` state) |
+| `manifest.ts` | immutable manifest + registry-binding candidate, with the completeness gate |
+| `live-verification.ts` | read-only re-verification of a sealed manifest against a live chain |
 
 The engine executes the **frozen resolved spec** against an ordinary
 **JSON-RPC** endpoint via a thin transport and a local signer. It is:
@@ -20,13 +30,15 @@ normalization) — never for orchestration.
 
 ```
 load artifact → verify identity/hashes → resolve constructor args → encode init code
-→ derive/validate expected address (CREATE2) → read chain id → read signer nonce
-→ construct unsigned tx → estimate/determine gas → sign → eth_sendRawTransaction
+→ read chain id → read signer nonce → construct unsigned tx
+→ estimate/determine gas → sign → eth_sendRawTransaction
 → wait receipt → verify success → eth_getCode → verify runtime bytecode → write deployment fact
 ```
 
 Deployment is deliberately serial and nonce-boring (one tx, wait, next). No
-parallel deployments, no speculative nonces, no tx replacement.
+parallel deployments, no speculative nonces, no tx replacement. CREATE2 is
+disabled until a concrete factory protocol is implemented end-to-end, so there
+is no address derivation step.
 
 ## Resolved vs deployment record
 
@@ -36,5 +48,4 @@ parallel deployments, no speculative nonces, no tx replacement.
   facts: addresses, txs, blocks, applied parameter values), linked by `specHash`.
 
 A deployment fact stores the resolved parameter values applied at deploy time.
-A later governance change is recorded as a separate governance action and never
-overwrites the original deployment fact.
+A later governance change never overwrites the original deployment fact.

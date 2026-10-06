@@ -22,20 +22,31 @@ describe('EDN reader', () => {
   });
 
   it('rejects duplicate map keys', () => {
-    expect(() => parseEdn('{:a 1 :a 2}', 't')).toThrow(ConfigError);
     try {
       parseEdn('{:a 1 :a 2}', 't');
+      expect.unreachable('parseEdn must reject duplicate map keys');
     } catch (e) {
       expect((e as ConfigError).code).toBe('DUPLICATE_LOGICAL_ID');
     }
   });
 
   it('rejects unsupported tagged literals', () => {
-    expect(() => parseEdn('#inst "2020-01-01"', 't')).toThrow(ConfigError);
+    try {
+      parseEdn('#inst "2020-01-01"', 't');
+      expect.unreachable('parseEdn must reject tagged literals');
+    } catch (e) {
+      expect((e as ConfigError).code).toBe('EDN_PARSE_FAILED');
+    }
   });
 
   it('rejects unterminated maps and trailing content', () => {
-    expect(() => parseEdn('{:a 1', 't')).toThrow(ConfigError);
-    expect(() => parseEdn('{:a 1} extra', 't')).toThrow(ConfigError);
+    for (const malformed of ['{:a 1', '{:a 1} extra', '[:a']) {
+      try {
+        parseEdn(malformed, 't');
+        expect.unreachable(`parseEdn must reject ${JSON.stringify(malformed)}`);
+      } catch (e) {
+        expect((e as ConfigError).code).toBe('EDN_PARSE_FAILED');
+      }
+    }
   });
 });

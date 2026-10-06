@@ -34,11 +34,6 @@ export function normalizeHex(value: string): string {
   return v;
 }
 
-export function isHex(value: string): boolean {
-  const v = value.trim().toLowerCase().replace(/^0x/, '');
-  return v.length > 0 && /^[0-9a-f]+$/.test(v);
-}
-
 /**
  * Hash of bytecode (without 0x prefix) interpreted as ASCII characters.
  * Bytecode may contain library link placeholders (`__$<hex>$__`), so this is

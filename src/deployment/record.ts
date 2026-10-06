@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { z } from 'zod';
 import type { Address, Hex } from 'viem';
 import { ConfigError } from '../errors';
 import type { ResolvedContract } from '../canonical';
@@ -25,19 +26,10 @@ export interface ContractDeploymentFact {
   /**
    * The resolved parameter values that were applied at deployment time.
    * This is an immutable deployment fact: a later governance change to the
-   * same parameter is recorded as a separate governance action and never
+   * same parameter is a separate observation recorded elsewhere and never
    * overwrites this original value.
    */
   deployedParameters: Record<string, string | number | boolean>;
-}
-
-export interface GovernanceAction {
-  logicalId: string;
-  parameter: string;
-  fromValue: string | number | boolean;
-  toValue: string | number | boolean;
-  transactionHash: Hex;
-  blockNumber: string;
 }
 
 export interface ExecutionStepRecord {
@@ -74,15 +66,82 @@ export interface DeploymentRecord {
   status: 'complete' | 'partial';
   deployer?: Address;
   blockNumber?: string;
+  /** Identity of `blockNumber`, recorded so a manifest can be re-checked later. */
+  blockHash?: Hex;
   deployedAt?: string;
   contracts: Record<string, ContractDeploymentFact>;
-  governanceActions: GovernanceAction[];
   /** Durable transition history for deploy steps; used for reconciliation/resume. */
   execution: Record<string, ExecutionStepRecord>;
   /** Bootstrap-only calls; later protocol governance is intentionally out of scope. */
   bootstrapActions: BootstrapActionRecord[];
   finalAssertions: FinalAssertionRecord[];
 }
+
+const hex = z.string().regex(/^0x[0-9a-fA-F]+$/);
+const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/);
+const uintString = z.string().regex(/^\d+$/);
+
+const artifactSchema = z.object({
+  source: z.string(),
+  package: z.string(),
+  version: z.string(),
+  artifactName: z.string(),
+  abiSha256: z.string(),
+  creationBytecodeSha256: z.string(),
+  runtimeBytecodeSha256: z.string(),
+});
+
+const contractFactSchema = z.object({
+  kind: z.literal('deployment'),
+  logicalId: z.string(),
+  artifact: artifactSchema,
+  address,
+  transactionHash: hex,
+  blockNumber: uintString,
+  mode: z.enum(['create', 'create2']),
+  deployedParameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+});
+
+const executionStepSchema = z.object({
+  status: z.enum(['planned', 'submitted', 'confirmed', 'verified', 'failed']),
+  transactionHash: hex.optional(),
+  blockNumber: uintString.optional(),
+  address: address.optional(),
+  error: z.string().optional(),
+});
+
+const bootstrapActionSchema = z.object({
+  id: z.string(),
+  status: z.enum(['planned', 'submitted', 'confirmed', 'verified', 'failed']),
+  transactionHash: hex.optional(),
+  blockNumber: uintString.optional(),
+  verification: z.string().optional(),
+});
+
+const finalAssertionSchema = z.object({
+  id: z.string(),
+  status: z.enum(['passed', 'failed']),
+  verifiedAt: z.string(),
+  detail: z.string().optional(),
+});
+
+const recordSchema = z.object({
+  schemaVersion: z.literal(1),
+  deploymentId: z.string().optional(),
+  specHash: z.string(),
+  executionSpecHash: z.string().optional(),
+  environment: z.string(),
+  chainId: z.number(),
+  status: z.enum(['complete', 'partial']),
+  deployer: address.optional(),
+  blockNumber: uintString.optional(),
+  blockHash: hex.optional(),
+  deployedAt: z.string().optional(),
+  contracts: z.record(z.string(), contractFactSchema),
+  execution: z.record(z.string(), executionStepSchema),
+  bootstrapActions: z.array(bootstrapActionSchema),
+  finalAssertions: z.array(finalAssertionSchema),
+});
 
 export function artifactIdentityOf(contract: ResolvedContract): ArtifactIdentity {
   return {
@@ -104,20 +163,29 @@ export function emptyRecord(opts: { specHash: string; environment: string; chain
     chainId: opts.chainId,
     status: 'partial',
     contracts: {},
-    governanceActions: [],
     execution: {},
     bootstrapActions: [],
     finalAssertions: [],
   };
 }
 
+/**
+ * Load a durable deployment record. The record drives `--resume`, so a
+ * truncated or hand-edited file must fail closed instead of being cast.
+ */
 export function loadRecord(recordPath: string): DeploymentRecord | null {
   if (!fs.existsSync(recordPath)) return null;
+  let raw: unknown;
   try {
-    return JSON.parse(fs.readFileSync(recordPath, 'utf8')) as DeploymentRecord;
+    raw = JSON.parse(fs.readFileSync(recordPath, 'utf8'));
   } catch (e) {
     throw new ConfigError('RECORD_UNREADABLE', `Cannot read deployment record ${recordPath}: ${e instanceof Error ? e.message : String(e)}`);
   }
+  const parsed = recordSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new ConfigError('RECORD_UNREADABLE', `Deployment record ${recordPath} failed schema validation`, { path: recordPath, details: { issues: parsed.error.issues } });
+  }
+  return parsed.data as DeploymentRecord;
 }
 
 export function saveRecord(recordPath: string, record: DeploymentRecord): void {

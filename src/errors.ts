@@ -23,18 +23,3 @@ export class ConfigError extends Error {
     this.details = opts.details;
   }
 }
-
-export function isConfigError(e: unknown): e is ConfigError {
-  return e instanceof ConfigError;
-}
-
-/** Normalize any thrown error into a ConfigError if it is not already one. */
-export function asConfigError(
-  code: ErrorCode,
-  e: unknown,
-  opts: { path?: string } = {},
-): ConfigError {
-  if (isConfigError(e)) return e;
-  const message = e instanceof Error ? e.message : String(e);
-  return new ConfigError(code, message, opts);
-}

@@ -604,7 +604,6 @@ function resolveDeploymentOrder(
   };
   return {
     steps,
-    chainId: environment.chain.chainId,
     bootstrapActions: environment.bootstrapActions.map(resolveBootstrap),
     bootstrapAssertions: environment.bootstrapAssertions.map((assertion) => ({
       ...resolveBootstrap(assertion),

@@ -22,7 +22,7 @@ function manifest(overrides: Partial<DeploymentManifestV1> = {}): DeploymentMani
     architectureSpecHash: '0xarchitecture',
     executionSpecHash: '0xexecution',
     deploymentId: 'deployment-1',
-    chain: { id: 31337, blockNumber: '12' },
+    chain: { id: 31337, blockNumber: '12', blockHash: ('0x' + 'd'.repeat(64)) as Hex },
     deployer: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
     contracts: [{
       logicalId: 'prf/shortfall-reserve',
@@ -33,7 +33,6 @@ function manifest(overrides: Partial<DeploymentManifestV1> = {}): DeploymentMani
     }],
     bootstrapActions: [{ id: 'bind', status: 'verified', transactionHash: ('0x' + '2'.repeat(64)) as Hex, blockNumber: '11' }],
     finalAssertions: [{ id: 'bound', status: 'passed', verifiedAt: '2026-01-01T00:00:00.000Z' }],
-    verificationRoot: '0xverification',
     ...overrides,
   };
 }

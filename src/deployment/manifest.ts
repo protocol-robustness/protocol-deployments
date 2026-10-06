@@ -1,6 +1,7 @@
 import type { Address, Hex } from 'viem';
 import { canonicalJson } from '../canonical-json';
 import { keccak256Hex } from '../artifacts/hash';
+import { ConfigError } from '../errors';
 import type { DeploymentRecord } from './record';
 
 export const DEPLOYMENT_MANIFEST_DOMAIN = 'protocol-deployment-manifest:v1:';
@@ -12,7 +13,7 @@ export interface DeploymentManifestV1 {
   architectureSpecHash: string;
   executionSpecHash: string;
   deploymentId: string;
-  chain: { id: number; blockNumber: string; blockHash?: Hex };
+  chain: { id: number; blockNumber: string; blockHash: Hex };
   deployer: Address;
   contracts: Array<{
     logicalId: string;
@@ -24,7 +25,6 @@ export interface DeploymentManifestV1 {
   }>;
   bootstrapActions: DeploymentRecord['bootstrapActions'];
   finalAssertions: DeploymentRecord['finalAssertions'];
-  verificationRoot: string;
 }
 
 export function computeManifestRoot(manifest: DeploymentManifestV1): string {
@@ -48,7 +48,9 @@ export function registryBindingCandidate(manifest: DeploymentManifestV1, registr
     ? manifest.contracts
     : registryRoots.map((logicalId) => {
       const contract = manifest.contracts.find((candidate) => candidate.logicalId === logicalId);
-      if (!contract) throw new Error(`Registry root '${logicalId}' is not present in the deployment manifest`);
+      if (!contract) {
+        throw new ConfigError('MANIFEST_ROOT_MISSING', `Registry root '${logicalId}' is not present in the deployment manifest`);
+      }
       return contract;
     });
   const body = {
@@ -73,24 +75,47 @@ export function registryBindingCandidate(manifest: DeploymentManifestV1, registr
 }
 
 /**
+ * A manifest may only be re-checked or handed off once every fact it reports
+ * has actually verified on chain. Both live re-verification and registry
+ * handoff depend on this gate, so it fails closed on incomplete evidence,
+ * unverified bootstrap actions, and failed final assertions alike.
+ */
+export function assertManifestVerified(manifest: DeploymentManifestV1): void {
+  if (manifest.contracts.length === 0) {
+    throw new ConfigError('MANIFEST_INCOMPLETE', 'Deployment manifest contains no contracts');
+  }
+  if (!manifest.chain.blockHash) {
+    throw new ConfigError('MANIFEST_INCOMPLETE', 'Deployment manifest does not record the deployment block hash');
+  }
+  const unverified = manifest.bootstrapActions.filter((action) => action.status !== 'verified');
+  if (unverified.length > 0) {
+    throw new ConfigError(
+      'MANIFEST_UNVERIFIED_BOOTSTRAP',
+      `Deployment manifest has unverified bootstrap actions: ${unverified.map((action) => action.id).join(', ')}`,
+    );
+  }
+  const failed = manifest.finalAssertions.filter((assertion) => assertion.status !== 'passed');
+  if (failed.length > 0) {
+    throw new ConfigError(
+      'MANIFEST_FAILED_ASSERTIONS',
+      `Deployment manifest has failed final assertions: ${failed.map((assertion) => assertion.id).join(', ')}`,
+    );
+  }
+  for (const contract of manifest.contracts) {
+    if (!contract.logicalId || !contract.address || !contract.deploymentTx || !contract.blockNumber) {
+      throw new ConfigError('MANIFEST_INCOMPLETE', 'Deployment manifest has an incomplete deployment fact');
+    }
+    if (!contract.artifact.artifactName || !contract.artifact.runtimeBytecodeSha256) {
+      throw new ConfigError('MANIFEST_INCOMPLETE', `Deployment manifest lacks artifact identity for '${contract.logicalId}'`);
+    }
+  }
+}
+
+/**
  * Registry handoff is allowed only from a complete, verified deployment.
  * Selection remains the registry operator's responsibility; this gate only
  * prevents incomplete or internally inconsistent evidence from being emitted.
  */
 export function validateManifestForRegistryCandidate(manifest: DeploymentManifestV1): void {
-  if (manifest.contracts.length === 0) throw new Error('Cannot create registry candidate from an empty deployment manifest');
-  if (manifest.bootstrapActions.some((action) => action.status !== 'verified')) {
-    throw new Error('Cannot create registry candidate with unverified bootstrap actions');
-  }
-  if (manifest.finalAssertions.some((assertion) => assertion.status !== 'passed')) {
-    throw new Error('Cannot create registry candidate with failed final assertions');
-  }
-  for (const contract of manifest.contracts) {
-    if (!contract.logicalId || !contract.address || !contract.deploymentTx || !contract.blockNumber) {
-      throw new Error('Cannot create registry candidate with an incomplete deployment fact');
-    }
-    if (!contract.artifact.artifactName || !contract.artifact.runtimeBytecodeSha256) {
-      throw new Error(`Cannot create registry candidate without artifact identity for '${contract.logicalId}'`);
-    }
-  }
+  assertManifestVerified(manifest);
 }

@@ -156,9 +156,6 @@ export interface ResolvedDeploymentPlan {
   registryRoots?: string[];
   /** Whether registry candidates from this environment are synthetic/local only. */
   localOnly?: boolean;
-  /** chain id declared in config; the execution layer must verify the
-   *  connected RPC reports this same chain id. */
-  chainId: number;
 }
 
 export interface ResolvedSpec {

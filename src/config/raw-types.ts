@@ -292,4 +292,3 @@ export type RawRuntime = z.infer<typeof runtimeSchema>;
 export type RawParameter = z.infer<typeof parameterSchema>;
 export type RawLogicalContract = z.infer<typeof logicalContractSchema>;
 export type RawArtifactSource = z.infer<typeof artifactSourceSchema>;
-export type RawChainBinding = z.infer<typeof chainBindingSchema>;

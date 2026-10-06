@@ -1,6 +1,6 @@
 import type { RawRuntime } from '../config/raw-types';
 import { RpcTransport } from './transport';
-import { PrivateKeySigner, DeterministicLocalSigner, UnlockedSigner, type Signer } from './signer';
+import { PrivateKeySigner, DeterministicLocalSigner, type Signer } from './signer';
 import { DevnetManager } from './devnet';
 import { AnvilRuntime } from './anvil';
 import { ConfigError } from '../errors';

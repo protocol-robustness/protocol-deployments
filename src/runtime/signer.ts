@@ -1,6 +1,6 @@
 import { createWalletClient, http, type Address, type Chain, type Hex } from 'viem';
 import { signTransaction } from 'viem/actions';
-import { privateKeyToAccount, generatePrivateKey } from 'viem/accounts';
+import { privateKeyToAccount } from 'viem/accounts';
 
 export interface UnsignedTransaction {
   chainId: number;
@@ -77,29 +77,4 @@ export class DeterministicLocalSigner extends PrivateKeySigner {
     // Standard Anvil/Hardhat dev account #0 — DEV ONLY.
     super('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', rpcUrl);
   }
-}
-
-/** Adapter for a node-owned unlocked account (dev convenience only). */
-export class UnlockedSigner implements Signer {
-  readonly kind = 'unlocked';
-  constructor(
-    private readonly address: Address,
-    private readonly rpcUrl: string,
-  ) {}
-
-  async getAddress(): Promise<Address> {
-    return this.address;
-  }
-
-  /** Node-owned accounts must use eth_sendTransaction; not the canonical path. */
-  signTransaction(_tx: UnsignedTransaction): Promise<Hex> {
-    return Promise.reject(
-      new Error('UnlockedSigner cannot sign locally; use a PrivateKeySigner for raw-transaction deployments'),
-    );
-  }
-}
-
-/** Generate a fresh deterministic key (used for ephemeral test chains). */
-export function randomPrivateKey(): Hex {
-  return generatePrivateKey();
 }
