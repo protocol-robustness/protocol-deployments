@@ -37,7 +37,7 @@ export const baseline: EdnInputs = {
 {:schemaVersion 1
  :artifactSources
  { :sew/deployables {:package "@sew/deployables" :version "0.1.0" :sourceRepo "sew/sew-protocol" :kind :npm}
-   :prf/deployables {:package "@protocol-robustness/prf-evm-deployables" :version "0.1.0" :sourceRepo "protocol-robustness/prf-evm" :kind :npm} }
+   :prf/deployables {:package "@protocol-robustness/prf-evm-deployables" :version "0.2.0" :sourceRepo "protocol-robustness/prf-evm" :kind :npm} }
   :contracts
   { :shared/gov-token {:scope :shared :artifactSource :sew/deployables :artifact "SewToken"
                         :parameters {:name {:value "G" :mutability :immutable}

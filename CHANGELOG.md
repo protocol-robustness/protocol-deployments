@@ -21,6 +21,7 @@
 
 ### Changed
 
+- Updated existing PRF deployment profiles and resolver fixtures to consume deployables bundle 0.2.0, including the V2 allocator live proof-mode source constructor binding.
 - Non-local (`testnet`/`mainnet`) deploys now refuse fixtures and unpinned bundles, require explicit confirmation (`--yes`), and use live chain fees instead of hardcoded constants.
 - `runtime/base-fork.edn` (dead mainnet-fork config) was replaced by `runtime/base-sepolia-fork.edn` matched to a real environment.
 - Real SEW/PRF exporter bundles under `fixtures/packages/**/artifacts/` are now tracked in git (previously ignored by the bare `artifacts/` rule), so a fresh clone can `resolve:*` against the SEW/PRF fixtures without re-running the exporters.

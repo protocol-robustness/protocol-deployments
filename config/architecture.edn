@@ -22,7 +22,7 @@
 
    :prf/deployables
    {:package "@protocol-robustness/prf-evm-deployables"
-    :version "0.1.0"
+    :version "0.2.0"
     :sourceRepo "protocol-robustness/prf-evm"
     :kind :npm}}
 
