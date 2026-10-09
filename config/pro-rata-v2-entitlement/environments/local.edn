@@ -1,0 +1,152 @@
+{:schemaVersion 1
+ :environment :pro-rata-v2-entitlement-local
+ :chain {:logicalRole :local :chainId 31337 :kind :local}
+ :deploymentOrder
+ [:prf/local-token
+  :prf/governance-authority
+  :prf/genesis
+  :prf/verifier-registry
+  :prf/sp1-verifier-groth16
+  :prf/source-bound-entitlement-verifier-adapter-v1
+  :prf/configuration-executor
+  :prf/statement-admission
+  :shortfall/prepared-operation-controller-v2
+  :shortfall/pro-rata-allocator-v2
+  :shortfall/shortfall-reserve-v2
+  :shortfall/source-bound-entitlement-assurance-v1
+  :shortfall/entitlement-ratification-controller-v1]
+ :registryRoots
+ [:shortfall/source-bound-entitlement-assurance-v1
+  :shortfall/entitlement-ratification-controller-v1
+  :shortfall/shortfall-reserve-v2
+  :shortfall/pro-rata-allocator-v2]
+ :localOnly true
+ :bootstrapActions
+ [{:id :prf/seal-genesis
+   :target :prf/genesis
+   :function "sealGenesis"
+   :args [{:literal "0x5555555555555555555555555555555555555555555555555555555555555555"}
+          {:runtimeCodeHash :prf/genesis}
+          {:runtimeCodeHash :prf/governance-authority}]}
+  {:id :shortfall-entitlement/bind-allocator-funding-authority
+   :target :shortfall/pro-rata-allocator-v2
+   :function "bindFundingAuthority"
+   :args [{:contractAddress :shortfall/shortfall-reserve-v2}]}
+  {:id :shortfall-entitlement/bind-prepared-ratification-controller
+   :target :shortfall/prepared-operation-controller-v2
+   :function "bindRatificationController"
+   :args [{:contractAddress :shortfall/entitlement-ratification-controller-v1}]}
+  {:id :shortfall-entitlement/bind-assurance-ratification-controller
+   :target :shortfall/source-bound-entitlement-assurance-v1
+   :function "bindRatificationController"
+   :args [{:contractAddress :shortfall/entitlement-ratification-controller-v1}]}
+  {:id :shortfall-entitlement/bind-reserve-ratification-authority
+   :target :shortfall/shortfall-reserve-v2
+   :function "bindRatificationAuthority"
+   :args [{:contractAddress :shortfall/entitlement-ratification-controller-v1}]}]
+ :bootstrapAssertions
+ [{:id :prf/genesis-sealed
+   :target :prf/genesis
+   :function "isSealedState"
+   :args []
+   :expected true}
+  {:id :local/token-is-deployed
+   :target :prf/local-token
+   :function "totalSupply"
+   :args []
+   :expected 1000}
+  {:id :shortfall-entitlement/allocator-funding-authority-bound
+   :target :shortfall/pro-rata-allocator-v2
+   :function "fundingAuthorityBound"
+   :args []
+   :expected true}
+  {:id :shortfall-entitlement/allocator-funding-authority
+   :target :shortfall/pro-rata-allocator-v2
+   :function "fundingAuthority"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/shortfall-reserve-v2}}
+  {:id :shortfall-entitlement/allocator-proof-mode-source
+   :target :shortfall/pro-rata-allocator-v2
+   :function "proofModeSource"
+   :args []
+   :expectedBinding {:contractAddress :prf/configuration-executor}}
+  {:id :shortfall-entitlement/reserve-ratification-authority-bound
+   :target :shortfall/shortfall-reserve-v2
+   :function "ratificationAuthorityBound"
+   :args []
+   :expected true}
+  {:id :shortfall-entitlement/reserve-ratification-authority
+   :target :shortfall/shortfall-reserve-v2
+   :function "ratificationAuthority"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/entitlement-ratification-controller-v1}}
+  {:id :shortfall-entitlement/reserve-allocator
+   :target :shortfall/shortfall-reserve-v2
+   :function "allocator"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/pro-rata-allocator-v2}}
+  {:id :shortfall-entitlement/assurance-controller-bound
+   :target :shortfall/source-bound-entitlement-assurance-v1
+   :function "controllerBindingFinalized"
+   :args []
+   :expected true}
+  {:id :shortfall-entitlement/prepared-ratification-controller
+   :target :shortfall/prepared-operation-controller-v2
+   :function "ratificationController"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/entitlement-ratification-controller-v1}}
+  {:id :shortfall-entitlement/assurance-ratification-controller
+   :target :shortfall/source-bound-entitlement-assurance-v1
+   :function "ratificationController"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/entitlement-ratification-controller-v1}}
+  {:id :shortfall-entitlement/assurance-prepared-controller
+   :target :shortfall/source-bound-entitlement-assurance-v1
+   :function "preparedController"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/prepared-operation-controller-v2}}
+  {:id :shortfall-entitlement/assurance-source-adapter
+   :target :shortfall/source-bound-entitlement-assurance-v1
+   :function "sourceAdapter"
+   :args []
+   :expectedBinding {:contractAddress :prf/source-bound-entitlement-verifier-adapter-v1}}
+  {:id :shortfall-entitlement/ratification-prepared-controller
+   :target :shortfall/entitlement-ratification-controller-v1
+   :function "preparedController"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/prepared-operation-controller-v2}}
+  {:id :shortfall-entitlement/ratification-assurance
+   :target :shortfall/entitlement-ratification-controller-v1
+   :function "assurance"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/source-bound-entitlement-assurance-v1}}
+  {:id :shortfall-entitlement/ratification-reserve
+   :target :shortfall/entitlement-ratification-controller-v1
+   :function "reserve"
+   :args []
+   :expectedBinding {:contractAddress :shortfall/shortfall-reserve-v2}}
+  {:id :shortfall-entitlement/adapter-local-verifier
+   :target :prf/source-bound-entitlement-verifier-adapter-v1
+   :function "sp1Verifier"
+   :args []
+   :expectedBinding {:contractAddress :prf/sp1-verifier-groth16}}
+  {:id :shortfall-entitlement/adapter-program-vkey
+   :target :prf/source-bound-entitlement-verifier-adapter-v1
+   :function "programVKey"
+   :args []
+   :expected "0x003cb0ac41d9c5cd78fe461b5ba27dfb08cd74490c9526fa762e7e392ee7bac5"}
+  {:id :shortfall-entitlement/adapter-program-elf
+   :target :prf/source-bound-entitlement-verifier-adapter-v1
+   :function "programElfSha256"
+   :args []
+   :expected "0x7e9cf1b3479a4b6fb8836b50b30b55d00736ac860eaba4230f057d4687bc0e39"}
+  {:id :shortfall-entitlement/adapter-statement-schema
+   :target :prf/source-bound-entitlement-verifier-adapter-v1
+   :function "statementSchemaVersion"
+   :args []
+   :expected "0x71fc0589dce6888fb7c2da5ddd88275753cf9f9de0aca477f307bd96de8660de"}
+  {:id :shortfall-entitlement/adapter-public-values-schema
+   :target :prf/source-bound-entitlement-verifier-adapter-v1
+   :function "publicValuesSchema"
+   :args []
+   :expected "0x876f2aea9124d79f41dbdd389d498430987fa33bbb34408989849c478a7c2bde"}]}
