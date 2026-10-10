@@ -113,3 +113,24 @@ describe('resolver happy path', () => {
     expect(authority?.expected).toEqual({ kind: 'contract-address', contract: 'shortfall/shortfall-reserve-v2' });
   });
 });
+
+
+describe('qualified successor artifact isolation', () => {
+  const profileDir = path.join(CONFIG_DIR, 'pro-rata-v2-entitlement');
+  const fixtureRoot = path.resolve('fixtures/releases/0.4.0/packages');
+
+  it('resolves the successor from clean pinned 0.4.0 artifacts', () => {
+    const { spec } = resolveDeployment({ configDir: CONFIG_DIR, environment: 'local', profileDir, fixtureRoot,
+      preferFixtures: true, requirePinnedProvenance: true });
+    const adapter = spec.contracts['prf/source-bound-entitlement-verifier-adapter-v1']!;
+    expect(adapter.constructorBindings?.vkey_).toEqual({ kind: 'literal', value: '0x00d90efa52d17e54670a4248f001e4da443a938f12c55d0d414c125ba68087b9' });
+    expect(adapter.constructorBindings?.elfSha256_).toEqual({ kind: 'literal', value: '0x636330de8e7af3485aba50bd3ca4b5e024cc4f977a2bf0f2c005f711e5ffacf8' });
+    const assurance = Object.values(spec.contracts).find(c => c.artifactName === 'SourceBoundProRataEntitlementAssuranceV1')!;
+    expect(assurance.artifact.abi.some((entry: any) => entry.type === 'function' && entry.name === 'replaceStaleAssurance')).toBe(true);
+    expect(spec.deployment.localOnly).toBe(true);
+  });
+
+  it('refuses to substitute the historical artifact bundle for the successor', () => {
+    expect(() => resolveDeployment({ configDir: CONFIG_DIR, environment: 'local', profileDir, fixtureRoot: FIXTURE_ROOT })).toThrow();
+  });
+});

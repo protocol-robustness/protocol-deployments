@@ -32,3 +32,6 @@ deployments/*
 
 # Logs
 *.log
+
+!fixtures/releases/**/artifacts/
+!fixtures/releases/**/artifacts/**

@@ -4,7 +4,9 @@
 
 ### Added
 
-- Added a separate local successor entitlement topology profile using the 0.2.0 PRF EVM deployables bundle and the committed Groth16 program identity; the legacy 192-byte V2 profile remains unchanged. The new profile is explicitly topology-only because the declarative resolver cannot yet derive and govern the deployed adapter's verifier-registry root.
+- Deployment CLI accepts `--fixtures <dir>`; the successor local profile uses an isolated 0.4.0 bundle with stale-assurance recovery interfaces and the locally qualified successor VKey/ELF. Existing profiles retain their original artifact pins.
+
+- Added a separate local successor entitlement topology profile using the separately pinned 0.4.0 PRF EVM deployables bundle and the committed Groth16 program identity; the legacy 192-byte V2 profile remains unchanged. The new profile is explicitly topology-only because the declarative resolver cannot yet derive and govern the deployed adapter's verifier-registry root.
 - Live-network hardening: EIP-1559 fees are read from the chain (with `--max-fee`/`--priority-fee` overrides), receipt waits are configurable (`--receipt-timeout-ms`) with distinct timeout codes, and a funding preflight (`--dry-run`/`--yes`) runs before the first transaction.
 - Pinned artifact resolution: `NpmBundleLocator`/`SourceMapBundleLocator` and a `BUNDLE_PROVENANCE_UNPINNED` gate that refuses fixture or dirty bundles on non-local chains.
 - A dependency-free `.env` loader (`.env.example` added) so `BASE_SEPOLIA_RPC_URL`/`BASE_SEPOLIA_DEPLOYER_KEY` need not be exported manually.

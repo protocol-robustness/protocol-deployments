@@ -72,7 +72,7 @@ async function main(): Promise<void> {
   const timeoutArg = flagValue('receipt-timeout-ms');
   const profileDir = profileArg >= 0 ? path.resolve(process.cwd(), process.argv[profileArg + 1]!) : undefined;
   if (!environment) {
-    console.error('Usage: deploy.ts <environment> [--profile <dir>] [--deployment-key <key>] [--resume] [--dry-run] [--yes] [--max-fee <wei>] [--priority-fee <wei>] [--receipt-timeout-ms <ms>]');
+    console.error('Usage: deploy.ts <environment> [--profile <dir>] [--fixtures <dir>] [--deployment-key <key>] [--resume] [--dry-run] [--yes] [--max-fee <wei>] [--priority-fee <wei>] [--receipt-timeout-ms <ms>]');
     process.exit(2);
   }
   if (priorityFeeArg !== undefined && maxFeeArg === undefined) {
@@ -88,7 +88,7 @@ async function main(): Promise<void> {
     process.exit(2);
   }
   const configDir = path.resolve(process.cwd(), 'config');
-  const fixtureRoot = path.resolve(process.cwd(), 'fixtures', 'packages');
+  const fixtureRoot = path.resolve(process.cwd(), flagValue('fixtures') ?? 'fixtures/packages');
   const deploymentsDir = path.resolve(process.cwd(), 'deployments');
 
   // Source selection must match what is deployed: local runs read fixtures,
@@ -113,7 +113,7 @@ async function main(): Promise<void> {
   const bound = await bindRuntime(runtime, environment, configDir);
 
   if (!deploymentKey) {
-    console.error('Usage: deploy.ts <environment> [--profile <dir>] [--deployment-key <key>] [--resume]');
+    console.error('Usage: deploy.ts <environment> [--profile <dir>] [--fixtures <dir>] [--deployment-key <key>] [--resume]');
     process.exit(2);
   }
 

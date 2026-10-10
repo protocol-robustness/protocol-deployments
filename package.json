@@ -26,8 +26,8 @@
     "deploy:base-sepolia": "ts-node src/cli/deploy.ts base-sepolia",
     "deploy:base-sepolia:resume": "ts-node src/cli/deploy.ts base-sepolia --resume",
     "verify:live": "ts-node src/cli/verify-live.ts",
-    "resolve:pro-rata-v2-entitlement-local": "ts-node src/cli/resolve.ts --env local --profile config/pro-rata-v2-entitlement --out deployments/pro-rata-v2-entitlement-local.resolved.json",
-    "deploy:pro-rata-v2-entitlement-local": "ts-node src/cli/deploy.ts local --profile config/pro-rata-v2-entitlement --deployment-key pro-rata-v2-entitlement-local"
+    "resolve:pro-rata-v2-entitlement-local": "ts-node src/cli/resolve.ts --env local --profile config/pro-rata-v2-entitlement --out deployments/pro-rata-v2-entitlement-local.resolved.json --fixtures fixtures/releases/0.4.0/packages",
+    "deploy:pro-rata-v2-entitlement-local": "ts-node src/cli/deploy.ts local --profile config/pro-rata-v2-entitlement --deployment-key pro-rata-v2-entitlement-local --fixtures fixtures/releases/0.4.0/packages"
   },
   "engines": {
     "node": ">=20"

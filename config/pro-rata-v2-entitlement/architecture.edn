@@ -2,7 +2,7 @@
  :artifactSources
  {:prf/deployables
   {:package "@protocol-robustness/prf-evm-deployables"
-   :version "0.2.0"
+   :version "0.4.0"
    :sourceRepo "protocol-robustness/prf-evm"
    :kind :npm}}
  :contracts
@@ -53,8 +53,8 @@
    :relationships {:dependsOn [:prf/sp1-verifier-groth16]}
    :constructorBindings
    {:verifier_ {:contractAddress :prf/sp1-verifier-groth16}
-    :vkey_ {:literal "0x003cb0ac41d9c5cd78fe461b5ba27dfb08cd74490c9526fa762e7e392ee7bac5"}
-    :elfSha256_ {:literal "0x7e9cf1b3479a4b6fb8836b50b30b55d00736ac860eaba4230f057d4687bc0e39"}}}
+    :vkey_ {:literal "0x00d90efa52d17e54670a4248f001e4da443a938f12c55d0d414c125ba68087b9"}
+    :elfSha256_ {:literal "0x636330de8e7af3485aba50bd3ca4b5e024cc4f977a2bf0f2c005f711e5ffacf8"}}}
 
   :prf/configuration-executor
   {:scope :prf

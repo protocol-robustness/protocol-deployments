@@ -1,0 +1,424 @@
+{
+  "abi": [
+   {
+    "inputs": [
+     {
+      "internalType": "contract IPrfStatementAdmission",
+      "name": "admission_",
+      "type": "address"
+    },
+     {
+      "internalType": "address",
+      "name": "operationAuthority_",
+      "type": "address"
+    }
+   ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+   {
+    "inputs": [],
+    "name": "admission",
+    "outputs": [
+     {
+      "internalType": "contract IPrfStatementAdmission",
+      "name": "",
+      "type": "address"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "operationId",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "admissionReceiptId",
+      "type": "bytes32"
+    }
+   ],
+    "name": "applyOperation",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "operationId",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "admissionReceiptId",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "statementRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "requiredConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint64",
+      "name": "requiredConfigurationEpoch",
+      "type": "uint64"
+    }
+   ],
+    "name": "consumptionIdFor",
+    "outputs": [
+     {
+      "internalType": "bytes32",
+      "name": "",
+      "type": "bytes32"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "consumptionId",
+      "type": "bytes32"
+    }
+   ],
+    "name": "consumptionUsed",
+    "outputs": [
+     {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "operationId",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "expectedStatementRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "requiredConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint64",
+      "name": "requiredConfigurationEpoch",
+      "type": "uint64"
+    }
+   ],
+    "name": "createOperation",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "operationId",
+      "type": "bytes32"
+    }
+   ],
+    "name": "operation",
+    "outputs": [
+     {
+      "components": [
+       {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+       {
+        "internalType": "bool",
+        "name": "applied",
+        "type": "bool"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "expectedStatementRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "requiredConfigurationRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "uint64",
+        "name": "requiredConfigurationEpoch",
+        "type": "uint64"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "admissionReceiptId",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "consumptionId",
+        "type": "bytes32"
+      }
+     ],
+      "internalType": "struct PrfAssuredOperationConsumer.Operation",
+      "name": "",
+      "type": "tuple"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "operationAuthority",
+    "outputs": [
+     {
+      "internalType": "address",
+      "name": "",
+      "type": "address"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "anonymous": false,
+    "inputs": [
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "operationId",
+      "type": "bytes32"
+    },
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "admissionReceiptId",
+      "type": "bytes32"
+    },
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "consumptionId",
+      "type": "bytes32"
+    },
+     {
+      "indexed": false,
+      "internalType": "bytes32",
+      "name": "statementRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "OperationApplied",
+    "type": "event"
+  },
+   {
+    "anonymous": false,
+    "inputs": [
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "operationId",
+      "type": "bytes32"
+    },
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "expectedStatementRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": false,
+      "internalType": "bytes32",
+      "name": "requiredConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": false,
+      "internalType": "uint64",
+      "name": "requiredConfigurationEpoch",
+      "type": "uint64"
+    }
+   ],
+    "name": "OperationCreated",
+    "type": "event"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "uint64",
+      "name": "expected",
+      "type": "uint64"
+    },
+     {
+      "internalType": "uint64",
+      "name": "actual",
+      "type": "uint64"
+    }
+   ],
+    "name": "ConfigurationEpochMismatch",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "expected",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "actual",
+      "type": "bytes32"
+    }
+   ],
+    "name": "ConfigurationRootMismatch",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "consumptionId",
+      "type": "bytes32"
+    }
+   ],
+    "name": "ConsumptionAlreadyUsed",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "address",
+      "name": "caller",
+      "type": "address"
+    },
+     {
+      "internalType": "address",
+      "name": "expected",
+      "type": "address"
+    }
+   ],
+    "name": "OnlyOperationAuthority",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "operationId",
+      "type": "bytes32"
+    }
+   ],
+    "name": "OperationAlreadyApplied",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "operationId",
+      "type": "bytes32"
+    }
+   ],
+    "name": "OperationAlreadyExists",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "expected",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "actual",
+      "type": "bytes32"
+    }
+   ],
+    "name": "StatementRootMismatch",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "receiptId",
+      "type": "bytes32"
+    }
+   ],
+    "name": "UnknownAdmissionReceipt",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "operationId",
+      "type": "bytes32"
+    }
+   ],
+    "name": "UnknownOperation",
+    "type": "error"
+  },
+   {
+    "inputs": [],
+    "name": "ZeroValue",
+    "type": "error"
+  }
+ ],
+  "bytecode": "0x60c0346100c157601f61087d38819003918201601f19168301916001600160401b038311848410176100c55780849260409485528339810103126100c15780516001600160a01b038116918282036100c15760200151916001600160a01b038316908184036100c157159081156100b8575b506100a95760805260a0526040516107a390816100da823960805181818160b101526103eb015260a05181818160f5015261019a0152f35b637c946ed760e01b5f5260045ffd5b9050155f610071565b5f80fd5b634e487b7160e01b5f52604160045260245ffdfe6080806040526004361015610012575f80fd5b5f3560e01c9081631d624c6e146103985750806347da73be146102a65780634f03b823146101685780637d8701041461012457806388a13257146100e0578063a59f185f1461009c5763aaff890f14610069575f80fd5b34610098576020366003190112610098576004355f526001602052602060ff60405f2054166040519015158152f35b5f80fd5b34610098575f366003190112610098576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b34610098575f366003190112610098576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b346100985760a03660031901126100985760843567ffffffffffffffff81168103610098576101606020916064356044356024356004356106f6565b604051908152f35b34610098576080366003190112610098576004356024359060443560643567ffffffffffffffff8116809103610098577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031633819003610290575082158015610288575b8015610280575b61027157825f525f60205260ff60405f20541661025e575f8381526020818152604091829020805460ff191660019081178255810187905560028101859055600301805467ffffffffffffffff19168417905581519384528301919091527f36a9666bd18b840414fea91902609bfc8d06a42197c036bd8e2aad64ef5ce8ff91a3005b826315fd53e760e21b5f5260045260245ffd5b637c946ed760e01b5f5260045ffd5b5081156101db565b5083156101d4565b630db2e4ad60e21b5f523360045260245260445ffd5b34610098576020366003190112610098575f60c06040516102c6816106b8565b8281528260208201528260408201528260608201528260808201528260a082015201526004355f525f60205260e060405f20604051610304816106b8565b81549167ffffffffffffffff60ff841615159384845260ff602085019160081c16151581526001830154604085019081526002840154906060860191825283600386015416926080870193845260c0600560048801549760a08a01988952015497019687526040519788525115156020880152516040870152516060860152511660808401525160a08301525160c0820152f35b346100985760403660031901126100985760043560243590805f525f60205260405f2092835460ff8116156106a55760081c60ff166106925763a5bd9f8360e01b8152600481018390526101c0816024817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa908115610687575f91610565575b5080511561055257610180810151600185019182549182810361053c57506060810151906002870154918281036105265750608067ffffffffffffffff910151169167ffffffffffffffff6003880154169283810361051057509061048a929186866106f6565b938491825f52600160205260ff60405f2054166104fd578260056020937f4619dcc91bbd5568037561d98c510257e5417d788a8afc78838b175bc1432cd3955f526001855260405f20600160ff1982541617905561010061ff0019825416178155876004820155015554604051908152a4005b826346bb03cf60e11b5f5260045260245ffd5b83636a607d2160e01b5f5260045260245260445ffd5b82635293a33360e01b5f5260045260245260445ffd5b826306c44cd960e51b5f5260045260245260445ffd5b82632360099360e21b5f5260045260245ffd5b90506101c0813d821161067f575b816105816101c093836106d4565b8101031261009857604051906101c0820182811067ffffffffffffffff82111761066b5760405280518015158103610098578252602081015160208301526040810151604083015260608101516060830152608081015167ffffffffffffffff8116810361009857608083015260a0818101519083015260c0808201519083015260e0810151906001600160a01b0382168203610098576101a09160e084015261010081015161010084015261012081015161012084015261014081015161014084015261016081015161016084015261018081015161018084015201516101a082015284610423565b634e487b7160e01b5f52604160045260245ffd5b3d9150610573565b6040513d5f823e3d90fd5b506316eb3ef160e31b5f5260045260245ffd5b82631b39286360e11b5f5260045260245ffd5b60e0810190811067ffffffffffffffff82111761066b57604052565b90601f8019910116810190811067ffffffffffffffff82111761066b57604052565b93909267ffffffffffffffff926040519460208601967f296a14b21cfd883ffde2d94653e24be819d12bb624db133bb1a2abd6832f7a1f8852306040880152466060880152608087015260a086015260c085015260e0840152166101008201526101008152610767610120826106d4565b5190209056fea264697066735822122094c3da92eed59a6d1ae16d598fdfe01a831d9ab804d7d1fa243bdbe05bd1aa1c64736f6c63430008210033",
+  "category": "consumer",
+  "contractName": "PrfAssuredOperationConsumer",
+  "deployedBytecode": "0x6080806040526004361015610012575f80fd5b5f3560e01c9081631d624c6e146103985750806347da73be146102a65780634f03b823146101685780637d8701041461012457806388a13257146100e0578063a59f185f1461009c5763aaff890f14610069575f80fd5b34610098576020366003190112610098576004355f526001602052602060ff60405f2054166040519015158152f35b5f80fd5b34610098575f366003190112610098576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b34610098575f366003190112610098576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b346100985760a03660031901126100985760843567ffffffffffffffff81168103610098576101606020916064356044356024356004356106f6565b604051908152f35b34610098576080366003190112610098576004356024359060443560643567ffffffffffffffff8116809103610098577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031633819003610290575082158015610288575b8015610280575b61027157825f525f60205260ff60405f20541661025e575f8381526020818152604091829020805460ff191660019081178255810187905560028101859055600301805467ffffffffffffffff19168417905581519384528301919091527f36a9666bd18b840414fea91902609bfc8d06a42197c036bd8e2aad64ef5ce8ff91a3005b826315fd53e760e21b5f5260045260245ffd5b637c946ed760e01b5f5260045ffd5b5081156101db565b5083156101d4565b630db2e4ad60e21b5f523360045260245260445ffd5b34610098576020366003190112610098575f60c06040516102c6816106b8565b8281528260208201528260408201528260608201528260808201528260a082015201526004355f525f60205260e060405f20604051610304816106b8565b81549167ffffffffffffffff60ff841615159384845260ff602085019160081c16151581526001830154604085019081526002840154906060860191825283600386015416926080870193845260c0600560048801549760a08a01988952015497019687526040519788525115156020880152516040870152516060860152511660808401525160a08301525160c0820152f35b346100985760403660031901126100985760043560243590805f525f60205260405f2092835460ff8116156106a55760081c60ff166106925763a5bd9f8360e01b8152600481018390526101c0816024817f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03165afa908115610687575f91610565575b5080511561055257610180810151600185019182549182810361053c57506060810151906002870154918281036105265750608067ffffffffffffffff910151169167ffffffffffffffff6003880154169283810361051057509061048a929186866106f6565b938491825f52600160205260ff60405f2054166104fd578260056020937f4619dcc91bbd5568037561d98c510257e5417d788a8afc78838b175bc1432cd3955f526001855260405f20600160ff1982541617905561010061ff0019825416178155876004820155015554604051908152a4005b826346bb03cf60e11b5f5260045260245ffd5b83636a607d2160e01b5f5260045260245260445ffd5b82635293a33360e01b5f5260045260245260445ffd5b826306c44cd960e51b5f5260045260245260445ffd5b82632360099360e21b5f5260045260245ffd5b90506101c0813d821161067f575b816105816101c093836106d4565b8101031261009857604051906101c0820182811067ffffffffffffffff82111761066b5760405280518015158103610098578252602081015160208301526040810151604083015260608101516060830152608081015167ffffffffffffffff8116810361009857608083015260a0818101519083015260c0808201519083015260e0810151906001600160a01b0382168203610098576101a09160e084015261010081015161010084015261012081015161012084015261014081015161014084015261016081015161016084015261018081015161018084015201516101a082015284610423565b634e487b7160e01b5f52604160045260245ffd5b3d9150610573565b6040513d5f823e3d90fd5b506316eb3ef160e31b5f5260045260245ffd5b82631b39286360e11b5f5260045260245ffd5b60e0810190811067ffffffffffffffff82111761066b57604052565b90601f8019910116810190811067ffffffffffffffff82111761066b57604052565b93909267ffffffffffffffff926040519460208601967f296a14b21cfd883ffde2d94653e24be819d12bb624db133bb1a2abd6832f7a1f8852306040880152466060880152608087015260a086015260c085015260e0840152166101008201526101008152610767610120826106d4565b5190209056fea264697066735822122094c3da92eed59a6d1ae16d598fdfe01a831d9ab804d7d1fa243bdbe05bd1aa1c64736f6c63430008210033",
+  "deployedLinkReferences": {},
+  "immutableReferences": {
+   "78006": [
+    {
+     "length": 32,
+     "start": 177
+   },
+    {
+     "length": 32,
+     "start": 1003
+   }
+  ],
+   "78008": [
+    {
+     "length": 32,
+     "start": 245
+   },
+    {
+     "length": 32,
+     "start": 410
+   }
+  ]
+ },
+  "linkReferences": {},
+  "metadata": "eyJjb21waWxlciI6eyJ2ZXJzaW9uIjoiMC44LjMzK2NvbW1pdC42NDExOGYyMSJ9LCJsYW5ndWFnZSI6IlNvbGlkaXR5Iiwib3V0cHV0Ijp7ImFiaSI6W3siaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJjb250cmFjdCBJUHJmU3RhdGVtZW50QWRtaXNzaW9uIiwibmFtZSI6ImFkbWlzc2lvbl8iLCJ0eXBlIjoiYWRkcmVzcyJ9LHsiaW50ZXJuYWxUeXBlIjoiYWRkcmVzcyIsIm5hbWUiOiJvcGVyYXRpb25BdXRob3JpdHlfIiwidHlwZSI6ImFkZHJlc3MifV0sInN0YXRlTXV0YWJpbGl0eSI6Im5vbnBheWFibGUiLCJ0eXBlIjoiY29uc3RydWN0b3IifSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoidWludDY0IiwibmFtZSI6ImV4cGVjdGVkIiwidHlwZSI6InVpbnQ2NCJ9LHsiaW50ZXJuYWxUeXBlIjoidWludDY0IiwibmFtZSI6ImFjdHVhbCIsInR5cGUiOiJ1aW50NjQifV0sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJDb25maWd1cmF0aW9uRXBvY2hNaXNtYXRjaCJ9LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImV4cGVjdGVkIiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiYWN0dWFsIiwidHlwZSI6ImJ5dGVzMzIifV0sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJDb25maWd1cmF0aW9uUm9vdE1pc21hdGNoIn0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiY29uc3VtcHRpb25JZCIsInR5cGUiOiJieXRlczMyIn1dLCJ0eXBlIjoiZXJyb3IiLCJuYW1lIjoiQ29uc3VtcHRpb25BbHJlYWR5VXNlZCJ9LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJhZGRyZXNzIiwibmFtZSI6ImNhbGxlciIsInR5cGUiOiJhZGRyZXNzIn0seyJpbnRlcm5hbFR5cGUiOiJhZGRyZXNzIiwibmFtZSI6ImV4cGVjdGVkIiwidHlwZSI6ImFkZHJlc3MifV0sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJPbmx5T3BlcmF0aW9uQXV0aG9yaXR5In0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoib3BlcmF0aW9uSWQiLCJ0eXBlIjoiYnl0ZXMzMiJ9XSwidHlwZSI6ImVycm9yIiwibmFtZSI6Ik9wZXJhdGlvbkFscmVhZHlBcHBsaWVkIn0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoib3BlcmF0aW9uSWQiLCJ0eXBlIjoiYnl0ZXMzMiJ9XSwidHlwZSI6ImVycm9yIiwibmFtZSI6Ik9wZXJhdGlvbkFscmVhZHlFeGlzdHMifSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJleHBlY3RlZCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImFjdHVhbCIsInR5cGUiOiJieXRlczMyIn1dLCJ0eXBlIjoiZXJyb3IiLCJuYW1lIjoiU3RhdGVtZW50Um9vdE1pc21hdGNoIn0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoicmVjZWlwdElkIiwidHlwZSI6ImJ5dGVzMzIifV0sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJVbmtub3duQWRtaXNzaW9uUmVjZWlwdCJ9LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6Im9wZXJhdGlvbklkIiwidHlwZSI6ImJ5dGVzMzIifV0sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJVbmtub3duT3BlcmF0aW9uIn0seyJpbnB1dHMiOltdLCJ0eXBlIjoiZXJyb3IiLCJuYW1lIjoiWmVyb1ZhbHVlIn0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoib3BlcmF0aW9uSWQiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOnRydWV9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJhZG1pc3Npb25SZWNlaXB0SWQiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOnRydWV9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJjb25zdW1wdGlvbklkIiwidHlwZSI6ImJ5dGVzMzIiLCJpbmRleGVkIjp0cnVlfSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoic3RhdGVtZW50Um9vdCIsInR5cGUiOiJieXRlczMyIiwiaW5kZXhlZCI6ZmFsc2V9XSwidHlwZSI6ImV2ZW50IiwibmFtZSI6Ik9wZXJhdGlvbkFwcGxpZWQiLCJhbm9ueW1vdXMiOmZhbHNlfSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJvcGVyYXRpb25JZCIsInR5cGUiOiJieXRlczMyIiwiaW5kZXhlZCI6dHJ1ZX0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImV4cGVjdGVkU3RhdGVtZW50Um9vdCIsInR5cGUiOiJieXRlczMyIiwiaW5kZXhlZCI6dHJ1ZX0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6InJlcXVpcmVkQ29uZmlndXJhdGlvblJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOmZhbHNlfSx7ImludGVybmFsVHlwZSI6InVpbnQ2NCIsIm5hbWUiOiJyZXF1aXJlZENvbmZpZ3VyYXRpb25FcG9jaCIsInR5cGUiOiJ1aW50NjQiLCJpbmRleGVkIjpmYWxzZX1dLCJ0eXBlIjoiZXZlbnQiLCJuYW1lIjoiT3BlcmF0aW9uQ3JlYXRlZCIsImFub255bW91cyI6ZmFsc2V9LHsiaW5wdXRzIjpbXSwic3RhdGVNdXRhYmlsaXR5IjoidmlldyIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJhZG1pc3Npb24iLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJjb250cmFjdCBJUHJmU3RhdGVtZW50QWRtaXNzaW9uIiwibmFtZSI6IiIsInR5cGUiOiJhZGRyZXNzIn1dfSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJvcGVyYXRpb25JZCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImFkbWlzc2lvblJlY2VpcHRJZCIsInR5cGUiOiJieXRlczMyIn1dLCJzdGF0ZU11dGFiaWxpdHkiOiJub25wYXlhYmxlIiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImFwcGx5T3BlcmF0aW9uIn0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoib3BlcmF0aW9uSWQiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJhZG1pc3Npb25SZWNlaXB0SWQiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJzdGF0ZW1lbnRSb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoicmVxdWlyZWRDb25maWd1cmF0aW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJ1aW50NjQiLCJuYW1lIjoicmVxdWlyZWRDb25maWd1cmF0aW9uRXBvY2giLCJ0eXBlIjoidWludDY0In1dLCJzdGF0ZU11dGFiaWxpdHkiOiJ2aWV3IiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImNvbnN1bXB0aW9uSWRGb3IiLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6IiIsInR5cGUiOiJieXRlczMyIn1dfSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJjb25zdW1wdGlvbklkIiwidHlwZSI6ImJ5dGVzMzIifV0sInN0YXRlTXV0YWJpbGl0eSI6InZpZXciLCJ0eXBlIjoiZnVuY3Rpb24iLCJuYW1lIjoiY29uc3VtcHRpb25Vc2VkIiwib3V0cHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYm9vbCIsIm5hbWUiOiIiLCJ0eXBlIjoiYm9vbCJ9XX0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoib3BlcmF0aW9uSWQiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJleHBlY3RlZFN0YXRlbWVudFJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJyZXF1aXJlZENvbmZpZ3VyYXRpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6InVpbnQ2NCIsIm5hbWUiOiJyZXF1aXJlZENvbmZpZ3VyYXRpb25FcG9jaCIsInR5cGUiOiJ1aW50NjQifV0sInN0YXRlTXV0YWJpbGl0eSI6Im5vbnBheWFibGUiLCJ0eXBlIjoiZnVuY3Rpb24iLCJuYW1lIjoiY3JlYXRlT3BlcmF0aW9uIn0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoib3BlcmF0aW9uSWQiLCJ0eXBlIjoiYnl0ZXMzMiJ9XSwic3RhdGVNdXRhYmlsaXR5IjoidmlldyIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJvcGVyYXRpb24iLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJzdHJ1Y3QgUHJmQXNzdXJlZE9wZXJhdGlvbkNvbnN1bWVyLk9wZXJhdGlvbiIsIm5hbWUiOiIiLCJ0eXBlIjoidHVwbGUiLCJjb21wb25lbnRzIjpbeyJpbnRlcm5hbFR5cGUiOiJib29sIiwibmFtZSI6ImV4aXN0cyIsInR5cGUiOiJib29sIn0seyJpbnRlcm5hbFR5cGUiOiJib29sIiwibmFtZSI6ImFwcGxpZWQiLCJ0eXBlIjoiYm9vbCJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJleHBlY3RlZFN0YXRlbWVudFJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJyZXF1aXJlZENvbmZpZ3VyYXRpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6InVpbnQ2NCIsIm5hbWUiOiJyZXF1aXJlZENvbmZpZ3VyYXRpb25FcG9jaCIsInR5cGUiOiJ1aW50NjQifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiYWRtaXNzaW9uUmVjZWlwdElkIiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiY29uc3VtcHRpb25JZCIsInR5cGUiOiJieXRlczMyIn1dfV19LHsiaW5wdXRzIjpbXSwic3RhdGVNdXRhYmlsaXR5IjoidmlldyIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJvcGVyYXRpb25BdXRob3JpdHkiLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJhZGRyZXNzIiwibmFtZSI6IiIsInR5cGUiOiJhZGRyZXNzIn1dfV0sImRldmRvYyI6eyJraW5kIjoiZGV2IiwibWV0aG9kcyI6eyJhcHBseU9wZXJhdGlvbihieXRlczMyLGJ5dGVzMzIpIjp7ImRldGFpbHMiOiJBZG1pc3Npb24gZmFjdHMgYXJlIGZyb3plbiBhdCBhZG1pc3Npb24gdGltZS4gQ29uc3VtZXIgYWNjZXB0YW5jZSBpcyAgICAgIGRldGVybWluZWQgaW5kZXBlbmRlbnRseSBieSB0aGlzIG9wZXJhdGlvbidzIGltbXV0YWJsZSBhY2NlcHRhbmNlIHBvbGljeS4ifSwiY3JlYXRlT3BlcmF0aW9uKGJ5dGVzMzIsYnl0ZXMzMixieXRlczMyLHVpbnQ2NCkiOnsiZGV0YWlscyI6Ik9wZXJhdGlvbnMgYXJlIGltbXV0YWJsZSBhZnRlciBjcmVhdGlvbjsgdGhlcmUgaXMgaW50ZW50aW9uYWxseSBubyB1cGRhdGUgcGF0aC4ifX0sInZlcnNpb24iOjF9LCJ1c2VyZG9jIjp7ImtpbmQiOiJ1c2VyIiwibWV0aG9kcyI6eyJhcHBseU9wZXJhdGlvbihieXRlczMyLGJ5dGVzMzIpIjp7Im5vdGljZSI6IkFwcGx5IGEgcGVuZGluZyBvcGVyYXRpb24gdXNpbmcgYW4gYWRtaXR0ZWQgcmVjZWlwdC4ifSwiY3JlYXRlT3BlcmF0aW9uKGJ5dGVzMzIsYnl0ZXMzMixieXRlczMyLHVpbnQ2NCkiOnsibm90aWNlIjoiUHJlY29tbWl0IGEgcGVuZGluZyBvcGVyYXRpb24gdG8gc2VtYW50aWMgYW5kIGFkbWlzc2lvbi1hY2NlcHRhbmNlIGlucHV0cy4ifX0sInZlcnNpb24iOjF9fSwic2V0dGluZ3MiOnsicmVtYXBwaW5ncyI6WyJAb3BlbnplcHBlbGluLz1saWIvb3BlbnplcHBlbGluLWNvbnRyYWN0cy8iLCJAc3AxLWNvbnRyYWN0cy89bGliL3NwMS1jb250cmFjdHMvY29udHJhY3RzL3NyYy8iLCJkcy10ZXN0Lz1saWIvc3AxLWNvbnRyYWN0cy9jb250cmFjdHMvbGliL29wZW56ZXBwZWxpbi1jb250cmFjdHMvbGliL2ZvcmdlLXN0ZC9saWIvZHMtdGVzdC9zcmMvIiwiZXJjNDYyNi10ZXN0cy89bGliL3NwMS1jb250cmFjdHMvY29udHJhY3RzL2xpYi9vcGVuemVwcGVsaW4tY29udHJhY3RzL2xpYi9lcmM0NjI2LXRlc3RzLyIsImZvcmdlLXN0ZC89bGliL2ZvcmdlLXN0ZC9zcmMvIiwib3BlbnplcHBlbGluLWNvbnRyYWN0cy89bGliL29wZW56ZXBwZWxpbi1jb250cmFjdHMvY29udHJhY3RzLyIsInNwMS1jb250cmFjdHMvPWxpYi9zcDEtY29udHJhY3RzL2NvbnRyYWN0cy8iXSwib3B0aW1pemVyIjp7ImVuYWJsZWQiOnRydWUsInJ1bnMiOjIwMH0sIm1ldGFkYXRhIjp7ImJ5dGVjb2RlSGFzaCI6ImlwZnMifSwiY29tcGlsYXRpb25UYXJnZXQiOnsic3JjL2NvbnN1bWVycy9QcmZBc3N1cmVkT3BlcmF0aW9uQ29uc3VtZXIuc29sIjoiUHJmQXNzdXJlZE9wZXJhdGlvbkNvbnN1bWVyIn0sImV2bVZlcnNpb24iOiJvc2FrYSIsImxpYnJhcmllcyI6e30sInZpYUlSIjp0cnVlfSwic291cmNlcyI6eyJsaWIvb3BlbnplcHBlbGluLWNvbnRyYWN0cy9jb250cmFjdHMvdXRpbHMvaW50cm9zcGVjdGlvbi9JRVJDMTY1LnNvbCI6eyJrZWNjYWsyNTYiOiIweDg4OTE3MzhmZmU5MTBmMGNmMmRhMDk1NjY5Mjg1ODliZjVkNjNmNDUyNGRkNzM0ZmQ5Y2VkYmFjMzI3NGRkNWMiLCJ1cmxzIjpbImJ6ei1yYXc6Ly85NzFmOTU0NDQyZGY1YzJlZjViNWViZjFlYjI0NWQ3MTA1ZDlmYmFjYzczODZlZTVjNzk2ZGYxZDQ1YjIxNjE3IiwiZHdlYjovaXBmcy9RbWFkUmpIYmtpY3dxd3doNjFyYVVFYXBhVkV0YUxNY1liUVpXczlnVWtnajN1Il0sImxpY2Vuc2UiOiJNSVQifSwic3JjL2NvbnN1bWVycy9QcmZBc3N1cmVkT3BlcmF0aW9uQ29uc3VtZXIuc29sIjp7ImtlY2NhazI1NiI6IjB4ZDQwZjU5OGUzYjgxYzM2NzQwYjNlOTI0MjNjYTBkNmMzMWE0NWJkNTdhZTMwZWMyZDc3MWM5NGM4NTVjZGI4ZiIsInVybHMiOlsiYnp6LXJhdzovLzM2MWFkYzU2ZWE4MmNjOTQyYTcxMzc3YmE3NTM4NWRhODg0YTdhMjA4NGFhMGNmMmI3N2I2NzBjMWViOWNmNzQiLCJkd2ViOi9pcGZzL1FtTm9CbmNLcGFnVFg3UmU1Ymtod1I0Wm13VGZ5VUtqS0tvVldUeWV5Q3JUcnoiXSwibGljZW5zZSI6IkFwYWNoZS0yLjAifSwic3JjL2ludGVyZmFjZXMvSVByZlN0YXRlbWVudEFkbWlzc2lvbi5zb2wiOnsia2VjY2FrMjU2IjoiMHgzZmRiZWFiOTFkMjdmNDRhMDAzOTY4MzgxYzg2ZmIwZDEwZGM5NjI5Y2EyNGIyMjE3OWYwYTljM2QyOWZiMTA5IiwidXJscyI6WyJienotcmF3Oi8vZGEzOTEzZmU0NGExZjRmNjIyY2EwYjllMGZmZmJmMGU5ZTI4Njg2NmJkMGRkZWQxNzA2ODhmYTQ4OTU4ZGNlZiIsImR3ZWI6L2lwZnMvUW1YSkJNMWhoeEUxYWRLazdCUzU2RE5oOVJMTkZFdm1MNUxoQ1JDMlNhVkdrRyJdLCJsaWNlbnNlIjoiQXBhY2hlLTIuMCJ9fSwidmVyc2lvbiI6MX0=",
+  "name": "PrfAssuredOperationConsumer",
+  "scopeHint": "prf",
+  "sourcePath": "src/consumers/PrfAssuredOperationConsumer.sol"
+}
