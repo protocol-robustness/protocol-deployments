@@ -1,0 +1,118 @@
+{
+  "schema": "protocol-deployments.successor-entitlement-testnet-profile.v1",
+  "profileId": "prf/pro-rata-v2-entitlement/base-sepolia",
+  "environment": {
+    "id": "base-sepolia",
+    "chainId": 84532,
+    "kind": "testnet",
+    "authority": "config/environments/base-sepolia.edn (chain identity only; not an entitlement deployment profile)"
+  },
+  "readiness": {
+    "status": "blocked",
+    "deploymentEnabled": false,
+    "admissionEnabled": false,
+    "unresolvedDependencies": [
+      "base-governance-authority-model-and-signer-references",
+      "valid-governance-token-quorum-and-activation-path",
+      "deployment-ledger-staged-genesis-root-and-seal",
+      "deployment-ledger-derived-verifier-registry-root-and-governed-selection",
+      "base-entitlement-deployment-profile-resolver-and-runtime-verifier",
+      "funded-test-token-account-and-allowance-approval",
+      "fresh-base-deployment-derived-witness-and-groth16-proof",
+      "operation-specific-recipient-and-funder-authorization"
+    ]
+  },
+  "sourcePins": {
+    "protocolDeployments": {
+      "baseRevision": "8d4c26746f27affd23e98d0e828dc43f3523c857",
+      "workingCopyAtReview": "this profile change is under review"
+    },
+    "prfEvm": {
+      "revision": "353062b667e900b6735fea6fd7ef7a61fd5282e3",
+      "artifactSource": "clean source bundle; current worktree has only generated local Anvil broadcast records"
+    },
+    "prf": {
+      "revision": "7202b8f114b77b1ac69cf34d18f59e28fd100f95",
+      "workingCopy": "clean-at-inspection"
+    }
+  },
+  "artifactBundle": {
+    "package": "@protocol-robustness/prf-evm-deployables",
+    "version": "0.4.0",
+    "manifest": "fixtures/releases/0.4.0/packages/@protocol-robustness/prf-evm-deployables/manifest.json",
+    "bundleRoot": "0x566c4d62b254af86a687116faa50614b301065d3eef1052b3985418be54eb0ff",
+    "sourceCommit": "353062b667e900b6735fea6fd7ef7a61fd5282e3",
+    "sourceDirty": false,
+    "compiler": "solc 0.8.33+commit.64118f21",
+    "optimizerRuns": 200,
+    "viaIR": true,
+    "evmVersion": "osaka"
+  },
+  "proofProgram": {
+    "programId": "source-bound-entitlement-sp1-program.v1",
+    "proofSystem": "groth16-bn254",
+    "sp1SdkVersion": "6.3.1",
+    "soliditySp1ContractsVersion": "6.1.0",
+    "vkey": "0x00d90efa52d17e54670a4248f001e4da443a938f12c55d0d414c125ba68087b9",
+    "elfSha256": "0x636330de8e7af3485aba50bd3ca4b5e024cc4f977a2bf0f2c005f711e5ffacf8",
+    "statementSchema": "prf/onchain-shortfall-allocation-binding.v1",
+    "statementSchemaWord": "0x71fc0589dce6888fb7c2da5ddd88275753cf9f9de0aca477f307bd96de8660de",
+    "publicValuesSchema": "prf/source-bound-entitlement-public-values.v1",
+    "publicValuesSchemaWord": "0x876f2aea9124d79f41dbdd389d498430987fa33bbb34408989849c478a7c2bde",
+    "publicValuesLengthBytes": 288,
+    "qualificationScope": "program identity is pinned; no Base deployment-derived proof is pinned or claimed"
+  },
+  "contracts": [
+    { "type": "SP1VerifierGroth16", "artifact": "artifacts/SP1VerifierGroth16.json", "runtimeBytecodeSha256": "f4175d0167655fe95e383b023ea38c7817bd2fc998e41e0c497e1b1baa42593c", "dependsOn": [] },
+    { "type": "PrfSourceBoundEntitlementVerifierAdapterV1", "artifact": "artifacts/PrfSourceBoundEntitlementVerifierAdapterV1.json", "runtimeBytecodeSha256": "c21871d12a428feb60282c96ae16862cb27ac90fb4616847584c8ea95400f233", "dependsOn": ["SP1VerifierGroth16"] },
+    { "type": "PrfVerifierRegistry", "artifact": "artifacts/PrfVerifierRegistry.json", "runtimeBytecodeSha256": "c65f5fec815203b83a128fce74cbdee5c4f96be7ede54349292c55ba70b0e21c", "dependsOn": [] },
+    { "type": "PrfLocalAuthorityAdapter", "artifact": "artifacts/PrfLocalAuthorityAdapter.json", "runtimeBytecodeSha256": "931166342d8454f1337a5dc9737f103ff4a68b4bc596836f2a1ce9fc45c1759f", "dependsOn": [] },
+    { "type": "PrfChainInstanceGenesis", "artifact": "artifacts/PrfChainInstanceGenesis.json", "runtimeBytecodeSha256": "fe8bb77df92b21d64d7db4cd550f06d8d6ee4bd9644349c3dd5114e93d1d86a0", "dependsOn": ["PrfLocalAuthorityAdapter"] },
+    { "type": "SewConfigurationExecutor", "artifact": "artifacts/SewConfigurationExecutor.json", "runtimeBytecodeSha256": "8a5cc159fd517a343ce0e724774adba9bf7b25e3c3cca9709ccad4cfcec119fe", "dependsOn": ["PrfChainInstanceGenesis", "PrfVerifierRegistry"] },
+    { "type": "PrfStatementAdmission", "artifact": "artifacts/PrfStatementAdmission.json", "runtimeBytecodeSha256": "6926e78969808294f0e4dfe9ef2b72c9d69f519f475c75e6a166152388c019c7", "dependsOn": ["PrfChainInstanceGenesis", "SewConfigurationExecutor", "PrfVerifierRegistry"] },
+    { "type": "SourceBoundProRataControllerV2", "artifact": "artifacts/SourceBoundProRataControllerV2.json", "runtimeBytecodeSha256": "206c795f84245c0800e42553b14ea2485272b3b7e03ced82674ede22d69e77d3", "dependsOn": ["PrfStatementAdmission", "PrfSourceBoundEntitlementVerifierAdapterV1"] },
+    { "type": "ProductionProRataAllocatorV2", "artifact": "artifacts/ProductionProRataAllocatorV2.json", "runtimeBytecodeSha256": "04e3586df61b01ebd132261dffe7ff46c93a1a6552864c4662c41e9c52e82344", "dependsOn": ["SewConfigurationExecutor"] },
+    { "type": "OnchainShortfallReserveV2", "artifact": "artifacts/OnchainShortfallReserveV2.json", "runtimeBytecodeSha256": "65a307beb4e3df668b99e98ffceaab6692a314ae37ed9ec7aba7b387322a1417", "dependsOn": ["ProductionProRataAllocatorV2", "approved external token"] },
+    { "type": "SourceBoundProRataEntitlementAssuranceV1", "artifact": "artifacts/SourceBoundProRataEntitlementAssuranceV1.json", "runtimeBytecodeSha256": "4c9057cea2b5c5b0382843375262a1cb073c4882d3aa1a1f2dc131fdc885875f", "dependsOn": ["PrfStatementAdmission", "PrfSourceBoundEntitlementVerifierAdapterV1", "SourceBoundProRataControllerV2"] },
+    { "type": "SourceBoundProRataEntitlementRatificationControllerV1", "artifact": "artifacts/SourceBoundProRataEntitlementRatificationControllerV1.json", "runtimeBytecodeSha256": "c20e229f6c6372e658aa7df76e18ba1f3e5c0520c298225a619e384ee24201b5", "dependsOn": ["SourceBoundProRataControllerV2", "SourceBoundProRataEntitlementAssuranceV1", "OnchainShortfallReserveV2"] },
+    { "type": "CommittedImmutableEntitlementRepresentationV1", "artifact": "artifacts/CommittedImmutableEntitlementRepresentationV1.json", "runtimeBytecodeSha256": "89d3057ede17a02adbf42c2d72a87af537a9d99e8953709bc451e570b6596304", "dependsOn": ["deployment-derived admitted entitlement root/count/total"] }
+  ],
+  "registryAndConfiguration": {
+    "registryContract": "PrfVerifierRegistry",
+    "registryIdentity": "derived only after adapter deployment from actual adapter address and its immutable VKey/ELF/schema fields",
+    "configurationRoot": "derived from the chain-instance genesis and governed configuration transition; no root is prefilled",
+    "configurationEpoch": "must be read from the activated configuration snapshot",
+    "admissionBinding": "PrfStatementAdmission is constructed with immutable expected root/epoch; deploy only after the intended configuration is active",
+    "governanceActivation": "registry registration/seal and verifier-root selection require the deployed governor/timelock authority path; not a Deployment Ledger bootstrap action"
+  },
+  "token": {
+    "policy": "use an explicitly approved existing Base Sepolia token; do not deploy or mint a public-network token",
+    "candidate": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "name": "USDC",
+      "symbol": "USDC",
+      "decimals": 6,
+      "runtimeCodeKeccak256": "0xedc5281a85c0efecd49999a1ef668390c59b88702f2d4a07029d7f5d63059d6c",
+      "observation": "read-only RPC observation at block 48017581; candidate only, refresh before use"
+    },
+    "approval": "unresolved; no token ownership, funding, allowance, or sponsorship is assumed",
+    "controlledAmounts": { "alice": "35000000", "bob": "21000000", "carol": "14000000", "total": "70000000", "unit": "USDC base units (6 decimals)" },
+    "reservePlan": { "deposit": "80000000", "protectedCapital": "10000000", "availableAmount": "70000000", "unit": "USDC base units (6 decimals)" }
+  },
+  "authorityMatrix": {
+    "deployer": { "address": null, "status": "unresolved", "scope": "deploy pinned contracts only; no governance authority by default" },
+    "governanceAdministrator": { "address": null, "status": "unresolved", "scope": "bootstrap/configuration authority; must be a reviewed multisig/timelock model" },
+    "registryGovernor": { "address": null, "status": "unresolved", "scope": "register/seal verifier snapshot through governed path" },
+    "operator": { "address": null, "status": "unresolved", "scope": "operation-bound prepare/withdraw calls only" },
+    "reviewer": { "address": null, "status": "unresolved", "scope": "independent artifact and transaction review; no implicit contract privilege" },
+    "fundingAuthority": { "address": null, "status": "unresolved", "scope": "funding account and exact token allowance; bound reserve remains the allocator funding authority" },
+    "recipients": { "addresses": null, "status": "unresolved", "scope": "stable beneficiaries for Alice/Bob/Carol; no payout substitution" }
+  },
+  "deploymentLedgerBoundary": {
+    "owns": ["pinned artifacts", "deployment execution", "immutable deployment manifest", "read-only runtime observation", "candidate artifact generation"],
+    "doesNotOwn": ["governed registry admission", "configuration transition", "mutable chain-state claims", "withdrawal evidence interpretation"],
+    "expectedArtifacts": ["protocol-deployment-manifest/v1", "protocol-deployment-verification/v1", "registry-binding-candidate/v1"],
+    "admissionArtifact": "produced/verified by the existing PRF registry/admission path after governance; not asserted by the Deployment Ledger",
+    "unavailableCapability": "current declarative engine cannot pause after address-dependent deployments to derive/seal chain-instance genesis, compute the deployed adapter registry root, execute governed selection, and then deploy admission with the resulting immutable root/epoch"
+  }
+}

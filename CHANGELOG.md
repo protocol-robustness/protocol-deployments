@@ -4,6 +4,9 @@
 
 ### Added
 
+- Added a Base Sepolia successor-entitlement readiness profile and fail-closed validator. It pins the current clean 0.4.0 EVM bundle and successor Groth16 identity while explicitly blocking deployment/admission until governance, deployment-derived roots, funded token authority, and a fresh deployment-bound proof are established.
+- Added a Base Sepolia successor-entitlement runbook separating read-only preflight from signing/broadcast steps and recording current deployment-ledger boundaries.
+
 - Deployment CLI accepts `--fixtures <dir>`; the successor local profile uses an isolated 0.4.0 bundle with stale-assurance recovery interfaces and the locally qualified successor VKey/ELF. Existing profiles retain their original artifact pins.
 
 - Added a separate local successor entitlement topology profile using the separately pinned 0.4.0 PRF EVM deployables bundle and the committed Groth16 program identity; the legacy 192-byte V2 profile remains unchanged. The new profile is explicitly topology-only because the declarative resolver cannot yet derive and govern the deployed adapter's verifier-registry root.
