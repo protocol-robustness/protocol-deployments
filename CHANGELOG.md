@@ -4,6 +4,8 @@
 
 ### Added
 
+- Stage-output consumers now require predecessor receipts to have passed independent verification in the current resolution chain; receipt shape and a matching root alone are insufficient.
+
 - Added `protocol-deployment-stage-output/v1` receipts that bind stage definitions, plan/chain/source/artifact identity, declared predecessor outputs, produced values, observations, and independently rechecked output commitments. Initial-genesis plan dependencies now distinguish the empty verifier registry used by the initial configuration from the later successor registry root. Canonical semantic approval and stage execution remain required before the plan can deploy.
 
 - Successor-plan validation now rejects cyclic stage dependencies explicitly before checking topological order.

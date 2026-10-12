@@ -41,6 +41,8 @@ export const stageOutputReceiptV1Schema = z.object({
 
 export type StageOutputReceiptV1 = z.infer<typeof stageOutputReceiptV1Schema>;
 
+const independentlyVerifiedReceipts = new WeakSet<object>();
+
 export interface StageOutputInput {
   stageId: string;
   outputName: string;
@@ -178,7 +180,7 @@ export async function verifyStageOutputReceipt(input: {
     const parentReceipt = input.predecessorReceipts[reference.stage];
     const recordedInput = receipt.inputs[name];
     const parentOutput = parentReceipt?.outputs[reference.output];
-    if (!parentReceipt || !recordedInput || !parentOutput ||
+    if (!parentReceipt || !independentlyVerifiedReceipts.has(parentReceipt) || !recordedInput || !parentOutput ||
         parentReceipt.planHash !== receipt.planHash ||
         recordedInput.stageId !== reference.stage || recordedInput.outputName !== reference.output ||
         recordedInput.receiptRoot !== parentReceipt.receiptRoot || recordedInput.outputRoot !== parentOutput.outputRoot) {
@@ -189,6 +191,7 @@ export async function verifyStageOutputReceipt(input: {
     if (output.outputRoot !== stageOutputValueRoot(output.value)) throw new ConfigError('STAGE_OUTPUT_VALUE_ROOT_MISMATCH', `Output '${name}' value does not match its commitment`);
     if (!await input.verifyOutput(name, output.value, receipt.observations)) throw new ConfigError('STAGE_OUTPUT_LIVE_VERIFICATION_FAILED', `Output '${name}' was not independently verified`);
   }
+  independentlyVerifiedReceipts.add(receipt);
   return receipt;
 }
 
@@ -250,7 +253,7 @@ export function resolveVerifiedStageOutput(input: {
   const binding = consumer.consumes[input.inputName];
   if (!binding) throw new ConfigError('STAGE_OUTPUT_UNDECLARED_INPUT', `Stage '${consumer.id}' does not declare input '${input.inputName}'`);
   const receipt = input.verifiedReceipts[binding.stage];
-  if (!receipt || receipt.stageId !== binding.stage || receipt.planHash !== deploymentPlanHash(input.plan)) {
+  if (!receipt || !independentlyVerifiedReceipts.has(receipt) || receipt.stageId !== binding.stage || receipt.planHash !== deploymentPlanHash(input.plan)) {
     throw new ConfigError('STAGE_OUTPUT_PARENT_UNVERIFIED', `Input '${input.inputName}' has no verified receipt from '${binding.stage}'`);
   }
   const output = receipt.outputs[binding.output];

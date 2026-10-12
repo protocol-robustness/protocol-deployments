@@ -176,6 +176,28 @@ describe('stage-output receipts', () => {
     })).rejects.toMatchObject({ code: 'STAGE_OUTPUT_PREREQUISITE_UNVERIFIED' });
   });
 
+  it('rejects a structurally valid but independently unverified predecessor object', async () => {
+    const parent = initialRootsReceipt();
+    const child = createStageOutputReceipt({
+      ...base,
+      stageId: 'deploy-authority-and-verifier',
+      predecessorInputs: {
+        protocolGenesisRoot: { stageId: parent.stageId, outputName: 'protocolGenesisRoot', receipt: parent },
+        authorityStateRoot: { stageId: parent.stageId, outputName: 'authorityStateRoot', receipt: parent },
+      },
+      outputs: {
+        authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5,
+      },
+    });
+    await expect(verifyStageOutputReceipt({
+      receipt: child,
+      ...base,
+      stageId: child.stageId,
+      predecessorReceipts: { [parent.stageId]: parent as never },
+      verifyOutput: async () => true,
+    })).rejects.toMatchObject({ code: 'STAGE_OUTPUT_PARENT_MISMATCH' });
+  });
+
   it('rejects tampered, substituted and wrong-chain outputs even if the caller supplies the receipt', async () => {
     const parent = initialRootsReceipt();
     const receipt = createStageOutputReceipt({
