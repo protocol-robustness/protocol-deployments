@@ -97,8 +97,8 @@
     { :verifierVersion {:value "v1.0.0" :mutability :immutable}}
     :constructorBindings
     { :sp1Verifier_ {:deployer true}
-      :programVKey_ {:literal "0x0000000000000000000000000000000000000000000000000000000000000000"}
-      :programElfSha256_ {:literal "0x0000000000000000000000000000000000000000000000000000000000000000"}
+      :programVKey_ {:literal "0x0097f2d566143b47a25422049354e1610cfebf67594d57d151eb4296a7f44aee"}
+      :programElfSha256_ {:literal "0x0dbe4340e3c0cc83f42c162349f64099c92eebec3becbdefb8ccdace3b040890"}
       :statementSchemaVersion_ {:parameter :verifierVersion}
       :publicValuesSchema_ {:literal "v1"}}}
 
