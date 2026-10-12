@@ -131,6 +131,7 @@ export function validateSuccessorDeploymentPlan(plan: SuccessorDeploymentPlanV1)
   }
   const contractIds = Object.keys(plan.contracts);
   if (contractIds.length === 0) throw new ConfigError('DEPLOYMENT_PLAN_EMPTY', 'Successor plan selects no contracts or external dependencies');
+  assertAcyclicStageGraph(plan.stages);
   const seenStages = new Map<string, (typeof plan.stages)[number]>();
   const stageOutputs = new Map<string, Set<string>>();
   for (const stage of plan.stages) {
@@ -179,6 +180,28 @@ export function validateSuccessorDeploymentPlan(plan: SuccessorDeploymentPlanV1)
       throw new ConfigError('DEPLOYMENT_PLAN_AUTH_TARGET_ORDER', `Authorized action '${action.id}' targets '${action.target}' before its source stage has completed`);
     }
   }
+}
+
+/** Reject stage cycles explicitly before enforcing the plan's topological order. */
+function assertAcyclicStageGraph(stages: SuccessorDeploymentPlanV1['stages']): void {
+  const byId = new Map(stages.map((stage) => [stage.id, stage]));
+  const complete = new Set<string>();
+  const active: string[] = [];
+  const visit = (stageId: string): void => {
+    const cycleStart = active.indexOf(stageId);
+    if (cycleStart >= 0) {
+      const cycle = [...active.slice(cycleStart), stageId];
+      throw new ConfigError('DEPLOYMENT_PLAN_STAGE_CYCLE', `Deployment plan stage dependency cycle: ${cycle.join(' -> ')}`);
+    }
+    if (complete.has(stageId)) return;
+    const stage = byId.get(stageId);
+    if (!stage) throw new ConfigError('DEPLOYMENT_PLAN_STAGE_ORDER', `Stage dependency '${stageId}' does not exist`);
+    active.push(stageId);
+    for (const dependency of stage.dependsOn) visit(dependency);
+    active.pop();
+    complete.add(stageId);
+  };
+  for (const stage of stages) visit(stage.id);
 }
 
 /** Deployment CLI v1 can execute deployment/external-observation prerequisites only. */

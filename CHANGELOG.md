@@ -6,6 +6,8 @@
 
 - Added `protocol-deployment-stage-output/v1` receipts that bind stage definitions, plan/chain/source/artifact identity, declared predecessor outputs, produced values, observations, and independently rechecked output commitments. Initial-genesis plan dependencies now distinguish the empty verifier registry used by the initial configuration from the later successor registry root. Canonical semantic approval and stage execution remain required before the plan can deploy.
 
+- Successor-plan validation now rejects cyclic stage dependencies explicitly before checking topological order.
+
 - Added versioned deployment-unit ownership/dependency classifications and plan-driven resolver/deployment selection. The local controlled-shortfall plan selects 13 PRF/protected-operation/successor contracts, uses only the explicitly local test token fixture, and excludes Sew. `deploy.ts` now requires either `--plan <file>` or explicit `--legacy-flat`; a fresh staged plan refuses before transactions when it depends on an unimplemented root/configuration stage. Stage-output and admitted-release resolution remain fail-closed and unimplemented.
 - Deployment resumption now rechecks each recorded successful creation receipt, block identity, and current runtime bytecode before reusing the address. Plan execution receipts bind selected sources and deployment-stage outputs to the immutable manifest and have an independent verifier.
 

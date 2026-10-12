@@ -50,6 +50,13 @@ describe('bounded successor deployment plan', () => {
     expectCode(() => assertPlanDeployable(plan), 'PLAN_STAGE_EXECUTOR_UNAVAILABLE');
   });
 
+  it('rejects cyclic stage dependencies before topological-order validation', () => {
+    const cyclic = structuredClone(plan);
+    cyclic.stages.find((stage) => stage.id === 'deploy-local-token')!.dependsOn = ['derive-genesis-roots'];
+    cyclic.stages.find((stage) => stage.id === 'derive-genesis-roots')!.dependsOn = ['deploy-local-token'];
+    expectCode(() => validateSuccessorDeploymentPlan(cyclic), 'DEPLOYMENT_PLAN_STAGE_CYCLE');
+  });
+
   it('derives the initial configuration from the empty registry before deployment', () => {
     const stageIndex = new Map(plan.stages.map((stage, index) => [stage.id, index]));
     const initialRoots = plan.stages.find((stage) => stage.id === 'derive-genesis-roots')!;
@@ -302,7 +309,7 @@ describe('bounded successor deployment plan', () => {
   it('rejects deployment-plan cycles, missing selected units, and ambiguous unit ownership', () => {
     const cycle = structuredClone(plan);
     cycle.stages[1]!.dependsOn = ['deploy-genesis'];
-    expectCode(() => validateSuccessorDeploymentPlan(cycle), 'DEPLOYMENT_PLAN_STAGE_ORDER');
+    expectCode(() => validateSuccessorDeploymentPlan(cycle), 'DEPLOYMENT_PLAN_STAGE_CYCLE');
     const noUnit = structuredClone(plan);
     noUnit.selectedUnits = ['prf-assurance', 'protected-operations'] as never;
     expectCode(() => validateSuccessorDeploymentPlan(noUnit), 'DEPLOYMENT_PLAN_UNIT_MISSING');
