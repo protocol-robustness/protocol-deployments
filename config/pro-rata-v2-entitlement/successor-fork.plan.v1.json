@@ -128,8 +128,7 @@
       "produces": [
         "protocolGenesisRoot",
         "authorityStateRoot",
-        "emptyRegistryRoot",
-        "initialConfigurationRoot"
+        "emptyRegistryRoot"
       ]
     },
     {
@@ -154,6 +153,36 @@
         "sp1Verifier",
         "successorAdapter",
         "verifierId"
+      ]
+    },
+    {
+      "id": "derive-initial-configuration",
+      "kind": "derive-canonical-roots",
+      "dependsOn": [
+        "derive-genesis-roots",
+        "deploy-local-token",
+        "deploy-authority-and-verifier"
+      ],
+      "consumes": {
+        "protocolGenesisRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "protocolGenesisRoot"
+        },
+        "emptyRegistryRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "emptyRegistryRoot"
+        },
+        "localToken": {
+          "stage": "deploy-local-token",
+          "output": "localToken"
+        },
+        "successorAdapter": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "successorAdapter"
+        }
+      },
+      "produces": [
+        "initialConfigurationRoot"
       ]
     },
     {
@@ -245,15 +274,24 @@
       "kind": "deploy",
       "dependsOn": [
         "deploy-authority-and-verifier",
-        "derive-genesis-roots"
+        "derive-genesis-roots",
+        "derive-initial-configuration"
       ],
       "consumes": {
+        "protocolGenesisRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "protocolGenesisRoot"
+        },
+        "authorityStateRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "authorityStateRoot"
+        },
         "authorityAdapter": {
           "stage": "deploy-authority-and-verifier",
           "output": "authorityAdapter"
         },
         "initialConfigurationRoot": {
-          "stage": "derive-genesis-roots",
+          "stage": "derive-initial-configuration",
           "output": "initialConfigurationRoot"
         }
       },
@@ -268,9 +306,22 @@
       "dependsOn": [
         "deploy-genesis",
         "derive-genesis-roots",
-        "deploy-authority-and-verifier"
+        "deploy-authority-and-verifier",
+        "derive-initial-configuration"
       ],
       "consumes": {
+        "protocolGenesisRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "protocolGenesisRoot"
+        },
+        "authorityStateRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "authorityStateRoot"
+        },
+        "initialConfigurationRoot": {
+          "stage": "derive-initial-configuration",
+          "output": "initialConfigurationRoot"
+        },
         "genesisAddress": {
           "stage": "deploy-genesis",
           "output": "genesisAddress"
@@ -318,7 +369,8 @@
         "deploy-genesis",
         "deploy-authority-and-verifier",
         "derive-genesis-roots",
-        "derive-registry-roots"
+        "derive-registry-roots",
+        "derive-initial-configuration"
       ],
       "consumes": {
         "genesisAddress": {
@@ -334,7 +386,7 @@
           "output": "registry"
         },
         "initialConfigurationRoot": {
-          "stage": "derive-genesis-roots",
+          "stage": "derive-initial-configuration",
           "output": "initialConfigurationRoot"
         },
         "emptyRegistryRoot": {
@@ -353,6 +405,7 @@
         "deploy-configuration-executor",
         "seal-successor-verifier-registry",
         "derive-genesis-roots",
+        "derive-initial-configuration",
         "derive-registry-roots"
       ],
       "consumes": {
@@ -365,7 +418,7 @@
           "output": "successorRegistryRoot"
         },
         "initialConfigurationRoot": {
-          "stage": "derive-genesis-roots",
+          "stage": "derive-initial-configuration",
           "output": "initialConfigurationRoot"
         }
       },

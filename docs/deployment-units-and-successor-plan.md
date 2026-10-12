@@ -95,6 +95,20 @@ depends on a stage with no executor. For this plan the first blocker is
 `derive-genesis-roots` before `prf/genesis`; the static local EDN profile still
 uses placeholder roots and cannot satisfy that stage.
 
+The successor plan now separates predeployment roots from the initial
+configuration root. `derive-genesis-roots` supplies only the protocol root,
+initial authority-state root, and canonical empty verifier-registry root.
+`derive-initial-configuration` is ordered after the local token and verifier
+adapter deployments so address-bound module-registry inputs can be taken from
+verified deployment outputs; it uses the empty registry root. The later
+`derive-registry-roots` stage remains the source of the successor registry
+root for the governed transition. This is a dependency-order correction, not
+semantic approval: the initial configuration's complete policy artifact and
+approval are still absent, and the CLI still refuses to execute derivation,
+sealing, or configuration stages.
+The machine-readable root inventory and dependency map is
+[`genesis-dependency-graph.v1.json`](../config/pro-rata-v2-entitlement/genesis-dependency-graph.v1.json).
+
 `npm run validate:successor-fork-plan` checks the plan, both architecture
 inventories, unit ownership, stage ordering, output references, selected
 source kind, and authorization target ordering. A plan-selected deployment is

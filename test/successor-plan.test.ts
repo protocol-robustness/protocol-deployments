@@ -57,21 +57,58 @@ describe('bounded successor deployment plan', () => {
     expectCode(() => validateSuccessorDeploymentPlan(cyclic), 'DEPLOYMENT_PLAN_STAGE_CYCLE');
   });
 
-  it('derives the initial configuration from the empty registry before deployment', () => {
+  it('derives initial configuration only after address-bound inputs exist and uses the empty registry root', () => {
     const stageIndex = new Map(plan.stages.map((stage, index) => [stage.id, index]));
     const initialRoots = plan.stages.find((stage) => stage.id === 'derive-genesis-roots')!;
     const deployAuthority = plan.stages.find((stage) => stage.id === 'deploy-authority-and-verifier')!;
+    const deployToken = plan.stages.find((stage) => stage.id === 'deploy-local-token')!;
+    const initialConfiguration = plan.stages.find((stage) => stage.id === 'derive-initial-configuration')!;
     const deriveSuccessorRegistry = plan.stages.find((stage) => stage.id === 'derive-registry-roots')!;
     const sealEmptyRegistry = plan.stages.find((stage) => stage.id === 'seal-empty-verifier-registry')!;
+    const deployGenesis = plan.stages.find((stage) => stage.id === 'deploy-genesis')!;
 
     expect(stageIndex.get(initialRoots.id)).toBeLessThan(stageIndex.get(deployAuthority.id)!);
+    expect(stageIndex.get(deployToken.id)).toBeLessThan(stageIndex.get(initialConfiguration.id)!);
+    expect(stageIndex.get(deployAuthority.id)).toBeLessThan(stageIndex.get(initialConfiguration.id)!);
+    expect(stageIndex.get(initialConfiguration.id)).toBeLessThan(stageIndex.get(deployGenesis.id)!);
     expect(initialRoots.produces).toContain('emptyRegistryRoot');
-    expect(initialRoots.produces).toContain('initialConfigurationRoot');
+    expect(initialRoots.produces).not.toContain('initialConfigurationRoot');
     expect(initialRoots.consumes).not.toHaveProperty('successorRegistryRoot');
+    expect(initialConfiguration.produces).toContain('initialConfigurationRoot');
+    expect(initialConfiguration.consumes.emptyRegistryRoot).toEqual({
+      stage: 'derive-genesis-roots', output: 'emptyRegistryRoot',
+    });
+    expect(initialConfiguration.consumes.localToken).toEqual({
+      stage: 'deploy-local-token', output: 'localToken',
+    });
+    expect(initialConfiguration.consumes.successorAdapter).toEqual({
+      stage: 'deploy-authority-and-verifier', output: 'successorAdapter',
+    });
     expect(deriveSuccessorRegistry.produces).toEqual(['successorRegistryRoot']);
     expect(sealEmptyRegistry.consumes.emptyRegistryRoot).toEqual({
       stage: 'derive-genesis-roots', output: 'emptyRegistryRoot',
     });
+    expect(deployGenesis.consumes.initialConfigurationRoot).toEqual({
+      stage: 'derive-initial-configuration', output: 'initialConfigurationRoot',
+    });
+  });
+
+  it('records PRF-owned genesis derivations without promoting candidate semantic inputs', () => {
+    const graph = JSON.parse(fs.readFileSync(path.join(root, 'config/pro-rata-v2-entitlement/genesis-dependency-graph.v1.json'), 'utf8')) as {
+      schema: string;
+      qualification: string;
+      roots: Array<{ id: string; producer: string; artifactStatus: string; inputs: string[] }>;
+      cycleAssessment: string;
+    };
+    const byId = new Map(graph.roots.map((entry) => [entry.id, entry]));
+    expect(graph.schema).toBe('prf-successor-genesis-dependency-graph.v1');
+    expect(graph.qualification).toBe('candidate-map-only');
+    expect(byId.get('protocolGenesisRoot')!.producer).toBe('resolver-sim.genesis/protocol-genesis-root');
+    expect(byId.get('protocolGenesisRoot')!.artifactStatus).toContain('requires-owner-approval');
+    expect(byId.get('authorityStateRoot')!.artifactStatus).toContain('missing-semantic-definition');
+    expect(byId.get('initialConfigurationRoot')!.inputs).toContain('verifier-registry/root = emptyRegistryRoot');
+    expect(byId.get('successorRegistryRoot')!.artifactStatus).toContain('not executed');
+    expect(graph.cycleAssessment).toContain('No constructor cycle identified');
   });
 
   it('rejects a local-only fixture plan on a public chain', () => {

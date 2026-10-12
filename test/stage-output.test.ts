@@ -24,7 +24,6 @@ function initialRootsReceipt() {
       protocolGenesisRoot: `sha256:${'11'.repeat(32)}`,
       authorityStateRoot: `sha256:${'22'.repeat(32)}`,
       emptyRegistryRoot: `sha256:${'33'.repeat(32)}`,
-      initialConfigurationRoot: `sha256:${'44'.repeat(32)}`,
     },
     observations: [{ kind: 'canonical-derivation', authority: 'test-only-unapproved' }],
   });
