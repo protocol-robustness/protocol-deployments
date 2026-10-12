@@ -71,7 +71,7 @@
         "interoperability-policy/root"
       ],
       "availableAt": "after approved policy artifacts and any address-bound module-registry inputs are available",
-      "consumers": ["PrfChainInstanceGenesis constructor", "SewConfigurationExecutor initial state", "PrfStatementAdmission expected initial state"],
+      "consumers": ["PrfChainInstanceGenesis constructor", "SewConfigurationExecutor initial state"],
       "artifactStatus": "complete-semantic-input-artifact-missing-owner-approval-required",
       "deploymentDependency": "successor adapter and local token are declared plan inputs for address-bound module-registry material; confirm this policy in the approved artifact"
     },
@@ -117,7 +117,7 @@
       "encoding": "PRF canonical binary SHA-256; chain-configuration-transition.v1 commits transition/schema, protocol/genesis-root, target/type and target/root, configuration/parent-root, configuration/new-root, verifier-registry/root and epoch",
       "inputs": ["initialConfigurationRoot", "successorRegistryRoot", "approved successor policy subroots", "chain-instance target and epoch"],
       "availableAt": "after chain genesis seal and successor registry observation",
-      "consumers": ["PrfLocalAuthorityAdapter.authoriseDecision", "SewConfigurationExecutor.applyConfiguration"],
+      "consumers": ["PrfLocalAuthorityAdapter.authoriseDecision", "SewConfigurationExecutor.applyConfiguration", "PrfStatementAdmission expectedConfigurationRoot/expectedConfigurationEpoch"],
       "artifactStatus": "successor policy artifacts and authorized action not approved/executed",
       "deploymentDependency": true
     }
