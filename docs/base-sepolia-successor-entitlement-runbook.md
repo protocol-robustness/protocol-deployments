@@ -95,39 +95,48 @@ token-weighted governance is specifically required later, use the existing
 SEW token only after the authority owner approves the governance instance,
 quorum, threshold, timelock, and role-transfer plan.
 
-Use the existing Sew Base Sepolia token, SEW, for governance only if that
-governance model is approved. Its address is
-`0x62BD47154D0b5Fe435F220E1294405040102b2ba`. The Sew repository's
-`scripts/verify-base-sepolia-source.sh` records this address. Read-only RPC
-read-only observation at Base Sepolia block 48,019,450 (hash
-`0x6283a0cdd2d79d479b6dd69021506741dcd4c17ab413b572d717e31ab2c8bc12`)
-returned name `Sew Token`, symbol `SEW`, 18 decimals, total supply
-`1000000000000000000000000000`, `getVotes(address(0)) == 0`, and runtime code
-hash `0xf619796a635e17ba7eb61f4b62eabf61421aa39c1fd1f71daddf31af0b9e1fcb`.
-The observed runtime is 7,171 bytes and does **not** match the currently pinned
-SewToken artifact runtime of 7,292 bytes (artifact runtime keccak
-`0x7e1d33574eb372bd906255664212cc29ba8480cd5f1626622811cb76e5a4fa89`). The
-`getVotes` call confirms that selector responds, but does not establish the
-full verified source or complete `IVotes` behavior. External verification
-therefore rejects this address against the current artifact until the
-historical deployment artifact/source is independently pinned and reconciled.
-The inspected Sew checkout does not contain its referenced
-`deployments/baseSepolia/` records, so refresh and independently cross-check
-the address at a pinned block before use. The selected governance token does
-not resolve the separate governance-contract, quorum, authority, or signer
-questions. The token is selected as the intended SEW voting source, but its
-full deployed implementation identity and complete `IVotes` behavior remain
-unverified; current vote delegation, eligible voter distribution, and
-governance authorization also remain unqualified.
-Do not create or deploy a new PRF token.
+The successor Shortfall contracts do not require a governance token, a
+`GovGovernor`, or a Timelock. `PrfLocalAuthorityAdapter` and
+`PrfVerifierRegistry` bind an exact `governor` address; the
+`SewConfigurationExecutor` consumes the authority interface and does not
+require SEW. The bounded demo can therefore use one expressly approved Safe as
+the governor for both the authority adapter and verifier registry. This keeps
+the existing on-chain authorization checks intact and avoids creating a second
+governance system. No Safe address or signer policy has been approved, so
+configuration and admission remain blocked. Do not create or deploy a PRF
+governance token, Governor, or Timelock for this demo.
 
-For the protected-operation demo, prefer Circle USDC on Base Sepolia at
-`0x036CbD53842c5426634e7929541eC2318f3dCF7e` (6 decimals). This is an
-externally documented token identity, not yet a pinned-block runtime
-observation in this profile. It is not yet declared as an external dependency
-in an executable successor environment. Before use, verify code, code hash,
-name, symbol, and decimals at one pinned block, then record that observation.
-No token is to be deployed or minted by this workflow.
+The generic Base environment still describes a separate Sew-style
+`GovGovernor`/Timelock topology using SEW; it is not the successor topology and
+must not be used for this bounded operation. The existing SEW contract at
+`0x62BD47154D0b5Fe435F220E1294405040102b2ba` was observed at block 48,019,450,
+but its 7,171-byte runtime does not match the currently pinned 7,292-byte
+SewToken artifact. Since SEW is not a dependency of the successor path, this
+historical artifact mismatch does not block the bounded demo. It remains a
+blocker only if a later approved design chooses token-weighted governance.
+
+For the protected-operation demo, the selected asset is Circle's issuer-listed
+Base Sepolia testnet USDC at
+`0x036CbD53842c5426634e7929541eC2318f3dCF7e` (6 decimals). Circle lists this
+chain/address pairing and links its testnet faucet from its developer site
+([Circle USDC on Base](https://www.circle.com/multi-chain-usdc/base), [Circle-issued address list](https://github.com/circlefin/skills/blob/master/plugins/circle/skills/use-usdc/SKILL.md)).
+These are testnet units; they are not a claim of mainnet redemption or
+real-value liquidity. A read-only observation at block 48,021,662
+(`0xd75dd70e46902903f9c1ff7247ed11b17471413ba9895ff70cfa6ee64ba19c02`)
+recorded proxy runtime code hash
+`0xedc5281a85c0efecd49999a1ef668390c59b88702f2d4a07029d7f5d63059d6c`,
+implementation address `0xd74cc5d436923b8ba2c179b4bCA2841D8A52C5B5`,
+implementation runtime code hash
+`0x1254951e5483b882fd5def9452f58fe786eb3380c0bf9bb2744fa21a0a97a16c`,
+`name/symbol = USDC`, `decimals = 6`, `currency = USD`, `version = 2`, and
+`paused = false`. The proxy's implementation is mutable; both code hashes and
+the implementation pointer must be pinned and rechecked at the chosen block.
+The observation is not yet represented as an executable external dependency
+in the successor deployment profile. Its Circle source/artifact reconciliation
+and transfer-behavior qualification remain open. This workflow will not deploy
+or mint any token. Funding must come from an already funded operator account or
+the official testnet faucet, subject to separate operator approval and exact
+balance/allowance checks.
 
 For the controlled 35/21/14 USDC example, use 6-decimal base units: Alice 35
 USDC (`35000000`); Bob 21 USDC (`21000000`); Carol 14 USDC (`14000000`); total
@@ -168,21 +177,23 @@ not put it in public artifacts. These calls are read-only:
 ```bash
 cast chain-id --rpc-url "$BASE_SEPOLIA_RPC_URL"
 cast block-number --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$BASE_SEW_GOVERNANCE_TOKEN_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast codehash "$BASE_SEW_GOVERNANCE_TOKEN_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast call "$BASE_SEW_GOVERNANCE_TOKEN_ADDRESS" 'name()(string)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast call "$BASE_SEW_GOVERNANCE_TOKEN_ADDRESS" 'symbol()(string)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast call "$BASE_SEW_GOVERNANCE_TOKEN_ADDRESS" 'decimals()(uint8)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$BASE_USDC_TOKEN_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast codehash "$BASE_USDC_TOKEN_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast call "$BASE_USDC_TOKEN_ADDRESS" 'name()(string)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast call "$BASE_USDC_TOKEN_ADDRESS" 'symbol()(string)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast call "$BASE_USDC_TOKEN_ADDRESS" 'decimals()(uint8)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
+USDC=0x036CbD53842c5426634e7929541eC2318f3dCF7e
+BLOCK=48021662
+cast code "$USDC" --block "$BLOCK" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast codehash "$USDC" --block "$BLOCK" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$USDC" 'implementation()(address)' --block "$BLOCK" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$USDC" 'name()(string)' --block "$BLOCK" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$USDC" 'symbol()(string)' --block "$BLOCK" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$USDC" 'decimals()(uint8)' --block "$BLOCK" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$USDC" 'paused()(bool)' --block "$BLOCK" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast codehash 0xd74cc5d436923b8ba2c179b4bCA2841D8A52C5B5 --block "$BLOCK" --rpc-url "$BASE_SEPOLIA_RPC_URL"
 ```
 
-Expected chain ID is `84532`; each token's code hash/metadata must be recorded
-at the same block and reviewed. These checks do not check balance/allowance or
-prove the asset is approved for this operation.
+Expected chain ID is `84532`; this command set reproduces the recorded USDC
+observation. Confirm the observed block hash is
+`0xd75dd70e46902903f9c1ff7247ed11b17471413ba9895ff70cfa6ee64ba19c02`.
+These checks do not verify source/artifact provenance, current funding,
+allowance, or approval to use this asset.
 
 Before any signed action, freeze full source revisions, clean/dirty state,
 package lock, artifact bundle root, contract artifact hashes, SP1 program/VKey/
@@ -211,7 +222,7 @@ against the checked-in pinned artifact ABIs:
 
 | Logical contract | Pinned constructor shape / authority | Status for controlled Shortfall |
 |---|---|---|
-| `:shared/governance-token` | Sew `SewToken(name, symbol, initialOwner, initialSupply)` | Base declares external SEW and omits token deployment; external runtime currently mismatches the pinned artifact, so preflight rejects it. Local still deploys `LOCAL`. |
+| `:shared/governance-token` | Sew `SewToken(name, symbol, initialOwner, initialSupply)` | Generic Base template only. Excluded from the bounded successor topology; Base must not deploy a PRF token. Local still deploys its `LOCAL` test token. |
 | `:shared/governor` | Sew `GovGovernor(token, timelock, votingDelay, votingPeriod, proposalThreshold, quorum, nonCirculating[])` | The generic Base plan creates a second Governor; it is neither a reference to nor authorization from an existing Sew Governor. Not selected for this demo. |
 | `:shared/timelock` | `TimelockController(minDelay, proposers[], executors[], admin)` | Generic plan creates a new one-day Timelock, grants the new Governor proposer role, and leaves deployer as admin. Not selected for this demo. |
 | `:prf/verifier-registry` | `PrfVerifierRegistry(governor_)`; only the exact configured governor can register/seal | Artifact is pinned in the general bundle; a demo registry must instead bind the approved explicit PRF configuration authority. No Base instance exists. |
@@ -228,18 +239,19 @@ qualified Base deployment. Registry and configuration roots depend on actual
 deployed identities and an approved authority, so they remain absent rather
 than filled with guessed values.
 
-Recommended bounded-demo authority is one explicitly approved configuration
-Safe bound as the `governor` for both `PrfLocalAuthorityAdapter` and
-`PrfVerifierRegistry`. The adapter grants no voting or timelock semantics; it
-records decisions only from that exact configured authority. The Safe address
-and signer policy are unresolved. SEW remains the selected token if a later
-decision specifically requires token-weighted voting, but its use does not
-authorize a new Sew Governor or PRF governance scope.
+The bounded successor topology omits `:shared/governance-token`,
+`:shared/governor`, and `:shared/timelock`. One explicitly approved Safe can be
+bound as `governor` for both `PrfLocalAuthorityAdapter` and
+`PrfVerifierRegistry`. The adapter adds no voting or timelock semantics: its
+existing authorization methods accept calls only from that exact configured
+address. This is a supported contract configuration, not an approved
+authority. The Safe address, owners/threshold, signer policy, and the decision
+to authorize the bounded demo remain outstanding.
 
 | Dependency | Classification | Identity / evidence | Gate |
 |---|---|---|---|
-| SEW token | External | `0x62BD47154D0b5Fe435F220E1294405040102b2ba`; Base Sepolia chain 84532; observation block/hash and code hash above | Current code fails pinned SewToken runtime comparison; resolve historical artifact/source first |
-| USDC | External candidate | Circle Base Sepolia address `0x036CbD53842c5426634e7929541eC2318f3dCF7e` | Not yet runtime-observed or bound in successor deployment environment |
+| SEW token | Not required | Existing Base address `0x62BD47154D0b5Fe435F220E1294405040102b2ba` is not included in the bounded successor topology | Its artifact mismatch is irrelevant unless token-weighted governance is separately approved |
+| Circle testnet USDC | External candidate, read-only observed | `0x036CbD53842c5426634e7929541eC2318f3dCF7e`; proxy and implementation hashes at block `48021662` are recorded above | Needs source/artifact reconciliation, executable profile binding, implementation-pointer recheck, asset-use approval, and funded payer/allowance |
 | Approved configuration Safe | Missing | No address or signer policy approved | Required before public configuration/registry changes |
 | SP1 verifier, successor adapter, registry, genesis, authority, configuration executor, admission | Missing deployments; 0.4.0 artifacts pinned | Inventory in `base-sepolia.profile.json` | Deploy only after authority and staged root derivation are available |
 | Controller, allocator, reserve, assurance, ratification, entitlements | Missing deployments; artifacts pinned | Successor 0.4.0 inventory | Bind/verify against the same deployment-derived operation |

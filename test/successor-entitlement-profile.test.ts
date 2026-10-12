@@ -22,7 +22,14 @@ describe('Base Sepolia successor-entitlement readiness profile', () => {
     expect(profile.readiness.admissionEnabled).toBe(false);
     expect(profile.environment.chainId).toBe(84532);
     expect(profile.governanceToken.identity.symbol).toBe('SEW');
+    expect(profile.governanceToken.requiredByBoundedDemo).toBe(false);
     expect(profile.operationToken.identity.symbol).toBe('USDC');
+    expect(profile.operationToken.identity.classification).toContain('testnet');
+    expect(profile.operationToken.identity.proxyRuntimeCodeKeccak256).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(profile.operationToken.identity.implementationRuntimeCodeKeccak256).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(profile.operationToken.identity.proxyImplementationAtObservation).toBe(profile.operationToken.identity.implementationAddress);
+    expect(profile.stagedGenesisOrchestration.status).toBe('not-implemented');
+    expect(profile.readiness.unresolvedDependencies).toContain('approved-direct-configuration-authority-address-and-signer-policy');
     expect(profile.governanceToken.identity.address).not.toBe(profile.operationToken.identity.address);
     expect(profile.operationToken.controlledAmounts.unit).toContain('6 decimals');
     expect(profile.operationToken.reservePlan.availableAmount).toBe(profile.operationToken.controlledAmounts.total);
