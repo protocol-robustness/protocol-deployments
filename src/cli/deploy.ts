@@ -24,7 +24,8 @@ import type { TxFees } from '../runtime/transport';
 import { deployContract, type DeployContractResult } from '../deployment/engine';
 import { emptyRecord, loadRecord, saveRecord, recordPathFor, artifactIdentityOf, type DeploymentRecord, type FinalAssertionRecord } from '../deployment/record';
 import { materializeExecutionSpec } from '../deployment/execution-spec';
-import { computeManifestRoot, registryBindingCandidate, type DeploymentManifestV1 } from '../deployment/manifest';
+import { computeManifestRoot, registryBindingCandidate, type DeploymentManifest, type DeploymentManifestV2 } from '../deployment/manifest';
+import { verifyExternalContracts } from '../deployment/external-contracts';
 import { executeBootstrapAction, assertBootstrap } from '../deployment/bootstrap';
 import { preflightDeployment, assertSufficientBalance } from '../deployment/preflight';
 import { assertChainIdMatches } from '../validate/checks';
@@ -157,6 +158,10 @@ async function run(
   const chainId = await bound.transport.getChainId();
   assertChainIdMatches({ chainId: resolved.spec.chain.chainId, environment }, chainId);
   const deployer = await bound.signer.getAddress();
+  const externalContractObservations = await verifyExternalContracts(resolved.spec, bundle, bound.transport, deployer);
+  for (const dependency of externalContractObservations) {
+    console.log(`  verified external dependency ${dependency.logicalId} at ${dependency.address} (code ${dependency.observedRuntimeCodeKeccak256})`);
+  }
 
   const preflight = await preflightDeployment({
     transport: bound.transport,
@@ -190,6 +195,7 @@ async function run(
   });
   record.deploymentId ??= randomUUID();
   record.deployer = deployer;
+  record.externalContracts = externalContractObservations;
   const externalAddresses = Object.fromEntries(Object.entries(resolved.spec.externalAddresses ?? {})) as Record<string, `0x${string}`>;
   const { executionSpecHash } = materializeExecutionSpec(resolved.spec, resolved.specHash, deployer, externalAddresses);
   record.executionSpecHash = executionSpecHash;
@@ -197,7 +203,9 @@ async function run(
   saveRecord(recordPath, record);
 
   const results: DeployContractResult[] = [];
-  const resolvedAddresses: Record<string, `0x${string}`> = {};
+  const resolvedAddresses: Record<string, `0x${string}`> = Object.fromEntries(
+    Object.entries(resolved.spec.externalContracts ?? {}).map(([logicalId, dependency]) => [logicalId, dependency.address as `0x${string}`]),
+  );
   const executedBootstrapActions = new Set<string>(record.bootstrapActions.filter((action) => action.status === 'verified').map((action) => action.id));
   for (const step of resolved.spec.deployment.steps) {
     const prior = record.contracts[step.logicalId];
@@ -324,8 +332,7 @@ async function run(
   record.deployedAt = new Date().toISOString();
   saveRecord(recordPath, record);
 
-  const manifest: DeploymentManifestV1 = {
-    type: 'protocol-deployment-manifest/v1',
+  const manifestBase = {
     architectureSpecHash: resolved.specHash,
     executionSpecHash,
     deploymentId: record.deploymentId,
@@ -341,8 +348,12 @@ async function run(
     bootstrapActions: record.bootstrapActions,
     finalAssertions: record.finalAssertions,
   };
+  const manifest: DeploymentManifest = externalContractObservations.length > 0
+    ? { ...manifestBase, type: 'protocol-deployment-manifest/v2', externalContracts: externalContractObservations } as DeploymentManifestV2
+    : { ...manifestBase, type: 'protocol-deployment-manifest/v1' };
   const manifestRoot = computeManifestRoot(manifest);
-  const manifestPath = path.join(deploymentsDir, `${deploymentKey}.${manifestRoot.slice(2, 14)}.deployment-manifest.v1.json`);
+  const manifestVersion = manifest.type.endsWith('/v2') ? 'v2' : 'v1';
+  const manifestPath = path.join(deploymentsDir, `${deploymentKey}.${manifestRoot.slice(2, 14)}.deployment-manifest.${manifestVersion}.json`);
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   const candidatePath = path.join(deploymentsDir, `${deploymentKey}.${manifestRoot.slice(2, 14)}.registry-binding-candidate.v1.json`);
   fs.writeFileSync(candidatePath, JSON.stringify(registryBindingCandidate(manifest, resolved.spec.deployment.registryRoots ?? [], resolved.spec.deployment.localOnly ?? false), null, 2) + '\n');

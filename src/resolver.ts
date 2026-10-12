@@ -97,6 +97,10 @@ export function resolve(input: ResolveInput, options: ResolveOptions = {}): Reso
   const { config, environment, bundle } = input;
   const { architecture, governance, verification } = config;
 
+  if (environment.chain.kind === 'testnet' || environment.chain.kind === 'mainnet') {
+    assertPublicEnvironmentHasNoPlaceholders(architecture.contracts);
+  }
+
   const contractIds = new Set(Object.keys(architecture.contracts));
   const sourceIds = new Set(Object.keys(architecture.artifactSources));
 
@@ -194,8 +198,9 @@ export function resolve(input: ResolveInput, options: ResolveOptions = {}): Reso
   // ---------------------------------------------------------------------
   // 8. Resolve deployment order (explicit) + dependency satisfaction.
   // ---------------------------------------------------------------------
-  const deployment = resolveDeploymentOrder(environment, contractIds, rawContracts);
-  validateConstructorBindings(rawContracts, artifacts, deployment);
+  const externalContractIds = new Set(Object.keys(environment.externalContracts ?? {}));
+  const deployment = resolveDeploymentOrder(environment, contractIds, rawContracts, externalContractIds);
+  validateConstructorBindings(rawContracts, artifacts, deployment, externalContractIds);
 
   // ---------------------------------------------------------------------
   // 9. Assemble resolved contracts.
@@ -249,7 +254,9 @@ export function resolve(input: ResolveInput, options: ResolveOptions = {}): Reso
           ]))
         : undefined,
       relationships,
-      deploymentOrder: orderOf[logicalId] ?? 0,
+      deploymentOrder: orderOf[logicalId] ?? -1,
+      deploymentKind: externalContractIds.has(logicalId) ? 'external' : 'deployment',
+      externalAddress: environment.externalContracts?.[logicalId]?.address,
       governedByGroups: governanceResult.contractToGroups[logicalId] ?? [],
     };
   }
@@ -270,6 +277,7 @@ export function resolve(input: ResolveInput, options: ResolveOptions = {}): Reso
     environment: environment.environment,
     chain,
     externalAddresses: environment.externalAddresses,
+    externalContracts: Object.fromEntries(Object.entries(environment.externalContracts ?? {}).map(([id, value]) => [id, value])),
     artifacts,
     contracts,
     governance: governanceResult.governance,
@@ -284,10 +292,53 @@ export function resolve(input: ResolveInput, options: ResolveOptions = {}): Reso
   return spec;
 }
 
+const authorityBindingNames = new Set([
+  'admin', 'initialOwner', 'moduleManagementAddress', 'governor_', 'genesis_',
+  'configurationExecutor_', 'verifierRegistry_', 'sp1Verifier_', 'authority_',
+  'sealer_', 'applicationAuthority_', 'governance_',
+]);
+
+function isZeroBytes32(value: unknown): boolean {
+  return typeof value === 'string' && /^0x0{64}$/i.test(value);
+}
+
+function hasDeployerBinding(binding: RawBinding): boolean {
+  if ('deployer' in binding) return true;
+  if ('array' in binding) return binding.array.some(hasDeployerBinding);
+  return false;
+}
+
+/** Public-network resolution fails closed until identity and privileged roles are explicit. */
+function assertPublicEnvironmentHasNoPlaceholders(contracts: Record<string, RawLogicalContract>): void {
+  // Report identity placeholders before role configuration so an operator can
+  // correct the proof/config commitment first, even when both are invalid.
+  for (const [logicalId, contract] of Object.entries(contracts)) {
+    for (const [name, binding] of Object.entries(contract.constructorBindings ?? {})) {
+      if ('literal' in binding && isZeroBytes32(binding.literal)) {
+        throw new ConfigError(
+          'PUBLIC_PLACEHOLDER_BINDING',
+          `Public-network contract '${logicalId}.${name}' cannot use a zero bytes32 placeholder`,
+        );
+      }
+    }
+  }
+  for (const [logicalId, contract] of Object.entries(contracts)) {
+    for (const [name, binding] of Object.entries(contract.constructorBindings ?? {})) {
+      if (authorityBindingNames.has(name) && hasDeployerBinding(binding)) {
+        throw new ConfigError(
+          'PUBLIC_DEPLOYER_ROLE_BINDING',
+          `Public-network authority binding '${logicalId}.${name}' must name an explicit role holder, not the deployer`,
+        );
+      }
+    }
+  }
+}
+
 function validateConstructorBindings(
   contracts: Record<string, RawLogicalContract>,
   artifacts: Record<string, ResolvedArtifact>,
   deployment: ResolvedDeploymentPlan,
+  externalContractIds: ReadonlySet<string>,
 ): void {
   const order = Object.fromEntries(deployment.steps.map((step) => [step.logicalId, step.order]));
   for (const [logicalId, contract] of Object.entries(contracts)) {
@@ -307,6 +358,7 @@ function validateConstructorBindings(
     const checkOrder = (binding: RawBinding): void => {
       if ('contractAddress' in binding || 'runtimeCodeHash' in binding) {
         const referenced = 'contractAddress' in binding ? binding.contractAddress : binding.runtimeCodeHash;
+        if (externalContractIds.has(referenced)) return;
         const referencedOrder = order[referenced];
         const currentOrder = order[logicalId];
         if (referencedOrder === undefined || currentOrder === undefined || referencedOrder >= currentOrder) {
@@ -541,7 +593,11 @@ function resolveDeploymentOrder(
   environment: RawEnvironment,
   contractIds: ReadonlySet<string>,
   rawContracts: Record<string, RawLogicalContract>,
+  externalContractIds: ReadonlySet<string>,
 ): ResolvedDeploymentPlan {
+  for (const id of externalContractIds) {
+    requireKnown(id, contractIds, 'UNKNOWN_EXTERNAL_CONTRACT', 'external contract');
+  }
   for (const root of environment.registryRoots) {
     requireKnown(root, contractIds, 'UNKNOWN_REGISTRY_ROOT', 'registry root');
   }
@@ -567,7 +623,7 @@ function resolveDeploymentOrder(
     const prior = order.slice(0, idx);
     const priorSet = new Set(prior);
     for (const d of dependsOn) {
-      if (!priorSet.has(d)) {
+      if (!priorSet.has(d) && !externalContractIds.has(d)) {
         throw new ConfigError(
           'DEPENDENCY_ORDER_VIOLATION',
           `Contract '${id}' (step ${idx}) depends on '${d}' which is not deployed earlier in the explicit order`,
@@ -577,14 +633,18 @@ function resolveDeploymentOrder(
     steps.push({ logicalId: id, order: idx, dependsOn });
   });
 
-  // Every logical contract must appear in the explicit order.
+  // Every logical contract is either deployed in order or supplied as an
+  // independently verified external dependency by this environment.
   for (const id of contractIds) {
-    if (!seen.has(id)) {
+    if (!seen.has(id) && !externalContractIds.has(id)) {
       throw new ConfigError(
         'UNRESOLVED_DEPLOYMENT_ORDER',
         `Contract '${id}' is declared in architecture but missing from the explicit deployment order`,
       );
     }
+  }
+  for (const id of externalContractIds) {
+    if (seen.has(id)) throw new ConfigError('EXTERNAL_CONTRACT_IN_DEPLOYMENT_ORDER', `External contract '${id}' must not also appear in the deployment order`);
   }
 
   const resolveBootstrap = (action: { id: string; target: string; function: string; args: RawBinding[] }) => {

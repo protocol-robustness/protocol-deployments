@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Hex } from 'viem';
 import {
+  assertManifestVerified,
+  computeManifestRoot,
   registryBindingCandidate,
   validateManifestForRegistryCandidate,
+  type DeploymentManifestV2,
   type DeploymentManifestV1,
 } from '../src/deployment/manifest';
 
@@ -61,5 +64,41 @@ describe('registry candidate consistency gate', () => {
 
   it('rejects a selected root absent from the manifest', () => {
     expect(() => registryBindingCandidate(manifest(), ['prf/missing-root'])).toThrow('not present in the deployment manifest');
+  });
+});
+
+describe('external dependency manifest v2', () => {
+  const external = {
+    logicalId: 'shared/governance-token',
+    address: '0x0000000000000000000000000000000000000002' as const,
+    artifact: { ...artifact, source: 'sew/deployables', package: '@sew/deployables', version: '0.1.0', artifactName: 'SewToken' },
+    observedRuntimeCodeKeccak256: `0x${'e'.repeat(64)}`,
+    observedAt: { blockNumber: '11', blockHash: (`0x${'f'.repeat(64)}`) as Hex },
+  };
+  function v2(overrides: Partial<DeploymentManifestV2> = {}): DeploymentManifestV2 {
+    return {
+      ...manifest(),
+      type: 'protocol-deployment-manifest/v2',
+      externalContracts: [external],
+      ...overrides,
+    };
+  }
+
+  it('accepts complete external observations and binds them into the manifest root', () => {
+    assertManifestVerified(v2());
+    const first = computeManifestRoot(v2());
+    const changed = computeManifestRoot(v2({ externalContracts: [{ ...external, address: '0x0000000000000000000000000000000000000003' }] }));
+    expect(first).not.toBe(changed);
+  });
+
+  it('rejects V2 manifests without external observations or with duplicate logical identities', () => {
+    expect(() => assertManifestVerified(v2({ externalContracts: [] }))).toThrow('at least one verified external dependency');
+    try {
+      assertManifestVerified(v2({ externalContracts: [external, external] }));
+    } catch (error) {
+      expect((error as { code?: string }).code).toBe('MANIFEST_DUPLICATE_CONTRACT_ID');
+      return;
+    }
+    throw new Error('expected duplicate external identity rejection');
   });
 });

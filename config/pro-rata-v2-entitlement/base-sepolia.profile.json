@@ -12,12 +12,14 @@
     "deploymentEnabled": false,
     "admissionEnabled": false,
     "unresolvedDependencies": [
-      "base-governance-authority-model-and-signer-references",
-      "valid-governance-token-quorum-and-activation-path",
+      "bounded-demo-configuration-authority-approved-and-bound",
+      "sew-token-weighted-governance-not-authorized-for-prf-demo",
+      "live-sew-runtime-reconciled-to-a-pinned-verified-artifact",
       "deployment-ledger-staged-genesis-root-and-seal",
       "deployment-ledger-derived-verifier-registry-root-and-governed-selection",
       "base-entitlement-deployment-profile-resolver-and-runtime-verifier",
       "approval-to-use-circle-usdc-for-protected-operation",
+      "base-usdc-external-dependency-pinned-and-verified",
       "funded-usdc-account-and-allowance-approval",
       "fresh-base-deployment-derived-witness-and-groth16-proof",
       "operation-specific-recipient-and-funder-authorization"
@@ -87,18 +89,25 @@
     "governanceActivation": "registry registration/seal and verifier-root selection require the deployed governor/timelock authority path; not a Deployment Ledger bootstrap action"
   },
   "governanceToken": {
-    "policy": "use the existing Sew Base Sepolia SEW token for governance; do not create or deploy a new PRF token",
+    "policy": "SEW is the existing candidate voting token only if token-weighted PRF governance is separately authorized; do not create or deploy a new PRF token",
     "identity": {
       "address": "0x62BD47154D0b5Fe435F220E1294405040102b2ba",
       "name": "Sew Token",
       "symbol": "SEW",
       "decimals": 18,
       "runtimeCodeKeccak256": "0xf619796a635e17ba7eb61f4b62eabf61421aa39c1fd1f71daddf31af0b9e1fcb",
+      "runtimeArtifactCheck": "failed at block 48019450: live runtime 7171 bytes; current pinned SewToken artifact runtime 7292 bytes (expected runtime keccak 0x7e1d33574eb372bd906255664212cc29ba8480cd5f1626622811cb76e5a4fa89)",
+      "observationBlockHash": "0x6283a0cdd2d79d479b6dd69021506741dcd4c17ab413b572d717e31ab2c8bc12",
       "sourceReference": "sew-protocol/scripts/verify-base-sepolia-source.sh",
       "deploymentRecord": "sew-protocol/deployments/baseSepolia is absent from the inspected checkout",
-      "observation": "read-only Base Sepolia RPC observation at block 48018176; refresh at a pinned block before use"
+      "observation": "read-only Base Sepolia RPC observation at block 48019450: name Sew Token, symbol SEW, decimals 18, total supply 1000000000000000000000000000, getVotes(zero address) returns 0; the runtime does not match the currently pinned SewToken artifact"
     },
-    "governanceUse": "existing SEW token identity is selected; governance contract compatibility, voting/quorum parameters, authority and signer references remain unresolved"
+    "governanceUse": "existing SEW token is the only selected token-weighted voting source; its use for PRF is not authorized. The bounded demo recommendation is an explicitly approved configuration authority. If token-weighted PRF governance is later approved, use SEW and pin the authorized governor, timelock, quorum, threshold and role handoff."
+  },
+  "governanceArchitectureReview": {
+    "currentGenericBaseTopology": "deploys a new Sew GovGovernor and TimelockController using SEW voting power; it does not reuse an existing Sew Governor/Timelock deployment",
+    "boundedDemoRecommendation": "option C: separately approved configuration authority bound into PRF genesis and verifier registry; no authority address is approved or pinned",
+    "status": "decision-required; no deployment authority is implied"
   },
   "operationToken": {
     "policy": "prefer Circle USDC on Base Sepolia for demonstration deposits and beneficiary payouts; do not deploy or mint a token",

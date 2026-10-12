@@ -101,7 +101,9 @@ export async function deployContract(input: DeployContractInput): Promise<Deploy
 
   // --- resolve + encode constructor args ---
   const constructorAbi = (artifact.abi as Abi).find((e) => e.type === 'constructor') as ConstructorLike | undefined;
-  const initCode = encodeInitCode(creationBytecode, constructorAbi, contract, input.resolvedAddresses ?? {}, input.externalAddresses ?? {}, await signer.getAddress());
+  const resolvedAddresses = Object.fromEntries(Object.entries(spec.externalContracts ?? {}).map(([id, dependency]) => [id, dependency.address as Address]));
+  Object.assign(resolvedAddresses, input.resolvedAddresses ?? {});
+  const initCode = encodeInitCode(creationBytecode, constructorAbi, contract, resolvedAddresses, input.externalAddresses ?? {}, await signer.getAddress());
 
   // --- chain id assertion ---
   const chainId = await transport.getChainId();

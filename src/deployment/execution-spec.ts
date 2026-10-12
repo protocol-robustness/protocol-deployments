@@ -23,7 +23,9 @@ export function materializeExecutionSpec(
   deployer: Address,
   externalAddresses: Record<string, Address> = {},
 ): { executionSpec: ExecutionSpecV1; executionSpecHash: string } {
-  const addresses: Record<string, Address> = {};
+  const addresses: Record<string, Address> = Object.fromEntries(
+    Object.entries(spec.externalContracts ?? {}).map(([logicalId, dependency]) => [logicalId, dependency.address as Address]),
+  );
   const contracts: ExecutionSpecV1['contracts'] = {};
   for (const step of spec.deployment.steps) {
     const contract = spec.contracts[step.logicalId]!;

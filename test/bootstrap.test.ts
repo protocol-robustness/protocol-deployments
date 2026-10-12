@@ -47,6 +47,7 @@ function contract(): ResolvedContract {
     parameters: [],
     relationships: [],
     deploymentOrder: 0,
+    deploymentKind: 'deployment',
     governedByGroups: [],
   };
 }

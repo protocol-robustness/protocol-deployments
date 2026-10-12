@@ -57,6 +57,8 @@ export interface ResolvedContract {
   constructorBindings?: Record<string, ResolvedBinding>;
   relationships: ResolvedRelationship[];
   deploymentOrder: number;
+  deploymentKind: 'deployment' | 'external';
+  externalAddress?: string;
   /** governance groups that govern parameters on this contract (derived). */
   governedByGroups: string[];
 }
@@ -163,6 +165,7 @@ export interface ResolvedSpec {
   environment: string;
   chain: ResolvedChain;
   externalAddresses?: Record<string, string>;
+  externalContracts?: Record<string, { address: string }>;
   artifacts: Record<string, ResolvedArtifact>; // keyed by "sourceId/artifactName"
   contracts: Record<string, ResolvedContract>; // keyed by logicalId
   governance: ResolvedGovernance;

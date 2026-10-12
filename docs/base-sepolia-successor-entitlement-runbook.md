@@ -38,11 +38,20 @@ admitted 288-byte statement + prepared operation + live reserve commitment
                                         └─ zero liability + closure
 ```
 
-The current generic Base Sepolia environment configures the broader PRF/SEW
-stack, not this successor profile. Its governance parameters also currently
-set quorum to 4,000,000 PRF while the declared initial token supply is
-1,000,000 PRF. That environment is not a usable governance authority plan for
-this demonstration and is intentionally not modified here.
+The current generic Base Sepolia environment is not this successor profile.
+Its shared-token defaults previously described a newly deployed `PRF` token;
+the Base overlay now binds `:shared/governance-token` to the existing SEW
+contract and excludes that logical contract from deployment steps. External
+dependencies are preflighted against chain ID, pinned runtime bytecode, and
+declared capability assertions, then recorded in a V2 manifest observation.
+The local environment still deploys its own `LOCAL` test token.
+
+The generic Base environment remains intentionally **unqualified**. Its legacy
+PRF verifier/admission declarations contain zero VKey, ELF, and configuration
+root bindings, and privileged constructor roles are implicitly assigned to
+the deployer. Public-network resolution now rejects those placeholders and
+implicit authority bindings. Do not work around that guard or use the generic
+Base command for the successor demo.
 
 The Deployment Ledger owns pinned artifacts, deployment execution, immutable
 deployment manifests, read-only runtime observations, and candidate artifacts.
@@ -63,24 +72,62 @@ SP1 program, Groth16/Bn254 VKey, ELF SHA-256, and 288-byte public-values schema.
 These are source/build pins only; actual Base runtime code and verifier
 behavior remain unobserved.
 
-Use the existing Sew Base Sepolia token, SEW, for governance. Its address is
+The current generic topology expresses option B: it deploys a new
+`GovGovernor` and `TimelockController` using SEW voting power. It does **not**
+reuse an existing Sew Governor/Timelock deployment. The pinned Sew
+`GovGovernor` artifact constructor accepts an `IVotes` token and timelock;
+the current config sets a one-block voting delay, 50,400-block voting period,
+50,000 SEW proposal threshold, and 4,000,000 SEW absolute quorum. The
+TimelockController constructor is `(minDelay, proposers, executors, admin)`;
+the config sets a one-day delay, an initially empty proposer set, open
+execution, and the deployer as admin, then grants proposer role to the new
+Governor. That leaves a second governance instance and an unresolved deployer
+admin role. Token compatibility is not authorization to extend Sew governance
+to PRF.
+
+For the bounded controlled-shortfall demo, the least complex safe target is
+option C: a separately named, explicitly approved configuration authority
+(for example, an approved Safe) bound into PRF genesis/authority and the
+verifier registry. No address is currently approved or pinned, so this is a
+decision/blocker, not an active authority. Do not deploy the current generic
+Governor/Timelock for PRF until its ownership and scope are approved. If
+token-weighted governance is specifically required later, use the existing
+SEW token only after the authority owner approves the governance instance,
+quorum, threshold, timelock, and role-transfer plan.
+
+Use the existing Sew Base Sepolia token, SEW, for governance only if that
+governance model is approved. Its address is
 `0x62BD47154D0b5Fe435F220E1294405040102b2ba`. The Sew repository's
 `scripts/verify-base-sepolia-source.sh` records this address. Read-only RPC
-observation at block 48018176 returned name `Sew Token`, symbol `SEW`, 18
-decimals, and runtime code hash
-`0xf619796a635e17ba7eb61f4b62eabf61421aa39c1fd1f71daddf31af0b9e1fcb`.
+read-only observation at Base Sepolia block 48,019,450 (hash
+`0x6283a0cdd2d79d479b6dd69021506741dcd4c17ab413b572d717e31ab2c8bc12`)
+returned name `Sew Token`, symbol `SEW`, 18 decimals, total supply
+`1000000000000000000000000000`, `getVotes(address(0)) == 0`, and runtime code
+hash `0xf619796a635e17ba7eb61f4b62eabf61421aa39c1fd1f71daddf31af0b9e1fcb`.
+The observed runtime is 7,171 bytes and does **not** match the currently pinned
+SewToken artifact runtime of 7,292 bytes (artifact runtime keccak
+`0x7e1d33574eb372bd906255664212cc29ba8480cd5f1626622811cb76e5a4fa89`). The
+`getVotes` call confirms that selector responds, but does not establish the
+full verified source or complete `IVotes` behavior. External verification
+therefore rejects this address against the current artifact until the
+historical deployment artifact/source is independently pinned and reconciled.
 The inspected Sew checkout does not contain its referenced
 `deployments/baseSepolia/` records, so refresh and independently cross-check
 the address at a pinned block before use. The selected governance token does
 not resolve the separate governance-contract, quorum, authority, or signer
-questions. Do not create or deploy a new PRF token.
+questions. The token is selected as the intended SEW voting source, but its
+full deployed implementation identity and complete `IVotes` behavior remain
+unverified; current vote delegation, eligible voter distribution, and
+governance authorization also remain unqualified.
+Do not create or deploy a new PRF token.
 
 For the protected-operation demo, prefer Circle USDC on Base Sepolia at
 `0x036CbD53842c5426634e7929541eC2318f3dCF7e` (6 decimals). This is an
 externally documented token identity, not yet a pinned-block runtime
-observation in this profile. Before use, verify code, code hash, name, symbol,
-and decimals at one pinned block, then record that observation. No token is to
-be deployed or minted by this workflow.
+observation in this profile. It is not yet declared as an external dependency
+in an executable successor environment. Before use, verify code, code hash,
+name, symbol, and decimals at one pinned block, then record that observation.
+No token is to be deployed or minted by this workflow.
 
 For the controlled 35/21/14 USDC example, use 6-decimal base units: Alice 35
 USDC (`35000000`); Bob 21 USDC (`21000000`); Carol 14 USDC (`14000000`); total
@@ -156,13 +203,55 @@ activation appropriate to the selected lane.
 **Approval point:** governance owners approve the authority matrix and
 configuration proposal. No approval is implied by this runbook.
 
+### Contract and authority audit
+
+The generic architecture is a mixed Sew/PRF deployment template. It is not the
+successor Shortfall deployment profile. Constructor inputs below were checked
+against the checked-in pinned artifact ABIs:
+
+| Logical contract | Pinned constructor shape / authority | Status for controlled Shortfall |
+|---|---|---|
+| `:shared/governance-token` | Sew `SewToken(name, symbol, initialOwner, initialSupply)` | Base declares external SEW and omits token deployment; external runtime currently mismatches the pinned artifact, so preflight rejects it. Local still deploys `LOCAL`. |
+| `:shared/governor` | Sew `GovGovernor(token, timelock, votingDelay, votingPeriod, proposalThreshold, quorum, nonCirculating[])` | The generic Base plan creates a second Governor; it is neither a reference to nor authorization from an existing Sew Governor. Not selected for this demo. |
+| `:shared/timelock` | `TimelockController(minDelay, proposers[], executors[], admin)` | Generic plan creates a new one-day Timelock, grants the new Governor proposer role, and leaves deployer as admin. Not selected for this demo. |
+| `:prf/verifier-registry` | `PrfVerifierRegistry(governor_)`; only the exact configured governor can register/seal | Artifact is pinned in the general bundle; a demo registry must instead bind the approved explicit PRF configuration authority. No Base instance exists. |
+| `:prf/allocation-verifier` | Legacy `PrfRealizedAllocationVerifierAdapter(sp1Verifier_, programVKey_, programElfSha256_, statementSchemaVersion_, publicValuesSchema_)` | Legacy generic declaration has zero VKey/ELF and binds the deployer EOA as `sp1Verifier_`. Not the successor adapter and not public-network qualified. |
+| `:prf/statement-admission` | `PrfStatementAdmission(genesis_, configurationExecutor_, verifierRegistry_, expectedConfigurationRoot_, expectedConfigurationEpoch_)` | Legacy generic declaration binds genesis/configuration executor to deployer and uses zero expected root. It is invalid for public deployment and is excluded by the resolver guard. |
+| `:sew/escrow-vault` | Sew `EscrowVault`; fee and module-management roles are constructor-bound | Broader Sew system component; not required for controlled Shortfall. Generic Base roles remain unqualified. |
+| `:sew/decentralized-resolution-module` | Sew resolution module with separate ownership and PRF-verifier dependencies | Broader Sew system component; not required for controlled Shortfall. Not part of the successor topology. |
+
+The successor artifacts themselves are pinned in the readiness inventory, but
+none of the SP1 verifier, successor adapter, PRF genesis/authority, registry,
+configuration executor, admission, prepared controller, allocator, reserve,
+assurance, ratification controller, or entitlement representation has a
+qualified Base deployment. Registry and configuration roots depend on actual
+deployed identities and an approved authority, so they remain absent rather
+than filled with guessed values.
+
+Recommended bounded-demo authority is one explicitly approved configuration
+Safe bound as the `governor` for both `PrfLocalAuthorityAdapter` and
+`PrfVerifierRegistry`. The adapter grants no voting or timelock semantics; it
+records decisions only from that exact configured authority. The Safe address
+and signer policy are unresolved. SEW remains the selected token if a later
+decision specifically requires token-weighted voting, but its use does not
+authorize a new Sew Governor or PRF governance scope.
+
+| Dependency | Classification | Identity / evidence | Gate |
+|---|---|---|---|
+| SEW token | External | `0x62BD47154D0b5Fe435F220E1294405040102b2ba`; Base Sepolia chain 84532; observation block/hash and code hash above | Current code fails pinned SewToken runtime comparison; resolve historical artifact/source first |
+| USDC | External candidate | Circle Base Sepolia address `0x036CbD53842c5426634e7929541eC2318f3dCF7e` | Not yet runtime-observed or bound in successor deployment environment |
+| Approved configuration Safe | Missing | No address or signer policy approved | Required before public configuration/registry changes |
+| SP1 verifier, successor adapter, registry, genesis, authority, configuration executor, admission | Missing deployments; 0.4.0 artifacts pinned | Inventory in `base-sepolia.profile.json` | Deploy only after authority and staged root derivation are available |
+| Controller, allocator, reserve, assurance, ratification, entitlements | Missing deployments; artifacts pinned | Successor 0.4.0 inventory | Bind/verify against the same deployment-derived operation |
+| Sew Governor, Sew Timelock, Sew escrow, Sew resolution module | Not required | Present only in the generic Sew/PRF topology | Exclude from bounded Shortfall topology unless a separate Sew use is approved |
+
 ## 3–5. Deployment, registry selection, entitlement contracts
 
 There is currently **no safe Base successor-entitlement resolve/deploy
-command**. The existing `resolve:base-sepolia` / `deploy:base-sepolia` commands
-deploy the general PRF/SEW topology; the local entitlement profile is
-31337-only, contains local topology assumptions, and has no-governance
-placeholder roots. Do not run either as a substitute.
+command**. The generic Base resolver now fails closed on its zero roots and
+deployer-bound authority roles. The local entitlement profile is 31337-only,
+contains local topology assumptions, and has synthetic roots. Do not bypass
+the resolver guard or treat the local profile as a Base deployment plan.
 
 Required implementation before deployment:
 

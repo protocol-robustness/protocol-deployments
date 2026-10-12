@@ -109,6 +109,7 @@ describe('Phase C — deployment engine + deployment record', () => {
       })),
       relationships: [],
       deploymentOrder: 0,
+      deploymentKind: 'deployment',
       governedByGroups: [],
     };
     return {

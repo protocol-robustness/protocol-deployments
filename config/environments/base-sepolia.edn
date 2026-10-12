@@ -12,8 +12,16 @@
  :overlays
  { :shared/governance-token
    {:parameters
-    { :name   {:value "Protocol Governance Token"}
-      :symbol {:value "PRF"}}} }
+    { :name         {:value "Sew Token"}
+      :symbol       {:value "SEW"}
+      :initialSupply {:value 1000000000000000000000000000N}}} }
+
+ ;; This chain already has the SEW governance token. Verify it against the
+ ;; pinned SewToken artifact and record it as an external dependency; never
+ ;; deploy a second governance token on Base Sepolia.
+ :externalContracts
+ { :shared/governance-token
+   {:address "0x62BD47154D0b5Fe435F220E1294405040102b2ba"} }
 
  ;; The timelock is constructed with an empty proposer set and the deployer as
  ;; admin. Governance is inert until the governor is granted PROPOSER_ROLE, so
@@ -33,11 +41,35 @@
     :function "hasRole"
     :args [{:literal "0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1"}
            {:contractAddress :shared/governor}]
-    :expected true} ]
+    :expected true}
+   {:id :sew/governance-token-name
+    :target :shared/governance-token
+    :function "name"
+    :args []
+    :expected "Sew Token"}
+   {:id :sew/governance-token-symbol
+    :target :shared/governance-token
+    :function "symbol"
+    :args []
+    :expected "SEW"}
+   {:id :sew/governance-token-decimals
+    :target :shared/governance-token
+    :function "decimals"
+    :args []
+    :expected 18}
+   {:id :sew/governance-token-supply
+    :target :shared/governance-token
+    :function "totalSupply"
+    :args []
+    :expected 1000000000000000000000000000N}
+   {:id :sew/governance-token-votes-interface
+    :target :shared/governance-token
+    :function "getVotes"
+    :args [{:literal "0x0000000000000000000000000000000000000000"}]
+    :expected 0N} ]
 
  :deploymentOrder
- [ :shared/governance-token
-   :shared/timelock
+ [ :shared/timelock
    :shared/governor
    :prf/verifier-registry
    :prf/allocation-verifier

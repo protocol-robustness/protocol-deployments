@@ -250,6 +250,8 @@ export const environmentSchema = z
     localOnly: z.boolean().default(false),
     /** Named addresses supplied by the environment, such as a canonical token. */
     externalAddresses: z.record(z.string(), z.string()).optional(),
+    /** Declared logical contracts supplied by the environment instead of deployed by this run. */
+    externalContracts: z.record(z.string(), z.object({ address: z.string().regex(/^0x[0-9a-fA-F]{40}$/) }).strict()).optional(),
     /** Constrained initial wiring only; not a general lifecycle/workflow language. */
     bootstrapActions: z.array(bootstrapActionSchema).default([]),
     bootstrapAssertions: z.array(bootstrapAssertionSchema).default([]),

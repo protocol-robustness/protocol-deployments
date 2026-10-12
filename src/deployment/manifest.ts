@@ -5,6 +5,7 @@ import { ConfigError } from '../errors';
 import type { DeploymentRecord } from './record';
 
 export const DEPLOYMENT_MANIFEST_DOMAIN = 'protocol-deployment-manifest:v1:';
+export const DEPLOYMENT_MANIFEST_V2_DOMAIN = 'protocol-deployment-manifest:v2:';
 export const REGISTRY_CANDIDATE_DOMAIN = 'registry-binding-candidate:v1:';
 
 /** Immutable evidence emitted only after every bootstrap step and assertion verifies. */
@@ -27,8 +28,17 @@ export interface DeploymentManifestV1 {
   finalAssertions: DeploymentRecord['finalAssertions'];
 }
 
-export function computeManifestRoot(manifest: DeploymentManifestV1): string {
-  return `0x${keccak256Hex(`${DEPLOYMENT_MANIFEST_DOMAIN}${canonicalJson(manifest)}`)}`;
+/** V2 binds independently verified external dependencies separately from deployment facts. */
+export interface DeploymentManifestV2 extends Omit<DeploymentManifestV1, 'type'> {
+  type: 'protocol-deployment-manifest/v2';
+  externalContracts: NonNullable<DeploymentRecord['externalContracts']>;
+}
+
+export type DeploymentManifest = DeploymentManifestV1 | DeploymentManifestV2;
+
+export function computeManifestRoot(manifest: DeploymentManifest): string {
+  const domain = manifest.type === 'protocol-deployment-manifest/v2' ? DEPLOYMENT_MANIFEST_V2_DOMAIN : DEPLOYMENT_MANIFEST_DOMAIN;
+  return `0x${keccak256Hex(`${domain}${canonicalJson(manifest)}`)}`;
 }
 
 /** A deliberately tiny hand-off: registry tooling decides admission and selection. */
@@ -42,7 +52,7 @@ export interface RegistryBindingCandidateV1 {
   roots: Array<{ logicalId: string; address: Address; artifactName: string }>;
 }
 
-export function registryBindingCandidate(manifest: DeploymentManifestV1, registryRoots: string[] = [], localOnly = false): RegistryBindingCandidateV1 {
+export function registryBindingCandidate(manifest: DeploymentManifest, registryRoots: string[] = [], localOnly = false): RegistryBindingCandidateV1 {
   validateManifestForRegistryCandidate(manifest);
   const selected = registryRoots.length === 0
     ? manifest.contracts
@@ -80,7 +90,7 @@ export function registryBindingCandidate(manifest: DeploymentManifestV1, registr
  * handoff depend on this gate, so it fails closed on incomplete evidence,
  * unverified bootstrap actions, and failed final assertions alike.
  */
-export function assertManifestVerified(manifest: DeploymentManifestV1): void {
+export function assertManifestVerified(manifest: DeploymentManifest): void {
   if (manifest.contracts.length === 0) {
     throw new ConfigError('MANIFEST_INCOMPLETE', 'Deployment manifest contains no contracts');
   }
@@ -109,6 +119,19 @@ export function assertManifestVerified(manifest: DeploymentManifestV1): void {
       throw new ConfigError('MANIFEST_INCOMPLETE', `Deployment manifest lacks artifact identity for '${contract.logicalId}'`);
     }
   }
+  if (manifest.type === 'protocol-deployment-manifest/v2') {
+    if (manifest.externalContracts.length === 0) {
+      throw new ConfigError('MANIFEST_INCOMPLETE', 'V2 manifest must contain at least one verified external dependency');
+    }
+    const ids = new Set(manifest.contracts.map((contract) => contract.logicalId));
+    for (const dependency of manifest.externalContracts) {
+      if (!dependency.logicalId || !dependency.address || !dependency.observedAt.blockHash || !dependency.observedAt.blockNumber || !dependency.observedRuntimeCodeKeccak256 || !dependency.artifact.artifactName || !dependency.artifact.runtimeBytecodeSha256) {
+        throw new ConfigError('MANIFEST_INCOMPLETE', 'Manifest contains an incomplete external contract verification fact');
+      }
+      if (ids.has(dependency.logicalId)) throw new ConfigError('MANIFEST_DUPLICATE_CONTRACT_ID', `Logical contract '${dependency.logicalId}' appears more than once or as both deployed and external`);
+      ids.add(dependency.logicalId);
+    }
+  }
 }
 
 /**
@@ -116,6 +139,6 @@ export function assertManifestVerified(manifest: DeploymentManifestV1): void {
  * Selection remains the registry operator's responsibility; this gate only
  * prevents incomplete or internally inconsistent evidence from being emitted.
  */
-export function validateManifestForRegistryCandidate(manifest: DeploymentManifestV1): void {
+export function validateManifestForRegistryCandidate(manifest: DeploymentManifest): void {
   assertManifestVerified(manifest);
 }

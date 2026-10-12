@@ -15,6 +15,14 @@ export interface ArtifactIdentity {
   runtimeBytecodeSha256: string;
 }
 
+export interface ExternalContractObservationV1 {
+  logicalId: string;
+  address: Address;
+  artifact: ArtifactIdentity;
+  observedRuntimeCodeKeccak256: string;
+  observedAt: { blockNumber: string; blockHash: Hex };
+}
+
 export interface ContractDeploymentFact {
   kind: 'deployment';
   logicalId: string;
@@ -70,6 +78,8 @@ export interface DeploymentRecord {
   blockHash?: Hex;
   deployedAt?: string;
   contracts: Record<string, ContractDeploymentFact>;
+  /** Verified external dependencies are observations, not deployment facts. */
+  externalContracts?: ExternalContractObservationV1[];
   /** Durable transition history for deploy steps; used for reconciliation/resume. */
   execution: Record<string, ExecutionStepRecord>;
   /** Bootstrap-only calls; later protocol governance is intentionally out of scope. */
@@ -100,6 +110,13 @@ const contractFactSchema = z.object({
   blockNumber: uintString,
   mode: z.enum(['create', 'create2']),
   deployedParameters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
+});
+const externalContractObservationSchema = z.object({
+  logicalId: z.string(),
+  address,
+  artifact: artifactSchema,
+  observedRuntimeCodeKeccak256: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  observedAt: z.object({ blockNumber: uintString, blockHash: hex }),
 });
 
 const executionStepSchema = z.object({
@@ -138,6 +155,7 @@ const recordSchema = z.object({
   blockHash: hex.optional(),
   deployedAt: z.string().optional(),
   contracts: z.record(z.string(), contractFactSchema),
+  externalContracts: z.array(externalContractObservationSchema).optional(),
   execution: z.record(z.string(), executionStepSchema),
   bootstrapActions: z.array(bootstrapActionSchema),
   finalAssertions: z.array(finalAssertionSchema),

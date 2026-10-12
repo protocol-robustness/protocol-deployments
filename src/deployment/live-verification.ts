@@ -1,16 +1,18 @@
 import { keccak256Hex } from '../artifacts/hash';
-import { decodeFunctionResult, encodeFunctionData, type Abi, type Address, type Hex } from 'viem';
+import { decodeFunctionResult, encodeFunctionData, hexToBytes, type Abi, type Address, type Hex } from 'viem';
 import { canonicalJson } from '../canonical-json';
 import { ConfigError } from '../errors';
-import { assertManifestVerified, computeManifestRoot, type DeploymentManifestV1 } from './manifest';
+import { assertManifestVerified, computeManifestRoot, type DeploymentManifest, type DeploymentManifestV1, type DeploymentManifestV2 } from './manifest';
 import type { RpcTransport } from '../runtime/transport';
 import type { ResolvedSpec } from '../canonical';
 import type { BundleConsumer } from '../artifacts/bundle';
 import { runtimeMatches } from './engine';
 import { assertChainIdMatches } from '../validate/checks';
 import { resolveBindingValueAsync, type BindingScope } from './bindings';
+import { artifactIdentityOf, type ExternalContractObservationV1 } from './record';
 
 export const LIVE_VERIFICATION_DOMAIN = 'protocol-deployment-verification:v1:';
+export const LIVE_VERIFICATION_V2_DOMAIN = 'protocol-deployment-verification:v2:';
 
 export interface LiveAssertionResult {
   id: string;
@@ -34,6 +36,11 @@ export interface LiveVerificationV1 {
   assertions: LiveAssertionResult[];
   result: 'passed';
   verificationRoot: string;
+}
+
+export interface LiveVerificationV2 extends Omit<LiveVerificationV1, 'type'> {
+  type: 'protocol-deployment-verification/v2';
+  externalContracts: Array<Pick<ExternalContractObservationV1, 'logicalId' | 'address' | 'observedRuntimeCodeKeccak256' | 'observedAt'> & { result: 'passed' }>;
 }
 
 function normalizeCode(code: Hex | undefined, logicalId: string): Hex {
@@ -67,10 +74,27 @@ export async function verifyLiveDeployment(
   spec: ResolvedSpec,
   bundle: BundleConsumer,
   requestedBlock?: bigint,
-): Promise<LiveVerificationV1> {
+): Promise<LiveVerificationV1>;
+export async function verifyLiveDeployment(
+  manifest: DeploymentManifestV2,
+  transport: RpcTransport,
+  spec: ResolvedSpec,
+  bundle: BundleConsumer,
+  requestedBlock?: bigint,
+): Promise<LiveVerificationV2>;
+export async function verifyLiveDeployment(
+  manifest: DeploymentManifest,
+  transport: RpcTransport,
+  spec: ResolvedSpec,
+  bundle: BundleConsumer,
+  requestedBlock?: bigint,
+): Promise<LiveVerificationV1 | LiveVerificationV2> {
   assertManifestVerified(manifest);
   const manifestRoot = computeManifestRoot(manifest);
   const chainId = await transport.getChainId();
+  if (manifest.chain.id !== spec.chain.chainId) {
+    throw new ConfigError('CHAIN_ID_MISMATCH', `Manifest chain ${manifest.chain.id} differs from resolved environment chain ${spec.chain.chainId}`);
+  }
   assertChainIdMatches({ chainId: manifest.chain.id, environment: manifest.deploymentId }, chainId);
 
   // The recorded deployment block hash is part of the evidence; re-read it so
@@ -119,9 +143,49 @@ export async function verifyLiveDeployment(
     });
   }
 
+  const externalContracts: LiveVerificationV2['externalContracts'] = [];
+  if (manifest.type === 'protocol-deployment-manifest/v2') {
+    const specExternal = spec.externalContracts ?? {};
+    if (manifest.externalContracts.length !== Object.keys(specExternal).length) {
+      throw new ConfigError('EXTERNAL_CONTRACT_SET_MISMATCH', 'Manifest external dependencies differ from the resolved specification');
+    }
+    for (const dependency of manifest.externalContracts) {
+      const declared = specExternal[dependency.logicalId];
+      const contract = spec.contracts[dependency.logicalId];
+      if (!declared || !contract || contract.deploymentKind !== 'external' || declared.address.toLowerCase() !== dependency.address.toLowerCase()) {
+        throw new ConfigError('EXTERNAL_CONTRACT_SPEC_MISMATCH', `Manifest external dependency '${dependency.logicalId}' differs from the resolved specification`);
+      }
+      if (canonicalJson(dependency.artifact) !== canonicalJson(artifactIdentityOf(contract))) {
+        throw new ConfigError('EXTERNAL_CONTRACT_SPEC_MISMATCH', `Manifest artifact identity for external dependency '${dependency.logicalId}' differs from the pinned specification`);
+      }
+      const loaded = bundle.loadArtifact(contract.artifactSource, contract.artifact.package, contract.artifact.version, contract.artifactName);
+      const variableRanges = [
+        ...Object.values(loaded.artifact.deployedLinkReferences ?? {}).flatMap((byName) => Object.values(byName).flat()),
+        ...Object.values(loaded.artifact.immutableReferences ?? {}).flat(),
+      ];
+      const observationBlock = await transport.getBlock(BigInt(dependency.observedAt.blockNumber));
+      if (observationBlock.hash.toLowerCase() !== dependency.observedAt.blockHash.toLowerCase()) {
+        throw new ConfigError('EXTERNAL_CONTRACT_OBSERVATION_BLOCK_MISMATCH', `Recorded observation block for '${dependency.logicalId}' has changed`);
+      }
+      const observedCode = normalizeCode(await transport.getCode(dependency.address, observationBlock.number), dependency.logicalId);
+      const observedHash = `0x${keccak256Hex(hexToBytes(observedCode as Hex))}`;
+      if (observedHash.toLowerCase() !== dependency.observedRuntimeCodeKeccak256.toLowerCase() || !runtimeMatches(loaded.artifact.deployedBytecode, observedCode, variableRanges)) {
+        throw new ConfigError('EXTERNAL_CONTRACT_OBSERVATION_MISMATCH', `Recorded external contract code observation for '${dependency.logicalId}' does not match the chain`);
+      }
+      const liveCode = normalizeCode(await transport.getCode(dependency.address, block.number), dependency.logicalId);
+      if (`0x${keccak256Hex(hexToBytes(liveCode as Hex))}`.toLowerCase() !== dependency.observedRuntimeCodeKeccak256.toLowerCase() || !runtimeMatches(loaded.artifact.deployedBytecode, liveCode, variableRanges)) {
+        throw new ConfigError('EXTERNAL_CONTRACT_CODE_MISMATCH', `Current runtime bytecode for external contract '${dependency.logicalId}' differs from the verified observation`);
+      }
+      externalContracts.push({ logicalId: dependency.logicalId, address: dependency.address, observedRuntimeCodeKeccak256: observedHash, observedAt: dependency.observedAt, result: 'passed' });
+    }
+  } else if (Object.keys(spec.externalContracts ?? {}).length > 0) {
+    throw new ConfigError('EXTERNAL_CONTRACT_MANIFEST_REQUIRED', 'Resolved specification has external dependencies but manifest is V1');
+  }
+
   const addresses: Record<string, Address> = Object.fromEntries(
     manifest.contracts.map((contract) => [contract.logicalId, contract.address]),
   );
+  for (const dependency of externalContracts) addresses[dependency.logicalId] = dependency.address;
   const scope: BindingScope = {
     addresses,
     externalAddresses: (spec.externalAddresses ?? {}) as Record<string, Address>,
@@ -156,7 +220,15 @@ export async function verifyLiveDeployment(
   }
   assertAllManifestAssertionsObserved(manifest, assertions);
 
-  const body = {
+  const body = manifest.type === 'protocol-deployment-manifest/v2' ? {
+    type: 'protocol-deployment-verification/v2' as const,
+    manifestRoot,
+    chain: { id: chainId, blockNumber: block.number.toString(), blockHash: block.hash },
+    contracts,
+    externalContracts,
+    assertions,
+    result: 'passed' as const,
+  } : {
     type: 'protocol-deployment-verification/v1' as const,
     manifestRoot,
     chain: { id: chainId, blockNumber: block.number.toString(), blockHash: block.hash },
@@ -166,7 +238,7 @@ export async function verifyLiveDeployment(
   };
   return {
     ...body,
-    verificationRoot: `0x${keccak256Hex(`${LIVE_VERIFICATION_DOMAIN}${canonicalJson(body)}`)}`,
+    verificationRoot: `0x${keccak256Hex(`${body.type === 'protocol-deployment-verification/v2' ? LIVE_VERIFICATION_V2_DOMAIN : LIVE_VERIFICATION_DOMAIN}${canonicalJson(body)}`)}`,
   };
 }
 
@@ -176,7 +248,7 @@ export async function verifyLiveDeployment(
  * dropping the assertions it was originally gated on.
  */
 function assertAllManifestAssertionsObserved(
-  manifest: DeploymentManifestV1,
+  manifest: DeploymentManifest,
   observed: LiveAssertionResult[],
 ): void {
   const observedIds = new Set(observed.map((assertion) => assertion.id));

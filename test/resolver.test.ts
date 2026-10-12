@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { resolveEdn } from './helpers';
+import { bundle, resolveEdn } from './helpers';
 import { resolveDeployment } from '../src/resolve-deployment';
 import { CONFIG_DIR, FIXTURE_ROOT } from './helpers';
 import * as path from 'path';
 import { materializeExecutionSpec } from '../src/deployment/execution-spec';
+import { loadEnvironment } from '../src/config/load';
+import { loadConfig } from '../src/config/load';
+import { resolve } from '../src/resolver';
 
 describe('resolver happy path', () => {
   it('resolves the baseline into a fully explicit spec', () => {
@@ -32,23 +35,39 @@ describe('resolver happy path', () => {
     expect(rate.mutability).toBe('governed');
   });
 
-  it('base-sepolia resolves to chain id 84532', () => {
-    const out = resolveDeployment({ configDir: CONFIG_DIR, environment: 'base-sepolia', fixtureRoot: FIXTURE_ROOT });
-    expect(out.spec.chain.chainId).toBe(84532);
-    expect(out.spec.chain.logicalRole).toBe('testnet');
+  it('blocks the unqualified Base Sepolia topology before it can become a deployment plan', () => {
+    try {
+      resolveDeployment({ configDir: CONFIG_DIR, environment: 'base-sepolia', fixtureRoot: FIXTURE_ROOT });
+    } catch (error) {
+      expect((error as { code?: string }).code).toBe('PUBLIC_PLACEHOLDER_BINDING');
+      expect((error as Error).message).toMatch(/zero bytes32 placeholder/);
+      return;
+    }
+    throw new Error('expected Base Sepolia placeholder rejection');
   });
 
-  it('wires testnet governance so the governor can propose, and asserts it', () => {
-    const { spec } = resolveDeployment({ configDir: CONFIG_DIR, environment: 'base-sepolia', fixtureRoot: FIXTURE_ROOT });
-    const grant = spec.deployment.bootstrapActions?.find((action) => action.id === 'timelock/grant-governor-proposer');
-    expect(grant).toBeDefined();
-    expect(grant?.target).toBe('shared/timelock');
-    expect(grant?.function).toBe('grantRole');
-    expect(grant?.args[1]).toEqual({ kind: 'contract-address', contract: 'shared/governor' });
+  it('rejects implicit deployer authority on public networks after placeholders are removed', () => {
+    const config = loadConfig({ configDir: CONFIG_DIR });
+    const replacePlaceholders = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(replacePlaceholders);
+      if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, child]) => [key, replacePlaceholders(child)]));
+      return value === `0x${'0'.repeat(64)}` ? `0x${'1'.repeat(64)}` : value;
+    };
+    config.architecture = replacePlaceholders(config.architecture) as typeof config.architecture;
+    let caught: unknown;
+    try { resolve({ config, environment: loadEnvironment(CONFIG_DIR, 'base-sepolia'), bundle: bundle() }, { environmentSource: 'base-sepolia' }); }
+    catch (error) { caught = error; }
+    expect(caught).toBeDefined();
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).message).toContain('Public-network authority binding');
+    expect((caught as { code?: string }).code).toBe('PUBLIC_DEPLOYER_ROLE_BINDING');
+  });
 
-    const assertion = spec.deployment.bootstrapAssertions?.find((entry) => entry.id === 'timelock/governor-proposer');
-    expect(assertion?.target).toBe('shared/timelock');
-    expect(assertion?.expected).toBe(true);
+  it('declares the existing SEW token as external in Base Sepolia without deploying it', () => {
+    const environment = loadEnvironment(CONFIG_DIR, 'base-sepolia');
+    expect(environment.externalContracts?.['shared/governance-token']?.address).toBe('0x62BD47154D0b5Fe435F220E1294405040102b2ba');
+    expect(environment.deploymentOrder).not.toContain('shared/governance-token');
+    expect(environment.bootstrapAssertions.some((assertion) => assertion.target === 'shared/governance-token' && assertion.function === 'getVotes')).toBe(true);
   });
 
   it('resolves runtime-code-hash bootstrap bindings and preserves them in the execution spec', () => {
