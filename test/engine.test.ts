@@ -7,7 +7,7 @@ import { BundleConsumer, FixtureBundleLocator } from '../src/artifacts/bundle';
 import { RpcTransport } from '../src/runtime/transport';
 import { PrivateKeySigner } from '../src/runtime/signer';
 import { AnvilRuntime } from '../src/runtime/anvil';
-import { deployContract } from '../src/deployment/engine';
+import { deployContract, verifyRecordedDeployment } from '../src/deployment/engine';
 import { canonicalJson } from '../src/canonical-json';
 import type { ResolvedSpec, ResolvedContract } from '../src/canonical';
 import {
@@ -140,6 +140,26 @@ describe('Phase C — deployment engine + deployment record', () => {
     expect(BigInt(slot0)).toBe(42n);
     const slot1 = (await transport.getStorageAt(res.address, 1n)) ?? '0x';
     expect(BigInt(slot1)).toBe(1n);
+  }, 60000);
+
+  it('revalidates receipt identity and current runtime code before resuming a prior deployment', async () => {
+    const spec = makeSpec([
+      { name: '_v', value: 42 },
+      { name: '_flag', value: true },
+    ]);
+    const res = await deployContract({ spec, logicalId: ':t', bundle, transport, signer });
+    await expect(verifyRecordedDeployment({
+      logicalId: ':t', address: res.address, transactionHash: res.transactionHash,
+      blockNumber: res.blockNumber.toString(), spec, bundle, transport,
+    })).resolves.toBeUndefined();
+    await expect(verifyRecordedDeployment({
+      logicalId: ':t', address: res.address, transactionHash: res.transactionHash,
+      blockNumber: '999999', spec, bundle, transport,
+    })).rejects.toMatchObject({ code: 'RESUME_BLOCK_MISMATCH' });
+    await expect(verifyRecordedDeployment({
+      logicalId: ':t', address: res.address, transactionHash: `0x${'00'.repeat(32)}` as `0x${string}`,
+      blockNumber: res.blockNumber.toString(), spec, bundle, transport,
+    })).rejects.toMatchObject({ code: 'RESUME_RECEIPT_MISMATCH' });
   }, 60000);
 
   it('rejects deployment when a constructor arg is unresolvable', async () => {

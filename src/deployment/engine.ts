@@ -62,6 +62,29 @@ export interface DeployContractResult {
   deployedParameters: Record<string, string | number | boolean>;
 }
 
+/** Revalidate a persisted deployment fact before a plan resumes from it. */
+export async function verifyRecordedDeployment(input: {
+  logicalId: string;
+  address: Address;
+  transactionHash: Hex;
+  blockNumber: string;
+  spec: ResolvedSpec;
+  bundle: BundleConsumer;
+  transport: RpcTransport;
+}): Promise<void> {
+  const receipt = await input.transport.getTransactionReceipt(input.transactionHash);
+  if (!receipt || receipt.status !== 'success' || receipt.contractAddress?.toLowerCase() !== input.address.toLowerCase()) {
+    throw new ConfigError('RESUME_RECEIPT_MISMATCH', `Recorded deployment receipt for '${input.logicalId}' is missing or does not create the recorded address`);
+  }
+  if (receipt.blockNumber.toString() !== input.blockNumber) {
+    throw new ConfigError('RESUME_BLOCK_MISMATCH', `Recorded deployment block for '${input.logicalId}' does not match its receipt`);
+  }
+  const contract = input.spec.contracts[input.logicalId];
+  if (!contract) throw new ConfigError('UNKNOWN_LOGICAL_CONTRACT', `Unknown logical contract '${input.logicalId}'`);
+  const artifact = input.bundle.loadArtifact(contract.artifactSource, contract.artifact.package, contract.artifact.version, contract.artifactName).artifact;
+  await verifyRuntimeCode(input.transport, input.address, artifact.deployedBytecode, artifact.deployedLinkReferences, artifact.immutableReferences);
+}
+
 /**
  * Deploys a single logical contract from the frozen resolved spec:
  *

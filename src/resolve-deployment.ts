@@ -1,14 +1,17 @@
-import { loadConfig, loadEnvironment } from './config/load';
+import * as path from 'path';
+import { loadConfig, loadEnvironment, loadRuntime } from './config/load';
 import { createBundleConsumer } from './artifacts/bundle';
 import { resolve } from './resolver';
 import { computeSpecHash } from './spec-hash';
 import { canonicalJson } from './canonical-json';
 import type { ResolvedSpec } from './canonical';
+import { readDeploymentUnitCatalog, readSuccessorDeploymentPlan, validatePlanAgainstUnits, projectConfigurationForPlan } from './deployment/successor-plan';
 
 export interface ResolvedDeploymentOutput {
   spec: ResolvedSpec;
   specHash: string;
   canonicalJson: string;
+  deploymentPlan?: import('./deployment/successor-plan').SuccessorDeploymentPlanV1;
 }
 
 /**
@@ -26,9 +29,22 @@ export function resolveDeployment(opts: {
   preferFixtures?: boolean;
   /** Require clean-git provenance for every loaded bundle. */
   requirePinnedProvenance?: boolean;
+  /** Explicit executable deployment plan. Omitting it keeps legacy flat resolution. */
+  deploymentPlanFile?: string;
 }): ResolvedDeploymentOutput {
-  const config = loadConfig({ configDir: opts.configDir, profileDir: opts.profileDir });
-  const environment = loadEnvironment(opts.configDir, opts.environment, opts.profileDir);
+  let config = loadConfig({ configDir: opts.configDir, profileDir: opts.profileDir });
+  let environment = loadEnvironment(opts.configDir, opts.environment, opts.profileDir);
+  let deploymentPlan: import('./deployment/successor-plan').SuccessorDeploymentPlanV1 | undefined;
+  if (opts.deploymentPlanFile) {
+    const plan = readSuccessorDeploymentPlan(opts.deploymentPlanFile);
+    deploymentPlan = plan;
+    const catalog = readDeploymentUnitCatalog(path.join(opts.configDir, 'deployment-units.v1.json'));
+    validatePlanAgainstUnits(plan, catalog);
+    const allowLocalFork = plan.localOnly && environment.chain.kind !== 'local'
+      ? loadRuntime(opts.configDir, opts.environment).provider === 'anvil-fork'
+      : false;
+    ({ config, environment } = projectConfigurationForPlan(config, environment, plan, { allowLocalFork }));
+  }
   const bundle = createBundleConsumer({
     sources: config.architecture.artifactSources,
     fixtureRoot: opts.fixtureRoot,
@@ -45,5 +61,5 @@ export function resolveDeployment(opts: {
   const canonical = canonicalJson(spec);
   const specHash = computeSpecHash(spec);
 
-  return { spec, specHash, canonicalJson: canonical };
+  return { spec, specHash, canonicalJson: canonical, deploymentPlan };
 }

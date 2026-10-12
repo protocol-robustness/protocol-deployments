@@ -21,7 +21,7 @@ import { loadDefaultEnvFile } from '../config/env-file';
 import { createBundleConsumer, type BundleConsumer } from '../artifacts/bundle';
 import { bindRuntime } from '../runtime/bind';
 import type { TxFees } from '../runtime/transport';
-import { deployContract, type DeployContractResult } from '../deployment/engine';
+import { deployContract, verifyRecordedDeployment, type DeployContractResult } from '../deployment/engine';
 import { emptyRecord, loadRecord, saveRecord, recordPathFor, artifactIdentityOf, type DeploymentRecord, type FinalAssertionRecord } from '../deployment/record';
 import { materializeExecutionSpec } from '../deployment/execution-spec';
 import { computeManifestRoot, registryBindingCandidate, type DeploymentManifest, type DeploymentManifestV2 } from '../deployment/manifest';
@@ -31,6 +31,8 @@ import { preflightDeployment, assertSufficientBalance } from '../deployment/pref
 import { assertChainIdMatches } from '../validate/checks';
 import { ConfigError } from '../errors';
 import type { ResolvedBinding } from '../canonical';
+import { deploymentPlanHash, planExecutionRoot } from '../deployment/plan-execution';
+import { assertPlanDeployable, unsupportedDeploymentPrerequisite } from '../deployment/successor-plan';
 
 interface DeployOptions {
   bundle: BundleConsumer;
@@ -40,6 +42,7 @@ interface DeployOptions {
   assumeYes: boolean;
   fees?: TxFees;
   receiptTimeoutMs?: number;
+  plan?: NonNullable<Awaited<ReturnType<typeof resolveDeployment>>['deploymentPlan']>;
 }
 
 function flagValue(name: string): string | undefined {
@@ -71,9 +74,11 @@ async function main(): Promise<void> {
   const maxFeeArg = flagValue('max-fee');
   const priorityFeeArg = flagValue('priority-fee');
   const timeoutArg = flagValue('receipt-timeout-ms');
+  const planArg = flagValue('plan');
+  const legacyFlat = process.argv.includes('--legacy-flat');
   const profileDir = profileArg >= 0 ? path.resolve(process.cwd(), process.argv[profileArg + 1]!) : undefined;
-  if (!environment) {
-    console.error('Usage: deploy.ts <environment> [--profile <dir>] [--fixtures <dir>] [--deployment-key <key>] [--resume] [--dry-run] [--yes] [--max-fee <wei>] [--priority-fee <wei>] [--receipt-timeout-ms <ms>]');
+  if (!environment || (planArg !== undefined) === legacyFlat) {
+    console.error('Usage: deploy.ts <environment> (--plan <plan.json> | --legacy-flat) [--profile <dir>] [--fixtures <dir>] [--deployment-key <key>] [--resume] [--dry-run] [--yes] [--max-fee <wei>] [--priority-fee <wei>] [--receipt-timeout-ms <ms>]');
     process.exit(2);
   }
   if (priorityFeeArg !== undefined && maxFeeArg === undefined) {
@@ -105,7 +110,18 @@ async function main(): Promise<void> {
     requirePinnedProvenance,
   });
 
-  const resolved = resolveDeployment({ configDir, environment, fixtureRoot, profileDir, preferFixtures, requirePinnedProvenance });
+  const resolved = resolveDeployment({
+    configDir,
+    environment,
+    fixtureRoot,
+    profileDir,
+    preferFixtures,
+    requirePinnedProvenance,
+    deploymentPlanFile: planArg ? path.resolve(process.cwd(), planArg) : undefined,
+  });
+  if (resolved.deploymentPlan && !resume) {
+    assertPlanDeployable(resolved.deploymentPlan);
+  }
   // Default the record/manifest key to the *resolved* environment so the ledger
   // always lands next to the `<environment>.resolved.json` that resolve.ts wrote,
   // even when a profile overlay declares a different environment name.
@@ -118,7 +134,7 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  const options: DeployOptions = { bundle, deploymentsDir, resume, dryRun, assumeYes, fees, receiptTimeoutMs };
+  const options: DeployOptions = { bundle, deploymentsDir, resume, dryRun, assumeYes, fees, receiptTimeoutMs, plan: resolved.deploymentPlan };
   try {
     await run(environment, resolved, bound, deploymentKey, options);
   } finally {
@@ -154,7 +170,7 @@ async function run(
   deploymentKey: string,
   options: DeployOptions,
 ): Promise<void> {
-  const { bundle, deploymentsDir, resume, dryRun, fees, receiptTimeoutMs } = options;
+  const { bundle, deploymentsDir, resume, dryRun, fees, receiptTimeoutMs, plan } = options;
   const chainId = await bound.transport.getChainId();
   assertChainIdMatches({ chainId: resolved.spec.chain.chainId, environment }, chainId);
   const deployer = await bound.signer.getAddress();
@@ -188,6 +204,14 @@ async function run(
   if (existing && (existing.specHash !== resolved.specHash || existing.deployer !== deployer)) {
     throw new ConfigError('RESUME_MISMATCH', 'Cannot resume deployment: existing record does not match the resolved spec or deployer');
   }
+  if (plan) {
+    const unavailable = unsupportedDeploymentPrerequisite(plan);
+    const completePriorDeployment = resume && resolved.spec.deployment.steps.every((step) =>
+      existing?.contracts[step.logicalId] && existing.execution[step.logicalId]?.status === 'verified');
+    if (unavailable && !completePriorDeployment) {
+      throw new ConfigError('PLAN_STAGE_EXECUTOR_UNAVAILABLE', `Cannot resume through unimplemented stage '${unavailable.stage}' required by '${unavailable.contract}'`);
+    }
+  }
   const record: DeploymentRecord = existing ?? emptyRecord({
     specHash: resolved.specHash,
     environment: deploymentKey,
@@ -210,6 +234,15 @@ async function run(
   for (const step of resolved.spec.deployment.steps) {
     const prior = record.contracts[step.logicalId];
     if (resume && prior && record.execution[step.logicalId]?.status === 'verified') {
+      await verifyRecordedDeployment({
+        logicalId: step.logicalId,
+        address: prior.address,
+        transactionHash: prior.transactionHash,
+        blockNumber: prior.blockNumber,
+        spec: resolved.spec,
+        bundle,
+        transport: bound.transport,
+      });
       resolvedAddresses[step.logicalId] = prior.address;
       results.push({ logicalId: step.logicalId, artifactName: prior.artifact.artifactName, address: prior.address, transactionHash: prior.transactionHash, blockNumber: BigInt(prior.blockNumber), mode: prior.mode, deployedParameters: prior.deployedParameters });
       console.log(`  ↻ ${step.logicalId} already verified at ${prior.address}`);
@@ -357,6 +390,63 @@ async function run(
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   const candidatePath = path.join(deploymentsDir, `${deploymentKey}.${manifestRoot.slice(2, 14)}.registry-binding-candidate.v1.json`);
   fs.writeFileSync(candidatePath, JSON.stringify(registryBindingCandidate(manifest, resolved.spec.deployment.registryRoots ?? [], resolved.spec.deployment.localOnly ?? false), null, 2) + '\n');
+  if (plan) {
+    const selectedContracts = Object.entries(plan.contracts).map(([logicalId, source]) => ({ logicalId, ...source }));
+    const stageStatuses = new Map<string, string>();
+    const stages = plan.stages.map((stage) => {
+      const prerequisitesSatisfied = stage.dependsOn.every((dependency) => ['verified', 'not-applicable'].includes(stageStatuses.get(dependency) ?? ''));
+      if (stage.kind === 'deploy') {
+        const members = selectedContracts.filter((entry) => 'stage' in entry && entry.stage === stage.id && (entry.kind === 'deploy' || entry.kind === 'local-fixture'));
+        const outputs = Object.fromEntries(members.flatMap((entry) => {
+          const deployed = record.contracts[entry.logicalId];
+          if (!deployed || record.execution[entry.logicalId]?.status !== 'verified') return [];
+          return [[entry.logicalId, {
+            address: deployed.address,
+            transactionHash: deployed.transactionHash,
+            blockNumber: deployed.blockNumber,
+            runtimeBytecodeSha256: deployed.artifact.runtimeBytecodeSha256,
+          }]];
+        }));
+        const complete = members.length > 0 && Object.keys(outputs).length === members.length;
+        const status = !prerequisitesSatisfied ? 'blocked' : complete ? 'verified' : 'pending';
+        stageStatuses.set(stage.id, status);
+        return { id: stage.id, kind: stage.kind, status, outputs };
+      }
+      if (stage.kind === 'external-preflight') {
+        const members = selectedContracts.filter((entry) => 'stage' in entry && entry.stage === stage.id && entry.kind === 'external');
+        const observations = (record.externalContracts ?? []).filter((observation) => members.some((member) => member.logicalId === observation.logicalId));
+        const status = members.length === 0 ? 'not-applicable' : !prerequisitesSatisfied ? 'blocked' : observations.length === members.length ? 'verified' : 'pending';
+        stageStatuses.set(stage.id, status);
+        return { id: stage.id, kind: stage.kind, status, observations };
+      }
+      stageStatuses.set(stage.id, 'not-executed');
+      return { id: stage.id, kind: stage.kind, status: 'not-executed' };
+    });
+    const planBody = {
+      type: 'protocol-deployment-plan-execution/v1' as const,
+      planId: plan.planId,
+      planHash: deploymentPlanHash(plan),
+      environment: resolved.spec.environment,
+      chainId: resolved.spec.chain.chainId,
+      localOnly: plan.localOnly,
+      selectedUnits: plan.selectedUnits,
+      excludedUnits: plan.excludedUnits,
+      selectedContracts,
+      manifestRoot,
+      stages,
+    };
+    const planRoot = planExecutionRoot(planBody);
+    const planExecution = { ...planBody, planExecutionRoot: planRoot };
+    const planExecutionPath = path.join(deploymentsDir, `${deploymentKey}.${planRoot.slice(2, 14)}.deployment-plan-execution.v1.json`);
+    if (fs.existsSync(planExecutionPath) && fs.readFileSync(planExecutionPath, 'utf8') !== JSON.stringify(planExecution, null, 2) + '\n') {
+      throw new ConfigError('PLAN_EXECUTION_RECEIPT_CONFLICT', `Refusing to overwrite incompatible plan execution evidence '${planExecutionPath}'`);
+    }
+    if (!fs.existsSync(planExecutionPath)) fs.writeFileSync(planExecutionPath, JSON.stringify(planExecution, null, 2) + '\n', { flag: 'wx' });
+    const verifiedStages = stages.filter((stage) => stage.status === 'verified').length;
+    const blockedStages = stages.filter((stage) => stage.status === 'blocked').length;
+    const unexecutedStages = stages.filter((stage) => stage.status === 'not-executed' || stage.status === 'pending').length;
+    console.log(`   plan execution receipt: ${planExecutionPath} (${verifiedStages} verified; ${blockedStages} blocked; ${unexecutedStages} not executed)`);
+  }
   console.log(`\n✅ Deployed ${results.length} contract(s); record written to ${recordPath}`);
   console.log(`   immutable manifest: ${manifestPath} (${manifestRoot})`);
 }

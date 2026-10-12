@@ -1,0 +1,577 @@
+{
+  "schema": "protocol-deployment-plan.v1",
+  "planId": "prf/controlled-shortfall-successor-fork.v1",
+  "localOnly": true,
+  "selectedUnits": [
+    "prf-assurance",
+    "protected-operations",
+    "pro-rata-successor-entitlements"
+  ],
+  "excludedUnits": [
+    "sew-protocol"
+  ],
+  "contracts": {
+    "prf/local-token": {
+      "kind": "local-fixture",
+      "unit": "protected-operations",
+      "fixtureId": "local-snapshot-token-v1",
+      "stage": "deploy-local-token"
+    },
+    "prf/governance-authority": {
+      "kind": "deploy",
+      "unit": "prf-assurance",
+      "stage": "deploy-authority-and-verifier"
+    },
+    "prf/genesis": {
+      "kind": "deploy",
+      "unit": "prf-assurance",
+      "stage": "deploy-genesis"
+    },
+    "prf/verifier-registry": {
+      "kind": "deploy",
+      "unit": "prf-assurance",
+      "stage": "deploy-authority-and-verifier"
+    },
+    "prf/sp1-verifier-groth16": {
+      "kind": "deploy",
+      "unit": "prf-assurance",
+      "stage": "deploy-authority-and-verifier"
+    },
+    "prf/source-bound-entitlement-verifier-adapter-v1": {
+      "kind": "deploy",
+      "unit": "prf-assurance",
+      "stage": "deploy-authority-and-verifier"
+    },
+    "prf/configuration-executor": {
+      "kind": "deploy",
+      "unit": "prf-assurance",
+      "stage": "deploy-configuration-executor"
+    },
+    "prf/statement-admission": {
+      "kind": "deploy",
+      "unit": "prf-assurance",
+      "stage": "deploy-statement-admission"
+    },
+    "shortfall/prepared-operation-controller-v2": {
+      "kind": "deploy",
+      "unit": "protected-operations",
+      "stage": "deploy-protected-operations"
+    },
+    "shortfall/pro-rata-allocator-v2": {
+      "kind": "deploy",
+      "unit": "protected-operations",
+      "stage": "deploy-protected-operations"
+    },
+    "shortfall/shortfall-reserve-v2": {
+      "kind": "deploy",
+      "unit": "protected-operations",
+      "stage": "deploy-protected-operations"
+    },
+    "shortfall/source-bound-entitlement-assurance-v1": {
+      "kind": "deploy",
+      "unit": "pro-rata-successor-entitlements",
+      "stage": "deploy-successor-entitlements"
+    },
+    "shortfall/entitlement-ratification-controller-v1": {
+      "kind": "deploy",
+      "unit": "pro-rata-successor-entitlements",
+      "stage": "deploy-successor-entitlements"
+    }
+  },
+  "authorizedConfigurationActions": [
+    {
+      "id": "seal-empty-verifier-registry",
+      "stage": "seal-empty-verifier-registry",
+      "target": "prf/verifier-registry",
+      "function": "sealRegistry"
+    },
+    {
+      "id": "register-successor-verifier",
+      "stage": "register-successor-verifier",
+      "target": "prf/verifier-registry",
+      "function": "registerVerifier"
+    },
+    {
+      "id": "seal-successor-verifier-registry",
+      "stage": "seal-successor-verifier-registry",
+      "target": "prf/verifier-registry",
+      "function": "sealRegistry"
+    },
+    {
+      "id": "authorize-successor-configuration",
+      "stage": "authorize-successor-configuration",
+      "target": "prf/governance-authority",
+      "function": "authoriseDecision"
+    },
+    {
+      "id": "apply-successor-configuration",
+      "stage": "apply-successor-configuration",
+      "target": "prf/configuration-executor",
+      "function": "applyConfiguration"
+    }
+  ],
+  "stages": [
+    {
+      "id": "deploy-local-token",
+      "kind": "deploy",
+      "dependsOn": [],
+      "consumes": {},
+      "produces": [
+        "localToken"
+      ]
+    },
+    {
+      "id": "deploy-authority-and-verifier",
+      "kind": "deploy",
+      "dependsOn": [],
+      "consumes": {},
+      "produces": [
+        "authorityAdapter",
+        "registry",
+        "sp1Verifier",
+        "successorAdapter",
+        "verifierId"
+      ]
+    },
+    {
+      "id": "derive-registry-roots",
+      "kind": "derive-canonical-roots",
+      "dependsOn": [
+        "deploy-authority-and-verifier"
+      ],
+      "consumes": {
+        "adapter": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "successorAdapter"
+        }
+      },
+      "produces": [
+        "emptyRegistryRoot",
+        "successorRegistryRoot"
+      ]
+    },
+    {
+      "id": "seal-empty-verifier-registry",
+      "kind": "authorize-configuration",
+      "dependsOn": [
+        "deploy-authority-and-verifier",
+        "derive-registry-roots"
+      ],
+      "consumes": {
+        "registry": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "registry"
+        },
+        "emptyRegistryRoot": {
+          "stage": "derive-registry-roots",
+          "output": "emptyRegistryRoot"
+        }
+      },
+      "produces": [
+        "emptyRegistryReceipt"
+      ]
+    },
+    {
+      "id": "register-successor-verifier",
+      "kind": "authorize-configuration",
+      "dependsOn": [
+        "deploy-authority-and-verifier",
+        "derive-registry-roots"
+      ],
+      "consumes": {
+        "registry": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "registry"
+        },
+        "adapter": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "successorAdapter"
+        },
+        "successorRegistryRoot": {
+          "stage": "derive-registry-roots",
+          "output": "successorRegistryRoot"
+        }
+      },
+      "produces": [
+        "registrationReceipt"
+      ]
+    },
+    {
+      "id": "seal-successor-verifier-registry",
+      "kind": "authorize-configuration",
+      "dependsOn": [
+        "deploy-authority-and-verifier",
+        "register-successor-verifier",
+        "derive-registry-roots"
+      ],
+      "consumes": {
+        "registry": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "registry"
+        },
+        "successorRegistryRoot": {
+          "stage": "derive-registry-roots",
+          "output": "successorRegistryRoot"
+        }
+      },
+      "produces": [
+        "sealedSuccessorRegistryObservation"
+      ]
+    },
+    {
+      "id": "derive-genesis-roots",
+      "kind": "derive-canonical-roots",
+      "dependsOn": [
+        "seal-empty-verifier-registry",
+        "seal-successor-verifier-registry",
+        "derive-registry-roots"
+      ],
+      "consumes": {
+        "emptyRegistryRoot": {
+          "stage": "derive-registry-roots",
+          "output": "emptyRegistryRoot"
+        },
+        "successorRegistryRoot": {
+          "stage": "derive-registry-roots",
+          "output": "successorRegistryRoot"
+        }
+      },
+      "produces": [
+        "protocolGenesisRoot",
+        "authorityStateRoot",
+        "initialConfigurationRoot"
+      ]
+    },
+    {
+      "id": "deploy-genesis",
+      "kind": "deploy",
+      "dependsOn": [
+        "deploy-authority-and-verifier",
+        "derive-genesis-roots"
+      ],
+      "consumes": {
+        "authorityAdapter": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "authorityAdapter"
+        },
+        "initialConfigurationRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "initialConfigurationRoot"
+        }
+      },
+      "produces": [
+        "genesisAddress",
+        "genesisRuntimeCodeHash"
+      ]
+    },
+    {
+      "id": "derive-chain-instance-root",
+      "kind": "derive-canonical-roots",
+      "dependsOn": [
+        "deploy-genesis",
+        "derive-genesis-roots",
+        "deploy-authority-and-verifier"
+      ],
+      "consumes": {
+        "genesisAddress": {
+          "stage": "deploy-genesis",
+          "output": "genesisAddress"
+        },
+        "genesisRuntimeCodeHash": {
+          "stage": "deploy-genesis",
+          "output": "genesisRuntimeCodeHash"
+        },
+        "authorityAdapter": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "authorityAdapter"
+        }
+      },
+      "produces": [
+        "chainInstanceGenesisRoot"
+      ]
+    },
+    {
+      "id": "seal-chain-instance-genesis",
+      "kind": "seal-genesis",
+      "dependsOn": [
+        "deploy-genesis",
+        "derive-chain-instance-root"
+      ],
+      "consumes": {
+        "genesisAddress": {
+          "stage": "deploy-genesis",
+          "output": "genesisAddress"
+        },
+        "chainInstanceGenesisRoot": {
+          "stage": "derive-chain-instance-root",
+          "output": "chainInstanceGenesisRoot"
+        }
+      },
+      "produces": [
+        "sealedGenesisObservation"
+      ]
+    },
+    {
+      "id": "deploy-configuration-executor",
+      "kind": "deploy",
+      "dependsOn": [
+        "seal-chain-instance-genesis",
+        "seal-empty-verifier-registry",
+        "deploy-genesis",
+        "deploy-authority-and-verifier",
+        "derive-genesis-roots",
+        "derive-registry-roots"
+      ],
+      "consumes": {
+        "genesisAddress": {
+          "stage": "deploy-genesis",
+          "output": "genesisAddress"
+        },
+        "authorityAdapter": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "authorityAdapter"
+        },
+        "registry": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "registry"
+        },
+        "initialConfigurationRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "initialConfigurationRoot"
+        },
+        "emptyRegistryRoot": {
+          "stage": "derive-registry-roots",
+          "output": "emptyRegistryRoot"
+        }
+      },
+      "produces": [
+        "configurationExecutor"
+      ]
+    },
+    {
+      "id": "derive-successor-configuration",
+      "kind": "derive-canonical-roots",
+      "dependsOn": [
+        "deploy-configuration-executor",
+        "seal-successor-verifier-registry",
+        "derive-genesis-roots",
+        "derive-registry-roots"
+      ],
+      "consumes": {
+        "configurationExecutor": {
+          "stage": "deploy-configuration-executor",
+          "output": "configurationExecutor"
+        },
+        "successorRegistryRoot": {
+          "stage": "derive-registry-roots",
+          "output": "successorRegistryRoot"
+        },
+        "initialConfigurationRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "initialConfigurationRoot"
+        }
+      },
+      "produces": [
+        "decisionRoot",
+        "successorConfigurationRoot",
+        "configurationEpoch",
+        "targetRoot"
+      ]
+    },
+    {
+      "id": "authorize-successor-configuration",
+      "kind": "authorize-configuration",
+      "dependsOn": [
+        "derive-successor-configuration",
+        "deploy-authority-and-verifier"
+      ],
+      "consumes": {
+        "decisionRoot": {
+          "stage": "derive-successor-configuration",
+          "output": "decisionRoot"
+        },
+        "authorityAdapter": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "authorityAdapter"
+        }
+      },
+      "produces": [
+        "authorizationReceipt"
+      ]
+    },
+    {
+      "id": "apply-successor-configuration",
+      "kind": "authorize-configuration",
+      "dependsOn": [
+        "authorize-successor-configuration",
+        "deploy-configuration-executor",
+        "derive-successor-configuration"
+      ],
+      "consumes": {
+        "configurationExecutor": {
+          "stage": "deploy-configuration-executor",
+          "output": "configurationExecutor"
+        },
+        "successorConfigurationRoot": {
+          "stage": "derive-successor-configuration",
+          "output": "successorConfigurationRoot"
+        },
+        "decisionRoot": {
+          "stage": "derive-successor-configuration",
+          "output": "decisionRoot"
+        },
+        "configurationEpoch": {
+          "stage": "derive-successor-configuration",
+          "output": "configurationEpoch"
+        },
+        "targetRoot": {
+          "stage": "derive-successor-configuration",
+          "output": "targetRoot"
+        }
+      },
+      "produces": [
+        "activeConfigurationRoot",
+        "activeConfigurationEpoch",
+        "configurationTransitionReceipt"
+      ]
+    },
+    {
+      "id": "deploy-statement-admission",
+      "kind": "deploy",
+      "dependsOn": [
+        "apply-successor-configuration",
+        "seal-chain-instance-genesis",
+        "deploy-configuration-executor",
+        "deploy-genesis",
+        "deploy-authority-and-verifier"
+      ],
+      "consumes": {
+        "genesisAddress": {
+          "stage": "deploy-genesis",
+          "output": "genesisAddress"
+        },
+        "configurationExecutor": {
+          "stage": "deploy-configuration-executor",
+          "output": "configurationExecutor"
+        },
+        "registry": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "registry"
+        },
+        "activeConfigurationRoot": {
+          "stage": "apply-successor-configuration",
+          "output": "activeConfigurationRoot"
+        },
+        "activeConfigurationEpoch": {
+          "stage": "apply-successor-configuration",
+          "output": "activeConfigurationEpoch"
+        }
+      },
+      "produces": [
+        "admission"
+      ]
+    },
+    {
+      "id": "deploy-protected-operations",
+      "kind": "deploy",
+      "dependsOn": [
+        "deploy-statement-admission",
+        "deploy-configuration-executor"
+      ],
+      "consumes": {
+        "configurationExecutor": {
+          "stage": "deploy-configuration-executor",
+          "output": "configurationExecutor"
+        }
+      },
+      "produces": [
+        "preparedController",
+        "allocator",
+        "reserve"
+      ]
+    },
+    {
+      "id": "deploy-successor-entitlements",
+      "kind": "deploy",
+      "dependsOn": [
+        "deploy-protected-operations",
+        "deploy-statement-admission",
+        "deploy-authority-and-verifier"
+      ],
+      "consumes": {
+        "allocator": {
+          "stage": "deploy-protected-operations",
+          "output": "allocator"
+        },
+        "admission": {
+          "stage": "deploy-statement-admission",
+          "output": "admission"
+        }
+      },
+      "produces": [
+        "assurance",
+        "ratificationController",
+        "boundRoles"
+      ]
+    },
+    {
+      "id": "proof-admission-and-operation",
+      "kind": "proof-admission",
+      "dependsOn": [
+        "deploy-successor-entitlements",
+        "deploy-protected-operations"
+      ],
+      "consumes": {
+        "assurance": {
+          "stage": "deploy-successor-entitlements",
+          "output": "assurance"
+        },
+        "reserve": {
+          "stage": "deploy-protected-operations",
+          "output": "reserve"
+        }
+      },
+      "produces": [
+        "deploymentWitness",
+        "groth16Proof",
+        "admissionReceipt",
+        "fundedOperation"
+      ]
+    },
+    {
+      "id": "entitlement-activation-and-claims",
+      "kind": "entitlement-execution",
+      "dependsOn": [
+        "proof-admission-and-operation"
+      ],
+      "consumes": {
+        "fundedOperation": {
+          "stage": "proof-admission-and-operation",
+          "output": "fundedOperation"
+        }
+      },
+      "produces": [
+        "activatedRepresentation",
+        "claimReceipts",
+        "closedAccounting"
+      ]
+    },
+    {
+      "id": "independent-reconcile",
+      "kind": "reconcile",
+      "dependsOn": [
+        "entitlement-activation-and-claims"
+      ],
+      "consumes": {
+        "claimReceipts": {
+          "stage": "entitlement-activation-and-claims",
+          "output": "claimReceipts"
+        }
+      },
+      "produces": [
+        "verificationReport",
+        "capitalConservation"
+      ]
+    }
+  ]
+}

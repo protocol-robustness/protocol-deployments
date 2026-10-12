@@ -8,9 +8,13 @@ profile and is not reinterpreted. The successor scripts select the isolated
 stale-assurance recovery interfaces.
 
 ```bash
+npm run validate:successor-fork-plan
 npm run resolve:pro-rata-v2-entitlement-local
-npm run deploy:pro-rata-v2-entitlement-local
 ```
+
+The fresh deployment command is currently expected to stop before transaction
+submission at the missing genesis-root stage. Do not use the earlier retained
+topology deployment as proof-admission or operation qualification.
 
 The profile binds the successor adapter to the committed real Groth16 fixture
 identity (VKey and ELF SHA-256), wires the allocator's live proof-mode source
@@ -35,6 +39,29 @@ not a replacement for a deployment-derived Gate E witness/proof.
 
 The operation-specific entitlement representation is deployed or constructed
 by the operation flow and is not part of this static topology profile.
+
+The bounded local deployment composition is declared in
+`successor-fork.plan.v1.json`, checked against `config/deployment-units.v1.json`.
+The resolve/deploy commands pass this plan explicitly, so only its selected
+13 contracts enter the resolved graph. When all selected stage prerequisites
+are executable, deployment emits a plan execution receipt bound to its
+manifest. Resume rechecks each recorded creation receipt, block and live
+runtime bytecode.
+
+The plan validator reports the first missing prerequisite, and fresh
+`deploy.ts --plan` runs refuse before sending transactions when a selected
+deployment stage depends on an unimplemented root/configuration stage. A local
+deployment was exercised before this guard was added; its retained receipt
+marks dependent stages blocked and is deployment-topology evidence only. It is
+not a qualified staged-genesis or proof-admission run.
+
+Plan validation command:
+
+```bash
+npm run validate:successor-fork-plan
+```
+
+This checks plan structure and unit/source ownership.
 
 Release source commit: `353062b667e900b6735fea6fd7ef7a61fd5282e3`.
 Bundle root: `566c4d62b254af86a687116faa50614b301065d3eef1052b3985418be54eb0ff`.

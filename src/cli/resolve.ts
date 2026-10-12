@@ -4,7 +4,7 @@ import { resolveDeployment } from '../resolve-deployment';
 import { loadDefaultEnvFile } from '../config/env-file';
 
 function usage(): never {
-  console.error('Usage: resolve.ts --env <environment> [--config-dir <dir>] [--fixtures <dir>] [--out <file>] [--pinned-artifacts]');
+  console.error('Usage: resolve.ts --env <environment> [--config-dir <dir>] [--profile <dir>] [--plan <plan.json>] [--fixtures <dir>] [--out <file>] [--pinned-artifacts]');
   process.exit(2);
 }
 
@@ -31,6 +31,7 @@ function main(): void {
     profileDir,
     preferFixtures: !pinned,
     requirePinnedProvenance: pinned,
+    deploymentPlanFile: arg('plan') ? path.resolve(process.cwd(), arg('plan')!) : undefined,
   });
 
   const outPath =
@@ -47,6 +48,7 @@ function main(): void {
   console.log(`Resolved ${environment}`);
   console.log(`  specHash: ${out.specHash}`);
   console.log(`  contracts: ${Object.keys(out.spec.contracts).length}`);
+  if (arg('plan')) console.log(`  plan:      ${path.resolve(process.cwd(), arg('plan')!)}`);
   console.log(`  chainId: ${out.spec.chain.chainId}`);
   console.log(`  output: ${outPath}`);
 }
