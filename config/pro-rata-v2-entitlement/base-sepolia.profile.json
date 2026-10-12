@@ -107,7 +107,7 @@
       "name": "USD Coin",
       "symbol": "USDC",
       "decimals": 6,
-      "sourceReference": "https://developers.circle.com/sdk-explorer/smart-contract-platform/Node.js/getContract (BASE_SEPOLIA USDC address); https://github.com/circlefin/skills/blob/master/plugins/circle/skills/use-usdc/SKILL.md",
+      "sourceReference": "https://developers.circle.com/stablecoins/usdc-contract-addresses; https://docs-w3s-node-sdk.circle.com/variables/index.BASE_SEPOLIA.html",
       "observation": "official Base Sepolia address; runtime code and metadata must be refreshed at a pinned block before use"
     },
     "approval": "USDC contract identity is selected; funding account, balance, allowance and authority to use this asset remain unresolved",
