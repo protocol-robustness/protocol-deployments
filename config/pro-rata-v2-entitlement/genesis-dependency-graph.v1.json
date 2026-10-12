@@ -23,7 +23,10 @@
       ],
       "availableAt": "before-deployment",
       "consumers": ["PrfLocalAuthorityAdapter", "PrfChainInstanceGenesis"],
-      "inputArtifact": "../agent-c/etc/deployments/eae-controlled-entitlement-demo/protocol-genesis-package.edn",
+      "inputArtifact": {
+        "repository": "PRF",
+        "path": "etc/deployments/eae-controlled-entitlement-demo/protocol-genesis-package.edn"
+      },
       "artifactStatus": "demo-only-candidate-requires-owner-approval",
       "deploymentDependency": false
     },
