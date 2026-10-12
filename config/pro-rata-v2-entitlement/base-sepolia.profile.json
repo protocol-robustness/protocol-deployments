@@ -17,7 +17,8 @@
       "deployment-ledger-staged-genesis-root-and-seal",
       "deployment-ledger-derived-verifier-registry-root-and-governed-selection",
       "base-entitlement-deployment-profile-resolver-and-runtime-verifier",
-      "funded-test-token-account-and-allowance-approval",
+      "approval-to-use-circle-usdc-for-protected-operation",
+      "funded-usdc-account-and-allowance-approval",
       "fresh-base-deployment-derived-witness-and-groth16-proof",
       "operation-specific-recipient-and-funder-authorization"
     ]
@@ -85,19 +86,33 @@
     "admissionBinding": "PrfStatementAdmission is constructed with immutable expected root/epoch; deploy only after the intended configuration is active",
     "governanceActivation": "registry registration/seal and verifier-root selection require the deployed governor/timelock authority path; not a Deployment Ledger bootstrap action"
   },
-  "token": {
-    "policy": "use an explicitly approved existing Base Sepolia token; do not deploy or mint a public-network token",
-    "candidate": {
+  "governanceToken": {
+    "policy": "use the existing Sew Base Sepolia SEW token for governance; do not create or deploy a new PRF token",
+    "identity": {
+      "address": "0x62BD47154D0b5Fe435F220E1294405040102b2ba",
+      "name": "Sew Token",
+      "symbol": "SEW",
+      "decimals": 18,
+      "runtimeCodeKeccak256": "0xf619796a635e17ba7eb61f4b62eabf61421aa39c1fd1f71daddf31af0b9e1fcb",
+      "sourceReference": "sew-protocol/scripts/verify-base-sepolia-source.sh",
+      "deploymentRecord": "sew-protocol/deployments/baseSepolia is absent from the inspected checkout",
+      "observation": "read-only Base Sepolia RPC observation at block 48018176; refresh at a pinned block before use"
+    },
+    "governanceUse": "existing SEW token identity is selected; governance contract compatibility, voting/quorum parameters, authority and signer references remain unresolved"
+  },
+  "operationToken": {
+    "policy": "prefer Circle USDC on Base Sepolia for demonstration deposits and beneficiary payouts; do not deploy or mint a token",
+    "identity": {
       "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-      "name": "USDC",
+      "name": "USD Coin",
       "symbol": "USDC",
       "decimals": 6,
-      "runtimeCodeKeccak256": "0xedc5281a85c0efecd49999a1ef668390c59b88702f2d4a07029d7f5d63059d6c",
-      "observation": "read-only RPC observation at block 48017581; candidate only, refresh before use"
+      "sourceReference": "https://developers.circle.com/sdk-explorer/smart-contract-platform/Node.js/getContract (BASE_SEPOLIA USDC address); https://github.com/circlefin/skills/blob/master/plugins/circle/skills/use-usdc/SKILL.md",
+      "observation": "official Base Sepolia address; runtime code and metadata must be refreshed at a pinned block before use"
     },
-    "approval": "unresolved; no token ownership, funding, allowance, or sponsorship is assumed",
-    "controlledAmounts": { "alice": "35000000", "bob": "21000000", "carol": "14000000", "total": "70000000", "unit": "USDC base units (6 decimals)" },
-    "reservePlan": { "deposit": "80000000", "protectedCapital": "10000000", "availableAmount": "70000000", "unit": "USDC base units (6 decimals)" }
+    "approval": "USDC contract identity is selected; funding account, balance, allowance and authority to use this asset remain unresolved",
+    "controlledAmounts": { "alice": "35000000", "bob": "21000000", "carol": "14000000", "total": "70000000", "unit": "USDC base units (6 decimals); display amounts 35, 21, 14 USDC" },
+    "reservePlan": { "deposit": "80000000", "protectedCapital": "10000000", "availableAmount": "70000000", "unit": "USDC base units (6 decimals); display amounts 80 / 10 / 70 USDC" }
   },
   "authorityMatrix": {
     "deployer": { "address": null, "status": "unresolved", "scope": "deploy pinned contracts only; no governance authority by default" },

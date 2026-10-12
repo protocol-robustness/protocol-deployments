@@ -63,19 +63,31 @@ SP1 program, Groth16/Bn254 VKey, ELF SHA-256, and 288-byte public-values schema.
 These are source/build pins only; actual Base runtime code and verifier
 behavior remain unobserved.
 
-The proposed existing token candidate is Base Sepolia USDC at
-`0x036CbD53842c5426634e7929541eC2318f3dCF7e`, read-only observed with 6
-decimals and runtime code hash
-`0xedc5281a85c0efecd49999a1ef668390c59b88702f2d4a07029d7f5d63059d6c` at
-block 48017581. Refresh the observation at a chosen block and obtain explicit
-asset/funding approval before using it. No balance, allowance, sponsorship or
-token-owner approval is assumed. Do not deploy or mint a token on Base Sepolia.
+Use the existing Sew Base Sepolia token, SEW, for governance. Its address is
+`0x62BD47154D0b5Fe435F220E1294405040102b2ba`. The Sew repository's
+`scripts/verify-base-sepolia-source.sh` records this address. Read-only RPC
+observation at block 48018176 returned name `Sew Token`, symbol `SEW`, 18
+decimals, and runtime code hash
+`0xf619796a635e17ba7eb61f4b62eabf61421aa39c1fd1f71daddf31af0b9e1fcb`.
+The inspected Sew checkout does not contain its referenced
+`deployments/baseSepolia/` records, so refresh and independently cross-check
+the address at a pinned block before use. The selected governance token does
+not resolve the separate governance-contract, quorum, authority, or signer
+questions. Do not create or deploy a new PRF token.
 
-For a human-readable 35/21/14 USDC example, the proof and reserve inputs must
-use token base units: Alice 35,000,000; Bob 21,000,000; Carol 14,000,000; total
-70,000,000; deposit 80,000,000; protected capital 10,000,000; available
-capital 70,000,000. This is a new operation/witness and requires a fresh
-deployment-bound proof; the local Vector A proof is not reusable for it.
+For the protected-operation demo, prefer Circle USDC on Base Sepolia at
+`0x036CbD53842c5426634e7929541eC2318f3dCF7e` (6 decimals). This is an
+externally documented token identity, not yet a pinned-block runtime
+observation in this profile. Before use, verify code, code hash, name, symbol,
+and decimals at one pinned block, then record that observation. No token is to
+be deployed or minted by this workflow.
+
+For the controlled 35/21/14 USDC example, use 6-decimal base units: Alice 35
+USDC (`35000000`); Bob 21 USDC (`21000000`); Carol 14 USDC (`14000000`); total
+70 USDC (`70000000`); deposit 80 USDC (`80000000`); protected capital 10 USDC
+(`10000000`); available capital 70 USDC (`70000000`). This is a new
+operation/witness and requires a fresh deployment-bound proof; the local
+Vector A proof is not reusable for it.
 
 ## Authority matrix
 
@@ -109,16 +121,21 @@ not put it in public artifacts. These calls are read-only:
 ```bash
 cast chain-id --rpc-url "$BASE_SEPOLIA_RPC_URL"
 cast block-number --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$BASE_USDC_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast codehash "$BASE_USDC_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast call "$BASE_USDC_ADDRESS" 'name()(string)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast call "$BASE_USDC_ADDRESS" 'symbol()(string)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast call "$BASE_USDC_ADDRESS" 'decimals()(uint8)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast code "$BASE_SEW_GOVERNANCE_TOKEN_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast codehash "$BASE_SEW_GOVERNANCE_TOKEN_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$BASE_SEW_GOVERNANCE_TOKEN_ADDRESS" 'name()(string)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$BASE_SEW_GOVERNANCE_TOKEN_ADDRESS" 'symbol()(string)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$BASE_SEW_GOVERNANCE_TOKEN_ADDRESS" 'decimals()(uint8)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast code "$BASE_USDC_TOKEN_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast codehash "$BASE_USDC_TOKEN_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$BASE_USDC_TOKEN_ADDRESS" 'name()(string)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$BASE_USDC_TOKEN_ADDRESS" 'symbol()(string)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast call "$BASE_USDC_TOKEN_ADDRESS" 'decimals()(uint8)' --rpc-url "$BASE_SEPOLIA_RPC_URL"
 ```
 
-Expected chain ID is `84532`; token code hash/metadata must be recorded at the
-same block and reviewed. These checks do not check balance/allowance or prove
-the issuer/asset is approved for this operation.
+Expected chain ID is `84532`; each token's code hash/metadata must be recorded
+at the same block and reviewed. These checks do not check balance/allowance or
+prove the asset is approved for this operation.
 
 Before any signed action, freeze full source revisions, clean/dirty state,
 package lock, artifact bundle root, contract artifact hashes, SP1 program/VKey/

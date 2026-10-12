@@ -21,6 +21,11 @@ describe('Base Sepolia successor-entitlement readiness profile', () => {
     expect(profile.readiness.deploymentEnabled).toBe(false);
     expect(profile.readiness.admissionEnabled).toBe(false);
     expect(profile.environment.chainId).toBe(84532);
+    expect(profile.governanceToken.identity.symbol).toBe('SEW');
+    expect(profile.operationToken.identity.symbol).toBe('USDC');
+    expect(profile.governanceToken.identity.address).not.toBe(profile.operationToken.identity.address);
+    expect(profile.operationToken.controlledAmounts.unit).toContain('6 decimals');
+    expect(profile.operationToken.reservePlan.availableAmount).toBe(profile.operationToken.controlledAmounts.total);
     for (const contract of profile.contracts) {
       const loaded = bundleConsumer.loadArtifact('prf/deployables', '@protocol-robustness/prf-evm-deployables', '0.4.0', contract.type);
       expect(bundle.artifacts[contract.type]?.runtimeBytecodeSha256).toBe(contract.runtimeBytecodeSha256);
