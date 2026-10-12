@@ -121,10 +121,33 @@
       ]
     },
     {
-      "id": "deploy-authority-and-verifier",
-      "kind": "deploy",
+      "id": "derive-genesis-roots",
+      "kind": "derive-canonical-roots",
       "dependsOn": [],
       "consumes": {},
+      "produces": [
+        "protocolGenesisRoot",
+        "authorityStateRoot",
+        "emptyRegistryRoot",
+        "initialConfigurationRoot"
+      ]
+    },
+    {
+      "id": "deploy-authority-and-verifier",
+      "kind": "deploy",
+      "dependsOn": [
+        "derive-genesis-roots"
+      ],
+      "consumes": {
+        "protocolGenesisRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "protocolGenesisRoot"
+        },
+        "authorityStateRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "authorityStateRoot"
+        }
+      },
       "produces": [
         "authorityAdapter",
         "registry",
@@ -146,7 +169,6 @@
         }
       },
       "produces": [
-        "emptyRegistryRoot",
         "successorRegistryRoot"
       ]
     },
@@ -155,7 +177,7 @@
       "kind": "authorize-configuration",
       "dependsOn": [
         "deploy-authority-and-verifier",
-        "derive-registry-roots"
+        "derive-genesis-roots"
       ],
       "consumes": {
         "registry": {
@@ -163,7 +185,7 @@
           "output": "registry"
         },
         "emptyRegistryRoot": {
-          "stage": "derive-registry-roots",
+          "stage": "derive-genesis-roots",
           "output": "emptyRegistryRoot"
         }
       },
@@ -216,30 +238,6 @@
       },
       "produces": [
         "sealedSuccessorRegistryObservation"
-      ]
-    },
-    {
-      "id": "derive-genesis-roots",
-      "kind": "derive-canonical-roots",
-      "dependsOn": [
-        "seal-empty-verifier-registry",
-        "seal-successor-verifier-registry",
-        "derive-registry-roots"
-      ],
-      "consumes": {
-        "emptyRegistryRoot": {
-          "stage": "derive-registry-roots",
-          "output": "emptyRegistryRoot"
-        },
-        "successorRegistryRoot": {
-          "stage": "derive-registry-roots",
-          "output": "successorRegistryRoot"
-        }
-      },
-      "produces": [
-        "protocolGenesisRoot",
-        "authorityStateRoot",
-        "initialConfigurationRoot"
       ]
     },
     {
@@ -340,7 +338,7 @@
           "output": "initialConfigurationRoot"
         },
         "emptyRegistryRoot": {
-          "stage": "derive-registry-roots",
+          "stage": "derive-genesis-roots",
           "output": "emptyRegistryRoot"
         }
       },

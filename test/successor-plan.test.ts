@@ -46,8 +46,25 @@ describe('bounded successor deployment plan', () => {
   });
 
   it('identifies the first unimplemented stage required before a fresh plan deployment can proceed', () => {
-    expect(unsupportedDeploymentPrerequisite(plan)).toEqual({ contract: 'prf/genesis', stage: 'derive-genesis-roots' });
+    expect(unsupportedDeploymentPrerequisite(plan)).toEqual({ contract: 'prf/governance-authority', stage: 'derive-genesis-roots' });
     expectCode(() => assertPlanDeployable(plan), 'PLAN_STAGE_EXECUTOR_UNAVAILABLE');
+  });
+
+  it('derives the initial configuration from the empty registry before deployment', () => {
+    const stageIndex = new Map(plan.stages.map((stage, index) => [stage.id, index]));
+    const initialRoots = plan.stages.find((stage) => stage.id === 'derive-genesis-roots')!;
+    const deployAuthority = plan.stages.find((stage) => stage.id === 'deploy-authority-and-verifier')!;
+    const deriveSuccessorRegistry = plan.stages.find((stage) => stage.id === 'derive-registry-roots')!;
+    const sealEmptyRegistry = plan.stages.find((stage) => stage.id === 'seal-empty-verifier-registry')!;
+
+    expect(stageIndex.get(initialRoots.id)).toBeLessThan(stageIndex.get(deployAuthority.id)!);
+    expect(initialRoots.produces).toContain('emptyRegistryRoot');
+    expect(initialRoots.produces).toContain('initialConfigurationRoot');
+    expect(initialRoots.consumes).not.toHaveProperty('successorRegistryRoot');
+    expect(deriveSuccessorRegistry.produces).toEqual(['successorRegistryRoot']);
+    expect(sealEmptyRegistry.consumes.emptyRegistryRoot).toEqual({
+      stage: 'derive-genesis-roots', output: 'emptyRegistryRoot',
+    });
   });
 
   it('rejects a local-only fixture plan on a public chain', () => {
@@ -235,7 +252,7 @@ describe('bounded successor deployment plan', () => {
 
   it('accepts explicit earlier-stage and admitted-release source forms without inferring a source', () => {
     const fromStage = structuredClone(plan);
-    fromStage.stages.find((stage) => stage.id === 'deploy-authority-and-verifier')!.dependsOn = ['deploy-local-token'];
+    fromStage.stages.find((stage) => stage.id === 'deploy-authority-and-verifier')!.dependsOn.push('deploy-local-token');
     fromStage.contracts['prf/source-bound-entitlement-verifier-adapter-v1'] = {
       kind: 'stage-output', unit: 'prf-assurance', stage: 'deploy-authority-and-verifier', output: 'successorAdapter',
     };
