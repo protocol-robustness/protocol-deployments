@@ -348,6 +348,38 @@ export function projectConfigurationForPlan(
   return { config: projectedConfig, environment: projectedEnvironment, deployedLogicalIds: orderedDeployments, consumedExternalIds: external };
 }
 
+/**
+ * Reject known sentinel roots in the selected successor architecture before
+ * resolving it into a deployable specification. A root literal that repeats
+ * one byte across the full bytes32 word is a fixture marker, not an approved
+ * canonical identity. This check deliberately does not attempt to decide
+ * whether an otherwise well-formed root has semantic approval.
+ */
+export function assertNoPlaceholderRootBindings(config: LoadedConfig, logicalIds: string[]): void {
+  const placeholder = /^0x([0-9a-fA-F]{2})\1{31}$/;
+  const knownSentinelBytes = new Set(['00', '11', '22', '33', '44']);
+  for (const logicalId of logicalIds) {
+    const contract = config.architecture.contracts[logicalId];
+    if (!contract) continue;
+    for (const [bindingName, binding] of Object.entries(contract.constructorBindings ?? {})) {
+      if (!/root/i.test(bindingName)) continue;
+      const inspect = (value: import('../config/raw-types').RawBinding): void => {
+        const match = 'literal' in value && typeof value.literal === 'string'
+          ? placeholder.exec(value.literal)
+          : null;
+        if (match && knownSentinelBytes.has(match[1]!.toLowerCase())) {
+          throw new ConfigError(
+            'PLAN_PLACEHOLDER_ROOT_BINDING',
+            `Selected contract '${logicalId}' has unqualified placeholder root binding '${bindingName}'`,
+          );
+        }
+        if ('array' in value) value.array.forEach(inspect);
+      };
+      inspect(binding);
+    }
+  }
+}
+
 function contractBindingReferences(binding: import('../config/raw-types').RawBinding): string[] {
   if ('contractAddress' in binding) return [binding.contractAddress];
   if ('runtimeCodeHash' in binding) return [binding.runtimeCodeHash];

@@ -5,7 +5,7 @@ import { resolve } from './resolver';
 import { computeSpecHash } from './spec-hash';
 import { canonicalJson } from './canonical-json';
 import type { ResolvedSpec } from './canonical';
-import { readDeploymentUnitCatalog, readSuccessorDeploymentPlan, validatePlanAgainstUnits, projectConfigurationForPlan } from './deployment/successor-plan';
+import { assertNoPlaceholderRootBindings, readDeploymentUnitCatalog, readSuccessorDeploymentPlan, validatePlanAgainstUnits, projectConfigurationForPlan } from './deployment/successor-plan';
 
 export interface ResolvedDeploymentOutput {
   spec: ResolvedSpec;
@@ -40,6 +40,7 @@ export function resolveDeployment(opts: {
     deploymentPlan = plan;
     const catalog = readDeploymentUnitCatalog(path.join(opts.configDir, 'deployment-units.v1.json'));
     validatePlanAgainstUnits(plan, catalog);
+    assertNoPlaceholderRootBindings(config, Object.keys(plan.contracts));
     const allowLocalFork = plan.localOnly && environment.chain.kind !== 'local'
       ? loadRuntime(opts.configDir, opts.environment).provider === 'anvil-fork'
       : false;

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Plan-selected deployments reject repeated-byte sentinel values in constructor root bindings before producing a deployable configuration; canonical root derivation and semantic approval remain separate requirements.
+
 ### Added
 
 - Successor genesis planning now separates predeployment protocol/authority/empty-registry roots from the initial configuration root, which follows verified token and verifier-adapter deployment outputs. The initial configuration continues to bind the empty registry; the successor registry is reserved for the later configuration transition. This changes the plan's canonical hash and remains non-executable pending approved semantic inputs and stage execution.

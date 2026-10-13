@@ -2,9 +2,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { describe, expect, it } from 'vitest';
 import { loadConfig, loadEnvironment } from '../src/config/load';
-import { assertPlanDeployable, projectConfigurationForPlan, readDeploymentUnitCatalog, readSuccessorDeploymentPlan, unsupportedDeploymentPrerequisite, validateArchitectureUnitOwnership, validatePlanAgainstUnits, validateSuccessorDeploymentPlan } from '../src/deployment/successor-plan';
+import { assertNoPlaceholderRootBindings, assertPlanDeployable, projectConfigurationForPlan, readDeploymentUnitCatalog, readSuccessorDeploymentPlan, unsupportedDeploymentPrerequisite, validateArchitectureUnitOwnership, validatePlanAgainstUnits, validateSuccessorDeploymentPlan } from '../src/deployment/successor-plan';
 import { assertPlanExecutionMatchesManifest, deploymentPlanHash, planExecutionRoot } from '../src/deployment/plan-execution';
 import { computeManifestRoot, type DeploymentManifestV1 } from '../src/deployment/manifest';
+import { resolveDeployment } from '../src/resolve-deployment';
 
 const root = path.resolve(__dirname, '..');
 const planPath = path.join(root, 'config/pro-rata-v2-entitlement/successor-fork.plan.v1.json');
@@ -43,6 +44,22 @@ describe('bounded successor deployment plan', () => {
     ]);
     expect(projected.consumedExternalIds).toEqual([]);
     expect(Object.keys(projected.config.architecture.contracts).sort()).toEqual(Object.keys(plan.contracts).sort());
+  });
+
+  it('rejects sentinel root literals before the selected plan becomes deployable', () => {
+    const configDir = path.join(root, 'config');
+    const profileDir = path.join(root, 'config/pro-rata-v2-entitlement');
+    expectCode(() => assertNoPlaceholderRootBindings(
+      loadConfig({ configDir, profileDir }), Object.keys(plan.contracts),
+    ), 'PLAN_PLACEHOLDER_ROOT_BINDING');
+    expectCode(() => resolveDeployment({
+      configDir,
+      environment: 'local',
+      fixtureRoot: path.join(root, 'fixtures/releases/0.4.0/packages'),
+      profileDir,
+      preferFixtures: true,
+      deploymentPlanFile: planPath,
+    }), 'PLAN_PLACEHOLDER_ROOT_BINDING');
   });
 
   it('identifies the first unimplemented stage required before a fresh plan deployment can proceed', () => {
