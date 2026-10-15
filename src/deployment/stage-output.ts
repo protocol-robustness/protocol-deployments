@@ -6,6 +6,7 @@ import { keccak256Hex } from '../artifacts/hash';
 import { ConfigError } from '../errors';
 import type { SuccessorDeploymentPlanV1 } from './successor-plan';
 import { deploymentPlanHash } from './plan-execution';
+import { stageOutputDeploymentFactV1Schema } from './stage-output-live';
 
 export const STAGE_OUTPUT_RECEIPT_DOMAIN = 'prf-deployment-stage-output:v1:';
 export const STAGE_OUTPUT_VALUE_DOMAIN = 'prf-deployment-stage-value:v1:';
@@ -87,6 +88,56 @@ export function readStageOutputReceipt(file: string): StageOutputReceiptV1 {
   const parsed = stageOutputReceiptV1Schema.safeParse(raw);
   if (!parsed.success) throw new ConfigError('STAGE_OUTPUT_RECEIPT_INVALID', `Stage output receipt '${file}' failed schema validation`, { details: { issues: parsed.error.issues } });
   return parsed.data;
+}
+
+/** Read an immutable set of stage receipts, rejecting duplicate stage identities. */
+export function readStageOutputReceiptDirectory(directory: string): Record<string, StageOutputReceiptV1> {
+  if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) {
+    throw new ConfigError('STAGE_OUTPUT_DIRECTORY_MISSING', `Stage-output receipt directory '${directory}' does not exist`);
+  }
+  const receipts: Record<string, StageOutputReceiptV1> = {};
+  for (const file of fs.readdirSync(directory).filter((name) => name.endsWith('.stage-output.v1.json')).sort()) {
+    const receipt = readStageOutputReceipt(path.join(directory, file));
+    if (receipts[receipt.stageId]) throw new ConfigError('STAGE_OUTPUT_DUPLICATE_STAGE', `More than one receipt was supplied for stage '${receipt.stageId}'`);
+    receipts[receipt.stageId] = receipt;
+  }
+  return receipts;
+}
+
+/**
+ * Extract only the explicitly named contract outputs needed to resolve a plan.
+ * This is an untrusted projection: callers must still verify the receipt graph
+ * and live transaction/runtime facts before sending any transaction.
+ */
+export function stageOutputValuesForPlan(
+  plan: SuccessorDeploymentPlanV1,
+  receipts: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+  const values: Record<string, unknown> = {};
+  for (const [logicalId, source] of Object.entries(plan.contracts)) {
+    if (source.kind !== 'stage-output') continue;
+    const parsed = stageOutputReceiptV1Schema.safeParse(receipts[source.stage]);
+    if (!parsed.success) throw new ConfigError('STAGE_OUTPUT_RECEIPT_INVALID', `No valid stage-output receipt was supplied for '${source.stage}'`);
+    const receipt = parsed.data;
+    const stage = plan.stages.find((candidate) => candidate.id === source.stage);
+    if (!stage || receipt.stageId !== stage.id || receipt.planId !== plan.planId || receipt.planHash !== deploymentPlanHash(plan) ||
+        receipt.stageDefinitionHash !== stageDefinitionHash(stage)) {
+      throw new ConfigError('STAGE_OUTPUT_IDENTITY_MISMATCH', `Receipt does not identify producer stage '${source.stage}' in the selected plan`);
+    }
+    const body = { ...receipt } as Record<string, unknown>;
+    delete body.receiptRoot;
+    if (receipt.receiptRoot !== hash(STAGE_OUTPUT_RECEIPT_DOMAIN, body)) throw new ConfigError('STAGE_OUTPUT_RECEIPT_ROOT_MISMATCH', `Receipt root for stage '${source.stage}' is invalid`);
+    const output = receipt.outputs[source.output];
+    if (!output || output.outputRoot !== stageOutputValueRoot(output.value)) {
+      throw new ConfigError('STAGE_OUTPUT_VALUE_ROOT_MISMATCH', `Output '${source.output}' from stage '${source.stage}' is missing or has an invalid value root`);
+    }
+    const deploymentFact = stageOutputDeploymentFactV1Schema.safeParse(output.value);
+    if (!deploymentFact.success || deploymentFact.data.logicalId !== logicalId) {
+      throw new ConfigError('STAGE_OUTPUT_CONTRACT_VALUE_INVALID', `Output '${source.output}' must identify selected contract '${logicalId}' and its address`);
+    }
+    values[logicalId] = deploymentFact.data;
+  }
+  return values;
 }
 
 export function createStageOutputReceipt(input: {

@@ -43,10 +43,32 @@ export function assertPlanExecutionMatchesManifest(
   if (canonicalJson(selectedDeploys) !== canonicalJson(manifestDeploys)) {
     throw new ConfigError('PLAN_EXECUTION_DEPLOYMENT_SET_MISMATCH', 'Manifest deployments differ from the plan-selected deploy/local-fixture set');
   }
-  const selectedExternal = selected.filter((entry) => entry.kind === 'external').map((entry) => entry.logicalId).sort();
+  const selectedExternal = selected.filter((entry) => entry.kind === 'external' || entry.kind === 'stage-output').map((entry) => entry.logicalId).sort();
   const manifestExternal = manifest.type === 'protocol-deployment-manifest/v2' ? manifest.externalContracts.map((entry) => entry.logicalId).sort() : [];
   if (canonicalJson(selectedExternal) !== canonicalJson(manifestExternal)) {
     throw new ConfigError('PLAN_EXECUTION_EXTERNAL_SET_MISMATCH', 'Manifest external observations differ from the plan-selected external set');
+  }
+  const stageOutputSources = Object.entries(plan.contracts).flatMap(([logicalId, source]) => source.kind === 'stage-output'
+    ? [{ logicalId, stage: source.stage, output: source.output }]
+    : []);
+  const stageOutputBindings = receipt.stageOutputBindings as Array<{
+    logicalId: string; stage: string; output: string; receiptRoot: string; outputRoot: string; address: string;
+  }> | undefined;
+  if (stageOutputSources.length > 0) {
+    if (!Array.isArray(stageOutputBindings)) throw new ConfigError('PLAN_EXECUTION_STAGE_OUTPUTS_MISSING', 'Plan execution receipt omits authenticated stage-output bindings');
+    const expected = [...stageOutputSources].sort((a, b) => a.logicalId.localeCompare(b.logicalId));
+    const observed = stageOutputBindings.map(({ logicalId, stage, output }) => ({ logicalId, stage, output })).sort((a, b) => a.logicalId.localeCompare(b.logicalId));
+    if (canonicalJson(observed) !== canonicalJson(expected) || stageOutputBindings.some((binding) => !/^0x[0-9a-f]{64}$/.test(binding.receiptRoot) || !/^0x[0-9a-f]{64}$/.test(binding.outputRoot) || !/^0x[0-9a-fA-F]{40}$/.test(binding.address))) {
+      throw new ConfigError('PLAN_EXECUTION_STAGE_OUTPUTS_MISMATCH', 'Plan execution stage-output bindings do not match selected sources or contain malformed commitments');
+    }
+    if (manifest.type !== 'protocol-deployment-manifest/v2' || stageOutputBindings.some((binding) => {
+      const observedContract = manifest.externalContracts.find((candidate) => candidate.logicalId === binding.logicalId);
+      return !observedContract || observedContract.address.toLowerCase() !== binding.address.toLowerCase();
+    })) {
+      throw new ConfigError('PLAN_EXECUTION_STAGE_OUTPUT_MANIFEST_MISMATCH', 'Stage-output bindings do not match the external observations in the manifest');
+    }
+  } else if (stageOutputBindings && stageOutputBindings.length !== 0) {
+    throw new ConfigError('PLAN_EXECUTION_STAGE_OUTPUTS_UNEXPECTED', 'Execution receipt contains undeclared stage-output bindings');
   }
   const stageReceipts = receipt.stages as Array<{ id: string; kind: string; status: string; outputs?: Record<string, { address?: string; transactionHash?: string; blockNumber?: string; runtimeBytecodeSha256?: string }> }> | undefined;
   if (!Array.isArray(stageReceipts)) throw new ConfigError('PLAN_EXECUTION_STAGES_MISSING', 'Plan execution receipt has no stage result list');

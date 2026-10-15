@@ -6,12 +6,14 @@ import { computeSpecHash } from './spec-hash';
 import { canonicalJson } from './canonical-json';
 import type { ResolvedSpec } from './canonical';
 import { assertNoPlaceholderRootBindings, readDeploymentUnitCatalog, readSuccessorDeploymentPlan, validatePlanAgainstUnits, projectConfigurationForPlan } from './deployment/successor-plan';
+import { readStageOutputReceiptDirectory, stageOutputValuesForPlan, type StageOutputReceiptV1 } from './deployment/stage-output';
 
 export interface ResolvedDeploymentOutput {
   spec: ResolvedSpec;
   specHash: string;
   canonicalJson: string;
   deploymentPlan?: import('./deployment/successor-plan').SuccessorDeploymentPlanV1;
+  stageOutputReceipts?: Record<string, import('./deployment/stage-output').StageOutputReceiptV1>;
 }
 
 /**
@@ -31,10 +33,13 @@ export function resolveDeployment(opts: {
   requirePinnedProvenance?: boolean;
   /** Explicit executable deployment plan. Omitting it keeps legacy flat resolution. */
   deploymentPlanFile?: string;
+  /** Immutable receipts produced by earlier stages of the same selected plan. */
+  stageOutputReceiptsDir?: string;
 }): ResolvedDeploymentOutput {
   let config = loadConfig({ configDir: opts.configDir, profileDir: opts.profileDir });
   let environment = loadEnvironment(opts.configDir, opts.environment, opts.profileDir);
   let deploymentPlan: import('./deployment/successor-plan').SuccessorDeploymentPlanV1 | undefined;
+  let stageOutputReceipts: Record<string, StageOutputReceiptV1> | undefined;
   if (opts.deploymentPlanFile) {
     const plan = readSuccessorDeploymentPlan(opts.deploymentPlanFile);
     deploymentPlan = plan;
@@ -44,7 +49,9 @@ export function resolveDeployment(opts: {
     const allowLocalFork = plan.localOnly && environment.chain.kind !== 'local'
       ? loadRuntime(opts.configDir, opts.environment).provider === 'anvil-fork'
       : false;
-    ({ config, environment } = projectConfigurationForPlan(config, environment, plan, { allowLocalFork }));
+    if (opts.stageOutputReceiptsDir) stageOutputReceipts = readStageOutputReceiptDirectory(opts.stageOutputReceiptsDir);
+    const stageOutputValues = stageOutputValuesForPlan(plan, stageOutputReceipts ?? {});
+    ({ config, environment } = projectConfigurationForPlan(config, environment, plan, { allowLocalFork, stageOutputValues }));
   }
   const bundle = createBundleConsumer({
     sources: config.architecture.artifactSources,
@@ -62,5 +69,5 @@ export function resolveDeployment(opts: {
   const canonical = canonicalJson(spec);
   const specHash = computeSpecHash(spec);
 
-  return { spec, specHash, canonicalJson: canonical, deploymentPlan };
+  return { spec, specHash, canonicalJson: canonical, deploymentPlan, stageOutputReceipts };
 }

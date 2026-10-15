@@ -49,3 +49,20 @@ is no address derivation step.
 
 A deployment fact stores the resolved parameter values applied at deploy time.
 A later governance change never overwrites the original deployment fact.
+
+## Consuming a prior stage output
+
+A selected plan may mark a contract source as `stage-output`. Supply the
+immutable producer receipts with `--stage-output-receipts <dir>` and the exact
+producer source revision with `--source-revision <id>`. The resolver uses the
+receipt's committed address only to construct a candidate resolved spec; the
+deployment CLI then verifies the receipt graph, plan/stage/output binding,
+chain and bundle identities, successful creation receipt, receipt block hash,
+historical runtime, and current runtime before any deployment transaction.
+The consumed address is recorded as an external observation, while its
+producer receipt and output roots are included in plan-execution evidence.
+
+Receipt hashes establish integrity, not authenticity. A stage output is usable
+only after the CLI's live checks pass. Unsupported output types or unverified
+predecessor outputs fail closed. This path does not execute canonical root,
+genesis sealing, configuration, or admitted-release stages.

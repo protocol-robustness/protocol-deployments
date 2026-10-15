@@ -3,7 +3,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { readSuccessorDeploymentPlan } from '../src/deployment/successor-plan';
-import { createStageOutputReceipt, readStageOutputReceipt, resolveVerifiedStageOutput, stageOutputValueRoot, verifyStageOutputReceipt, verifyStageOutputReceiptGraph, writeStageOutputReceipt, type StageOutputReceiptV1 } from '../src/deployment/stage-output';
+import { createStageOutputReceipt, readStageOutputReceipt, readStageOutputReceiptDirectory, resolveVerifiedStageOutput, stageOutputValueRoot, stageOutputValuesForPlan, verifyStageOutputReceipt, verifyStageOutputReceiptGraph, writeStageOutputReceipt, type StageOutputReceiptV1 } from '../src/deployment/stage-output';
+import { resolveDeployment } from '../src/resolve-deployment';
 
 const plan = readSuccessorDeploymentPlan('config/pro-rata-v2-entitlement/successor-fork.plan.v1.json');
 const artifactIdentities = { 'prf-evm-deployables/0.4.0': `0x${'a1'.repeat(32)}` };
@@ -15,9 +16,25 @@ const base = {
   artifactIdentities,
 };
 
-function initialRootsReceipt() {
+function deploymentFact(logicalId: string, address: string) {
+  return {
+    logicalId,
+    address,
+    transactionHash: `0x${'77'.repeat(32)}`,
+    blockNumber: '7',
+    blockHash: `0x${'88'.repeat(32)}`,
+    runtimeBytecodeSha256: '99'.repeat(32),
+    artifact: {
+      source: 'prf/deployables', package: '@protocol-robustness/prf-evm-deployables', version: '0.4.0',
+      artifactName: 'SP1VerifierGroth16', abiSha256: 'aa'.repeat(32),
+      creationBytecodeSha256: 'bb'.repeat(32), runtimeBytecodeSha256: '99'.repeat(32),
+    },
+  };
+}
+
+function initialRootsReceipt(receiptPlan = plan) {
   return createStageOutputReceipt({
-    ...base,
+    ...base, plan: receiptPlan,
     stageId: 'derive-genesis-roots',
     predecessorInputs: {},
     outputs: {
@@ -30,6 +47,21 @@ function initialRootsReceipt() {
 }
 
 describe('stage-output receipts', () => {
+  it('rejects missing receipt directories and duplicate stage receipt files', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'prf-stage-directory-'));
+    try {
+      expect(() => readStageOutputReceiptDirectory(path.join(directory, 'missing')))
+        .toThrow(expect.objectContaining({ code: 'STAGE_OUTPUT_DIRECTORY_MISSING' }));
+      const receipt = initialRootsReceipt();
+      writeStageOutputReceipt(directory, receipt);
+      fs.writeFileSync(path.join(directory, 'duplicate.stage-output.v1.json'), `${JSON.stringify(receipt)}\n`);
+      expect(() => readStageOutputReceiptDirectory(directory))
+        .toThrow(expect.objectContaining({ code: 'STAGE_OUTPUT_DUPLICATE_STAGE' }));
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it('rejects undeclared stages, malformed receipts, and mismatched input/output sets', async () => {
     expect(() => createStageOutputReceipt({ ...base, stageId: 'missing-stage', predecessorInputs: {}, outputs: {} }))
       .toThrow(expect.objectContaining({ code: 'STAGE_OUTPUT_UNKNOWN_STAGE' }));
@@ -153,6 +185,99 @@ describe('stage-output receipts', () => {
     expect(() => resolveVerifiedStageOutput({
       plan, verifiedReceipts: {}, consumerStageId: child.stageId, inputName: 'protocolGenesisRoot',
     })).toThrow(expect.objectContaining({ code: 'STAGE_OUTPUT_PARENT_UNVERIFIED' }));
+  });
+
+  it('extracts a selected address only from its exact plan/stage/output receipt binding', () => {
+    const sourcePlan = structuredClone(plan);
+    sourcePlan.contracts['prf/source-bound-entitlement-verifier-adapter-v1'] = {
+      kind: 'stage-output', unit: 'prf-assurance', stage: 'deploy-authority-and-verifier', output: 'successorAdapter',
+    };
+    sourcePlan.stages.find((stage) => stage.id === 'deploy-authority-and-verifier')!.dependsOn.push('deploy-local-token');
+    const parent = initialRootsReceipt(sourcePlan);
+    const child = createStageOutputReceipt({
+      ...base,
+      plan: sourcePlan,
+      stageId: 'deploy-authority-and-verifier',
+      predecessorInputs: {
+        protocolGenesisRoot: { stageId: parent.stageId, outputName: 'protocolGenesisRoot', receipt: parent },
+        authorityStateRoot: { stageId: parent.stageId, outputName: 'authorityStateRoot', receipt: parent },
+      },
+      outputs: {
+        authorityAdapter: 'unconsumed',
+        registry: 'unconsumed',
+        sp1Verifier: 'unconsumed',
+        successorAdapter: deploymentFact('prf/source-bound-entitlement-verifier-adapter-v1', `0x${'58'.repeat(20)}`),
+        verifierId: 'unconsumed',
+      },
+    });
+    expect(stageOutputValuesForPlan(sourcePlan, { [child.stageId]: child })).toEqual({
+      'prf/source-bound-entitlement-verifier-adapter-v1': child.outputs.successorAdapter!.value,
+    });
+    const changedReceipt = { ...child, planHash: `0x${'99'.repeat(32)}` };
+    expect(() => stageOutputValuesForPlan(sourcePlan, { [child.stageId]: changedReceipt })).toThrow(expect.objectContaining({ code: 'STAGE_OUTPUT_IDENTITY_MISMATCH' }));
+    const malformedFact = createStageOutputReceipt({
+      ...base,
+      plan: sourcePlan,
+      stageId: child.stageId,
+      predecessorInputs: {
+        protocolGenesisRoot: { stageId: parent.stageId, outputName: 'protocolGenesisRoot', receipt: parent },
+        authorityStateRoot: { stageId: parent.stageId, outputName: 'authorityStateRoot', receipt: parent },
+      },
+      outputs: {
+        authorityAdapter: 'unconsumed', registry: 'unconsumed', sp1Verifier: 'unconsumed',
+        successorAdapter: { logicalId: 'prf/other-contract', address: `0x${'58'.repeat(20)}` },
+        verifierId: 'unconsumed',
+      },
+    });
+    expect(() => stageOutputValuesForPlan(sourcePlan, { [malformedFact.stageId]: malformedFact }))
+      .toThrow(expect.objectContaining({ code: 'STAGE_OUTPUT_CONTRACT_VALUE_INVALID' }));
+  });
+
+  it('feeds receipt-bound stage outputs into the actual selected-plan resolver without deploying them', () => {
+    const root = path.resolve(__dirname, '..');
+    const sourcePlan = structuredClone(plan);
+    sourcePlan.contracts = {
+      'prf/local-token': structuredClone(plan.contracts['prf/local-token']!),
+      'prf/sp1-verifier-groth16': { kind: 'stage-output', unit: 'prf-assurance', stage: 'deploy-authority-and-verifier', output: 'sp1Verifier' },
+    };
+    sourcePlan.authorizedConfigurationActions = [];
+    const parent = initialRootsReceipt(sourcePlan);
+    const child = createStageOutputReceipt({
+      ...base,
+      plan: sourcePlan,
+      stageId: 'deploy-authority-and-verifier',
+      predecessorInputs: {
+        protocolGenesisRoot: { stageId: parent.stageId, outputName: 'protocolGenesisRoot', receipt: parent },
+        authorityStateRoot: { stageId: parent.stageId, outputName: 'authorityStateRoot', receipt: parent },
+      },
+      outputs: {
+        authorityAdapter: 'unused', registry: 'unused',
+        successorAdapter: 'unused',
+        sp1Verifier: deploymentFact('prf/sp1-verifier-groth16', `0x${'58'.repeat(20)}`),
+        verifierId: 'unused',
+      },
+    });
+    const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'prf-plan-stage-output-'));
+    try {
+      const planFile = path.join(temporary, 'plan.json');
+      const receiptsDir = path.join(temporary, 'receipts');
+      fs.writeFileSync(planFile, JSON.stringify(sourcePlan));
+      writeStageOutputReceipt(receiptsDir, parent);
+      writeStageOutputReceipt(receiptsDir, child);
+      const resolved = resolveDeployment({
+        configDir: path.join(root, 'config'),
+        environment: 'local',
+        fixtureRoot: path.join(root, 'fixtures/releases/0.4.0/packages'),
+        profileDir: path.join(root, 'config/pro-rata-v2-entitlement'),
+        preferFixtures: true,
+        deploymentPlanFile: planFile,
+        stageOutputReceiptsDir: receiptsDir,
+      });
+      expect(resolved.spec.deployment.steps.map((step) => step.logicalId)).not.toContain('prf/sp1-verifier-groth16');
+      expect(resolved.spec.externalContracts?.['prf/sp1-verifier-groth16']?.address).toBe(`0x${'58'.repeat(20)}`);
+    } finally {
+      fs.rmSync(temporary, { recursive: true, force: true });
+    }
   });
 
   it('does not verify a downstream receipt when its predecessor receipt is absent', async () => {

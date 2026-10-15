@@ -39,6 +39,8 @@ const UNTESTED: Record<string, string> = {
   PLAN_EXECUTION_STAGE_MISMATCH: 'requires a rooted receipt whose stage kind or identity differs from the plan',
   PLAN_EXECUTION_STAGE_OUTPUT_MISMATCH: 'requires recomputing the receipt root after substituting a deployed address or receipt',
   PLAN_EXECUTION_UNSUPPORTED_STAGE_CLAIM: 'requires a receipt falsely claiming that an unimplemented configuration/proof stage completed',
+  PLAN_STAGE_OUTPUT_RECEIPTS_REQUIRED: 'deploy CLI preflight when a selected plan needs a stage-output receipt directory',
+  PLAN_STAGE_OUTPUT_SOURCE_REVISION_REQUIRED: 'deploy CLI preflight when a selected plan needs source provenance for stage outputs',
   RESUME_MISMATCH: 'deploy CLI --resume path against a mismatched existing record',
   VERIFY_OUTPUT_EXISTS: 'verify-live CLI refusal, reachable only after a full live run',
 };

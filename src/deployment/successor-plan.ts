@@ -247,8 +247,8 @@ export function projectConfigurationForPlan(
   config: LoadedConfig,
   environment: RawEnvironment,
   plan: SuccessorDeploymentPlanV1,
-  options: { allowLocalFork?: boolean } = {},
-): { config: LoadedConfig; environment: RawEnvironment; deployedLogicalIds: string[]; consumedExternalIds: string[] } {
+  options: { allowLocalFork?: boolean; stageOutputValues?: Readonly<Record<string, unknown>> } = {},
+): { config: LoadedConfig; environment: RawEnvironment; deployedLogicalIds: string[]; consumedExternalIds: string[]; consumedStageOutputIds: string[] } {
   const architectureIds = new Set(Object.keys(config.architecture.contracts));
   const planIds = Object.keys(plan.contracts);
   for (const id of planIds) {
@@ -264,6 +264,7 @@ export function projectConfigurationForPlan(
   const stageOrder = new Map(plan.stages.map((stage, index) => [stage.id, index]));
   const deployable: string[] = [];
   const external: string[] = [];
+  const stageOutputs: string[] = [];
   for (const [id, source] of Object.entries(plan.contracts)) {
     switch (source.kind) {
       case 'deploy':
@@ -283,7 +284,14 @@ export function projectConfigurationForPlan(
         if (environment.deploymentOrder.includes(id)) throw new ConfigError('PLAN_EXTERNAL_IN_DEPLOY_ORDER', `External dependency '${id}' appears in deploymentOrder`);
         break;
       case 'stage-output':
-        throw new ConfigError('PLAN_STAGE_OUTPUT_UNSUPPORTED', `Stage output '${id}' is declared but no verified stage receipt resolver is configured`);
+        {
+          const value = options.stageOutputValues?.[id];
+          if (!value || typeof value !== 'object' || typeof (value as Record<string, unknown>).address !== 'string') {
+            throw new ConfigError('PLAN_STAGE_OUTPUT_UNRESOLVED', `Stage output '${id}' has no receipt-bound address value`);
+          }
+          stageOutputs.push(id);
+          break;
+        }
       case 'admitted-release':
         throw new ConfigError('PLAN_ADMITTED_RELEASE_UNSUPPORTED', `Admitted release '${source.releaseId}' is declared but no admitted-release resolver is configured`);
     }
@@ -294,8 +302,33 @@ export function projectConfigurationForPlan(
   }
 
   const selected = new Set(planIds);
+  const stageDependsOn = (consumerStage: string, producerStage: string): boolean => {
+    const byId = new Map(plan.stages.map((stage) => [stage.id, stage]));
+    const seen = new Set<string>();
+    const visit = (id: string): boolean => {
+      if (id === producerStage) return true;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return (byId.get(id)?.dependsOn ?? []).some(visit);
+    };
+    return visit(consumerStage);
+  };
   for (const [id, contract] of Object.entries(config.architecture.contracts)) {
     if (!selected.has(id)) continue;
+    const consumerSource = plan.contracts[id]!;
+    const consumerStage = 'stage' in consumerSource ? consumerSource.stage : undefined;
+    const dependencies = new Set([
+      ...(contract.relationships?.dependsOn ?? []),
+      ...Object.values(contract.constructorBindings ?? {}).flatMap(contractBindingReferences),
+    ]);
+    for (const dependencyId of dependencies) {
+      const dependencySource = plan.contracts[dependencyId];
+      if (dependencySource?.kind !== 'stage-output') continue;
+      if (!consumerStage || stageOrder.get(dependencySource.stage)! >= stageOrder.get(consumerStage)! ||
+          !stageDependsOn(consumerStage, dependencySource.stage)) {
+        throw new ConfigError('PLAN_STAGE_OUTPUT_ORDER', `Selected contract '${id}' consumes stage output '${dependencyId}' without depending on its completed producer stage '${dependencySource.stage}'`);
+      }
+    }
     for (const dependency of contract.relationships?.dependsOn ?? []) {
       if (!selected.has(dependency)) throw new ConfigError('PLAN_UNRESOLVED_CONSTRUCTOR_DEPENDENCY', `Selected contract '${id}' depends on unselected '${dependency}'`);
     }
@@ -336,16 +369,17 @@ export function projectConfigurationForPlan(
     overlays: environment.overlays
       ? Object.fromEntries(Object.entries(environment.overlays).filter(([id]) => selected.has(id)))
       : undefined,
-    externalContracts: environment.externalContracts
-      ? Object.fromEntries(Object.entries(environment.externalContracts).filter(([id]) => external.includes(id)))
-      : undefined,
+    externalContracts: Object.fromEntries([
+      ...Object.entries(environment.externalContracts ?? {}).filter(([id]) => external.includes(id)),
+      ...stageOutputs.map((id) => [id, { address: (options.stageOutputValues![id] as { address: string }).address }] as const),
+    ]),
     externalAddresses: environment.externalAddresses
       ? Object.fromEntries(Object.entries(environment.externalAddresses).filter(([name]) => externalAddressNames.has(name)))
       : undefined,
     bootstrapActions: environment.bootstrapActions.filter((action) => selected.has(action.target)),
     bootstrapAssertions: environment.bootstrapAssertions.filter((assertion) => selected.has(assertion.target)),
   };
-  return { config: projectedConfig, environment: projectedEnvironment, deployedLogicalIds: orderedDeployments, consumedExternalIds: external };
+  return { config: projectedConfig, environment: projectedEnvironment, deployedLogicalIds: orderedDeployments, consumedExternalIds: external, consumedStageOutputIds: stageOutputs };
 }
 
 /**

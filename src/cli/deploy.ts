@@ -33,6 +33,8 @@ import { ConfigError } from '../errors';
 import type { ResolvedBinding } from '../canonical';
 import { deploymentPlanHash, planExecutionRoot } from '../deployment/plan-execution';
 import { assertPlanDeployable, unsupportedDeploymentPrerequisite } from '../deployment/successor-plan';
+import { verifyStageOutputReceiptGraph } from '../deployment/stage-output';
+import { verifyStageOutputDeploymentFact } from '../deployment/stage-output-live';
 
 interface DeployOptions {
   bundle: BundleConsumer;
@@ -63,6 +65,58 @@ function recordFinalAssertion(record: DeploymentRecord, entry: FinalAssertionRec
   else record.finalAssertions.push(entry);
 }
 
+async function verifyPlanStageOutputDependencies(input: {
+  plan: NonNullable<DeployOptions['plan']>;
+  receipts: NonNullable<Awaited<ReturnType<typeof resolveDeployment>>['stageOutputReceipts']>;
+  resolved: Awaited<ReturnType<typeof resolveDeployment>>;
+  bundle: BundleConsumer;
+  transport: Awaited<ReturnType<typeof bindRuntime>>['transport'];
+  sourceRevision: string;
+  chainId: number;
+}): Promise<Array<{ logicalId: string; stage: string; output: string; receiptRoot: string; outputRoot: string; address: string }>> {
+  const artifactIdentities: Record<string, string> = {};
+  for (const contract of Object.values(input.resolved.spec.contracts)) {
+    const key = `${contract.artifactSource}/${contract.artifact.package}@${contract.artifact.version}`;
+    if (!artifactIdentities[key]) {
+      const manifest = input.bundle.loadManifest(contract.artifactSource, contract.artifact.package, contract.artifact.version);
+      artifactIdentities[key] = `0x${manifest.bundleRoot.replace(/^0x/, '')}`;
+    }
+  }
+  const observed: Array<{ logicalId: string; stage: string; output: string; address: string }> = [];
+  const verified = await verifyStageOutputReceiptGraph({
+    receipts: input.receipts,
+    plan: input.plan,
+    environment: input.resolved.spec.environment,
+    chainId: input.chainId,
+    sourceRevision: input.sourceRevision,
+    artifactIdentities,
+    verifyOutput: async (stageId, outputName, value) => {
+      const fact = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+      if (!fact || typeof fact.logicalId !== 'string') return false;
+      const source = input.plan.contracts[fact.logicalId];
+      const contract = input.resolved.spec.contracts[fact.logicalId];
+      if (source?.kind !== 'stage-output' || source.stage !== stageId || source.output !== outputName || !contract) return false;
+      const expectedArtifact = artifactIdentityOf(contract);
+      if (!await verifyStageOutputDeploymentFact({
+        logicalId: fact.logicalId,
+        value,
+        contract,
+        expectedArtifact,
+        bundle: input.bundle,
+        transport: input.transport,
+        expectedChainId: input.chainId,
+      })) return false;
+      observed.push({ logicalId: fact.logicalId, stage: stageId, output: outputName, address: String(fact.address) });
+      return true;
+    },
+  });
+  return observed.map((binding) => {
+    const receipt = verified[binding.stage]!;
+    const output = receipt.outputs[binding.output]!;
+    return { ...binding, receiptRoot: receipt.receiptRoot, outputRoot: output.outputRoot };
+  }).sort((a, b) => a.logicalId < b.logicalId ? -1 : a.logicalId > b.logicalId ? 1 : 0);
+}
+
 async function main(): Promise<void> {
   loadDefaultEnvFile();
   const environment = process.argv[2];
@@ -75,10 +129,11 @@ async function main(): Promise<void> {
   const priorityFeeArg = flagValue('priority-fee');
   const timeoutArg = flagValue('receipt-timeout-ms');
   const planArg = flagValue('plan');
+  const stageOutputReceiptsDirArg = flagValue('stage-output-receipts');
   const legacyFlat = process.argv.includes('--legacy-flat');
   const profileDir = profileArg >= 0 ? path.resolve(process.cwd(), process.argv[profileArg + 1]!) : undefined;
   if (!environment || (planArg !== undefined) === legacyFlat) {
-    console.error('Usage: deploy.ts <environment> (--plan <plan.json> | --legacy-flat) [--profile <dir>] [--fixtures <dir>] [--deployment-key <key>] [--resume] [--dry-run] [--yes] [--max-fee <wei>] [--priority-fee <wei>] [--receipt-timeout-ms <ms>]');
+    console.error('Usage: deploy.ts <environment> (--plan <plan.json> | --legacy-flat) [--profile <dir>] [--fixtures <dir>] [--stage-output-receipts <dir>] [--source-revision <id>] [--deployment-key <key>] [--resume] [--dry-run] [--yes] [--max-fee <wei>] [--priority-fee <wei>] [--receipt-timeout-ms <ms>]');
     process.exit(2);
   }
   if (priorityFeeArg !== undefined && maxFeeArg === undefined) {
@@ -118,6 +173,7 @@ async function main(): Promise<void> {
     preferFixtures,
     requirePinnedProvenance,
     deploymentPlanFile: planArg ? path.resolve(process.cwd(), planArg) : undefined,
+    stageOutputReceiptsDir: stageOutputReceiptsDirArg ? path.resolve(process.cwd(), stageOutputReceiptsDirArg) : undefined,
   });
   if (resolved.deploymentPlan && !resume) {
     assertPlanDeployable(resolved.deploymentPlan);
@@ -174,6 +230,16 @@ async function run(
   const chainId = await bound.transport.getChainId();
   assertChainIdMatches({ chainId: resolved.spec.chain.chainId, environment }, chainId);
   const deployer = await bound.signer.getAddress();
+  const stageOutputSources = Object.entries(plan?.contracts ?? {}).filter(([, source]) => source.kind === 'stage-output');
+  let stageOutputBindings: Array<{ logicalId: string; stage: string; output: string; receiptRoot: string; outputRoot: string; address: string }> = [];
+  if (stageOutputSources.length > 0) {
+    if (!plan || !resolved.stageOutputReceipts) throw new ConfigError('PLAN_STAGE_OUTPUT_RECEIPTS_REQUIRED', 'Selected stage-output dependencies require --stage-output-receipts');
+    const sourceRevision = flagValue('source-revision');
+    if (!sourceRevision) throw new ConfigError('PLAN_STAGE_OUTPUT_SOURCE_REVISION_REQUIRED', 'Selected stage-output dependencies require --source-revision matching the producing execution');
+    stageOutputBindings = await verifyPlanStageOutputDependencies({
+      plan, receipts: resolved.stageOutputReceipts, resolved, bundle, transport: bound.transport, sourceRevision, chainId,
+    });
+  }
   const externalContractObservations = await verifyExternalContracts(resolved.spec, bundle, bound.transport, deployer);
   for (const dependency of externalContractObservations) {
     console.log(`  verified external dependency ${dependency.logicalId} at ${dependency.address} (code ${dependency.observedRuntimeCodeKeccak256})`);
@@ -433,6 +499,7 @@ async function run(
       excludedUnits: plan.excludedUnits,
       selectedContracts,
       manifestRoot,
+      stageOutputBindings,
       stages,
     };
     const planRoot = planExecutionRoot(planBody);

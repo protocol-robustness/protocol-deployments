@@ -8,6 +8,7 @@ import { RpcTransport } from '../src/runtime/transport';
 import { PrivateKeySigner } from '../src/runtime/signer';
 import { AnvilRuntime } from '../src/runtime/anvil';
 import { deployContract, verifyRecordedDeployment } from '../src/deployment/engine';
+import { verifyStageOutputDeploymentFact } from '../src/deployment/stage-output-live';
 import { canonicalJson } from '../src/canonical-json';
 import type { ResolvedSpec, ResolvedContract } from '../src/canonical';
 import {
@@ -160,6 +161,41 @@ describe('Phase C — deployment engine + deployment record', () => {
       logicalId: ':t', address: res.address, transactionHash: `0x${'00'.repeat(32)}` as `0x${string}`,
       blockNumber: res.blockNumber.toString(), spec, bundle, transport,
     })).rejects.toMatchObject({ code: 'RESUME_RECEIPT_MISMATCH' });
+  }, 60000);
+
+  it('authenticates a prior deployment output against a real local receipt and runtime', async () => {
+    const spec = makeSpec([
+      { name: '_v', value: 42 },
+      { name: '_flag', value: true },
+    ]);
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, '@test', 'pkg', 'manifest.json'), 'utf8'));
+    const contract = spec.contracts[':t']!;
+    Object.assign(contract.artifact, {
+      abiSha256: manifest.artifacts.T.abiSha256,
+      creationBytecodeSha256: manifest.artifacts.T.creationBytecodeSha256,
+      deployedBytecodeSha256: manifest.artifacts.T.runtimeBytecodeSha256,
+    });
+    const deployment = await deployContract({ spec, logicalId: ':t', bundle, transport, signer });
+    const expectedArtifact = artifactIdentityOf(contract);
+    const receipt = await transport.getTransactionReceipt(deployment.transactionHash);
+    const block = await transport.getBlock(deployment.blockNumber);
+    expect(receipt?.status).toBe('success');
+    const value = {
+      logicalId: ':t',
+      address: deployment.address,
+      transactionHash: deployment.transactionHash,
+      blockNumber: deployment.blockNumber.toString(),
+      blockHash: block.hash,
+      runtimeBytecodeSha256: expectedArtifact.runtimeBytecodeSha256,
+      artifact: expectedArtifact,
+    };
+    await expect(verifyStageOutputDeploymentFact({
+      logicalId: ':t', value, contract, expectedArtifact, bundle, transport, expectedChainId: 31337,
+    })).resolves.toBe(true);
+    await expect(verifyStageOutputDeploymentFact({
+      logicalId: ':t', value: { ...value, address: `0x${'99'.repeat(20)}` }, contract,
+      expectedArtifact, bundle, transport, expectedChainId: 31337,
+    })).resolves.toBe(false);
   }, 60000);
 
   it('rejects deployment when a constructor arg is unresolvable', async () => {

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { loadConfig, loadEnvironment } from '../src/config/load';
 import { assertNoPlaceholderRootBindings, assertPlanDeployable, projectConfigurationForPlan, readDeploymentUnitCatalog, readSuccessorDeploymentPlan, unsupportedDeploymentPrerequisite, validateArchitectureUnitOwnership, validatePlanAgainstUnits, validateSuccessorDeploymentPlan } from '../src/deployment/successor-plan';
 import { assertPlanExecutionMatchesManifest, deploymentPlanHash, planExecutionRoot } from '../src/deployment/plan-execution';
-import { computeManifestRoot, type DeploymentManifestV1 } from '../src/deployment/manifest';
+import { computeManifestRoot, type DeploymentManifestV1, type DeploymentManifestV2 } from '../src/deployment/manifest';
 import { resolveDeployment } from '../src/resolve-deployment';
 
 const root = path.resolve(__dirname, '..');
@@ -172,7 +172,7 @@ describe('bounded successor deployment plan', () => {
     expectCode(() => projectConfigurationForPlan(configured, environment, selectedExternal), 'PLAN_EXTERNAL_UNRESOLVED');
   });
 
-  it('fails closed for unresolved stage-output and admitted-release dependencies', () => {
+  it('projects stage-output dependencies only from explicit receipt-bound values and keeps releases fail-closed', () => {
     const configDir = path.join(root, 'config');
     const profileDir = path.join(root, 'config/pro-rata-v2-entitlement');
     const config = loadConfig({ configDir, profileDir });
@@ -182,12 +182,32 @@ describe('bounded successor deployment plan', () => {
       kind: 'stage-output', unit: 'prf-assurance', stage: 'deploy-authority-and-verifier', output: 'successorAdapter',
     };
     stageOutput.stages.find((stage) => stage.id === 'deploy-authority-and-verifier')!.dependsOn = ['deploy-local-token'];
-    expectCode(() => projectConfigurationForPlan(config, environment, stageOutput), 'PLAN_STAGE_OUTPUT_UNSUPPORTED');
+    expectCode(() => projectConfigurationForPlan(config, environment, stageOutput), 'PLAN_STAGE_OUTPUT_UNRESOLVED');
+    const projected = projectConfigurationForPlan(config, environment, stageOutput, {
+      stageOutputValues: { 'prf/source-bound-entitlement-verifier-adapter-v1': { address: `0x${'55'.repeat(20)}` } },
+    });
+    expect(projected.deployedLogicalIds).not.toContain('prf/source-bound-entitlement-verifier-adapter-v1');
+    expect(projected.consumedStageOutputIds).toEqual(['prf/source-bound-entitlement-verifier-adapter-v1']);
+    expect(projected.environment.externalContracts?.['prf/source-bound-entitlement-verifier-adapter-v1']?.address).toBe(`0x${'55'.repeat(20)}`);
     const admitted = structuredClone(plan);
     admitted.contracts['prf/sp1-verifier-groth16'] = {
       kind: 'admitted-release', unit: 'prf-assurance', releaseId: 'missing-release', logicalId: 'sp1-verifier-groth16',
     };
     expectCode(() => projectConfigurationForPlan(config, environment, admitted), 'PLAN_ADMITTED_RELEASE_UNSUPPORTED');
+  });
+
+  it('requires every downstream consumer to depend on the stage-output producer stage', () => {
+    const configDir = path.join(root, 'config');
+    const profileDir = path.join(root, 'config/pro-rata-v2-entitlement');
+    const config = loadConfig({ configDir, profileDir });
+    const environment = loadEnvironment(configDir, 'local', profileDir);
+    const stageOutput = structuredClone(plan);
+    stageOutput.contracts['prf/sp1-verifier-groth16'] = {
+      kind: 'stage-output', unit: 'prf-assurance', stage: 'deploy-local-token', output: 'localToken',
+    };
+    expectCode(() => projectConfigurationForPlan(config, environment, stageOutput, {
+      stageOutputValues: { 'prf/sp1-verifier-groth16': { address: `0x${'55'.repeat(20)}` } },
+    }), 'PLAN_STAGE_OUTPUT_ORDER');
   });
 
   it('independently checks that immutable manifest deployments equal the selected plan sources', () => {
@@ -243,6 +263,79 @@ describe('bounded successor deployment plan', () => {
     expectCode(() => assertPlanExecutionMatchesManifest(dependencyViolation, plan, manifest), 'PLAN_EXECUTION_STAGE_DEPENDENCY_MISMATCH');
     const substituted = { ...manifest, contracts: manifest.contracts.slice(1) };
     expectCode(() => assertPlanExecutionMatchesManifest(receipt, plan, substituted), 'PLAN_EXECUTION_MANIFEST_MISMATCH');
+  });
+
+  it('binds stage-output receipt roots and addresses into plan-execution evidence', () => {
+    const fixture = structuredClone(plan);
+    fixture.contracts = {
+      'prf/local-token': structuredClone(plan.contracts['prf/local-token']!),
+      'prf/sp1-verifier-groth16': { kind: 'stage-output', unit: 'prf-assurance', stage: 'deploy-authority-and-verifier', output: 'sp1Verifier' },
+    };
+    fixture.authorizedConfigurationActions = [];
+    const localContract = {
+      logicalId: 'prf/local-token',
+      address: `0x${'33'.repeat(20)}` as `0x${string}`,
+      artifact: { source: 'fixture', package: 'fixture', version: '1', artifactName: 'LocalToken', abiSha256: '11'.repeat(32), creationBytecodeSha256: '22'.repeat(32), runtimeBytecodeSha256: '33'.repeat(32) },
+      deploymentTx: `0x${'44'.repeat(32)}` as `0x${string}`,
+      blockNumber: '1',
+    };
+    const stageOutputArtifact = { source: 'prf', package: 'prf', version: '1', artifactName: 'SP1VerifierGroth16', abiSha256: 'aa'.repeat(32), creationBytecodeSha256: 'bb'.repeat(32), runtimeBytecodeSha256: 'cc'.repeat(32) };
+    const manifest: DeploymentManifestV2 = {
+      type: 'protocol-deployment-manifest/v2', architectureSpecHash: '0x01', executionSpecHash: '0x02', deploymentId: 'test-run',
+      chain: { id: 31337, blockNumber: '2', blockHash: `0x${'12'.repeat(32)}` as `0x${string}` },
+      deployer: `0x${'22'.repeat(20)}` as `0x${string}`,
+      contracts: [localContract], bootstrapActions: [], finalAssertions: [],
+      externalContracts: [{
+        logicalId: 'prf/sp1-verifier-groth16', address: `0x${'55'.repeat(20)}` as `0x${string}`,
+        artifact: stageOutputArtifact, observedRuntimeCodeKeccak256: `0x${'66'.repeat(32)}`,
+        observedAt: { blockNumber: '2', blockHash: `0x${'12'.repeat(32)}` as `0x${string}` },
+      }],
+    };
+    const statuses = new Map<string, string>();
+    const body = {
+      type: 'protocol-deployment-plan-execution/v1', planId: fixture.planId, planHash: deploymentPlanHash(fixture),
+      environment: 'local', chainId: 31337, localOnly: true, selectedUnits: fixture.selectedUnits, excludedUnits: fixture.excludedUnits,
+      selectedContracts: Object.entries(fixture.contracts).map(([logicalId, source]) => ({ logicalId, ...source })),
+      manifestRoot: computeManifestRoot(manifest),
+      stageOutputBindings: [{ logicalId: 'prf/sp1-verifier-groth16', stage: 'deploy-authority-and-verifier', output: 'sp1Verifier', receiptRoot: `0x${'77'.repeat(32)}`, outputRoot: `0x${'88'.repeat(32)}`, address: `0x${'55'.repeat(20)}` }],
+      stages: fixture.stages.map((stage) => {
+        const prerequisitesSatisfied = stage.dependsOn.every((dependency) => ['verified', 'not-applicable'].includes(statuses.get(dependency) ?? ''));
+        const isLocalTokenStage = stage.id === 'deploy-local-token';
+        const status = isLocalTokenStage ? 'verified' : stage.kind === 'external-preflight' ? 'not-applicable' : 'not-executed';
+        statuses.set(stage.id, status);
+        return isLocalTokenStage
+          ? { id: stage.id, kind: stage.kind, status, outputs: { 'prf/local-token': { address: localContract.address, transactionHash: localContract.deploymentTx, blockNumber: '1', runtimeBytecodeSha256: localContract.artifact.runtimeBytecodeSha256 } } }
+          : { id: stage.id, kind: stage.kind, status: prerequisitesSatisfied ? status : 'blocked' };
+      }),
+    };
+    const receipt = { ...body, planExecutionRoot: planExecutionRoot(body) };
+    expect(() => assertPlanExecutionMatchesManifest(receipt, fixture, manifest)).not.toThrow();
+
+    const { stageOutputBindings: _omittedBindings, planExecutionRoot: _missingRoot, ...missingBody } = structuredClone(receipt);
+    const missing = { ...missingBody, planExecutionRoot: planExecutionRoot(missingBody) };
+    expectCode(() => assertPlanExecutionMatchesManifest(missing, fixture, manifest), 'PLAN_EXECUTION_STAGE_OUTPUTS_MISSING');
+
+    const substituted = structuredClone(receipt);
+    substituted.stageOutputBindings[0]!.address = `0x${'99'.repeat(20)}`;
+    const { planExecutionRoot: _substitutedRoot, ...substitutedBody } = substituted;
+    substituted.planExecutionRoot = planExecutionRoot(substitutedBody);
+    expectCode(() => assertPlanExecutionMatchesManifest(substituted, fixture, manifest), 'PLAN_EXECUTION_STAGE_OUTPUT_MANIFEST_MISMATCH');
+
+    const malformedCommitment = structuredClone(receipt);
+    malformedCommitment.stageOutputBindings[0]!.outputRoot = 'not-a-root';
+    const { planExecutionRoot: _malformedRoot, ...malformedBody } = malformedCommitment;
+    malformedCommitment.planExecutionRoot = planExecutionRoot(malformedBody);
+    expectCode(() => assertPlanExecutionMatchesManifest(malformedCommitment, fixture, manifest), 'PLAN_EXECUTION_STAGE_OUTPUTS_MISMATCH');
+
+    const undeclared = structuredClone(fixture);
+    undeclared.contracts['prf/sp1-verifier-groth16'] = { kind: 'external', unit: 'prf-assurance' } as typeof undeclared.contracts[string];
+    const unexpected = structuredClone(receipt);
+    unexpected.planId = undeclared.planId;
+    unexpected.planHash = deploymentPlanHash(undeclared);
+    unexpected.selectedContracts = Object.entries(undeclared.contracts).map(([logicalId, source]) => ({ logicalId, ...source }));
+    const { planExecutionRoot: _unexpectedRoot, ...unexpectedBody } = unexpected;
+    unexpected.planExecutionRoot = planExecutionRoot(unexpectedBody);
+    expectCode(() => assertPlanExecutionMatchesManifest(unexpected, undeclared, manifest), 'PLAN_EXECUTION_STAGE_OUTPUTS_UNEXPECTED');
   });
 
   it('does not infer local-fixture versus external from a present address', () => {
