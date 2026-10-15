@@ -17,13 +17,12 @@
       "deployment-ledger-derived-verifier-registry-root-and-governed-selection",
       "base-entitlement-deployment-profile-resolver-and-runtime-verifier",
       "approval-to-use-circle-usdc-for-protected-operation",
-      "base-usdc-external-dependency-pinned-and-verified",
+      "base-usdc-full-cbor-metadata-and-release-artifact-attestation",
       "funded-usdc-account-and-allowance-approval",
       "fresh-base-deployment-derived-witness-and-groth16-proof",
       "operation-specific-recipient-and-funder-authorization",
       "approved-direct-configuration-authority-address-and-signer-policy",
-      "successor-staged-genesis-and-governed-selection-orchestration",
-      "circle-usdc-proxy-and-implementation-code-identity-bound-to-successor-profile"
+      "successor-staged-genesis-and-governed-selection-orchestration"
     ]
   },
   "sourcePins": {
@@ -219,7 +218,7 @@
       "symbol": "USDC",
       "decimals": 6,
       "sourceReference": "https://developers.circle.com/stablecoins/usdc-contract-addresses; https://docs-w3s-node-sdk.circle.com/variables/index.BASE_SEPOLIA.html",
-      "observation": "official Base Sepolia address; runtime code and metadata must be refreshed at a pinned block before use",
+      "observation": "Official Base Sepolia address; proxy, implementation, and linked library runtime code were observed at the pinned block and compared against the pinned Circle source release in partial runtime mode.",
       "classification": "Circle-issued Base Sepolia testnet USDC; sandbox/test units, not a claim of redeemable mainnet USDC or real-value liquidity",
       "observationBlock": 48021662,
       "observationBlockHash": "0xd75dd70e46902903f9c1ff7247ed11b17471413ba9895ff70cfa6ee64ba19c02",
@@ -229,7 +228,7 @@
       "implementationRuntimeCodeKeccak256": "0x1254951e5483b882fd5def9452f58fe786eb3380c0bf9bb2744fa21a0a97a16c",
       "implementationRuntimeBytes": 23464,
       "proxyImplementationAtObservation": "0xd74cc5d436923b8ba2c179b4bCA2841D8A52C5B5",
-      "runtimeVerification": "Exact proxy and implementation code hashes observed at the pinned block; implementation source/artifact is not yet reconciled into the external dependency bundle, so this is not yet an executable pinned artifact binding.",
+      "runtimeVerification": "Exact onchain runtime hashes are pinned at the observation block. Circle partial runtime verification passes for proxy, implementation (with its observed SignatureChecker link), and the linked library. Full runtime equality including the CBOR/IPFS metadata hash is not established.",
       "observedMetadata": {
         "name": "USDC",
         "symbol": "USDC",
@@ -237,6 +236,13 @@
         "paused": false,
         "currency": "USD",
         "version": "2"
+      },
+      "sourceVerificationEvidence": "config/pro-rata-v2-entitlement/circle-base-sepolia-usdc-source-parity.v1.json",
+      "implementationLibrary": {
+        "name": "SignatureChecker",
+        "address": "0xba3b60c21e28c41df4babd90f228e1d368627da6",
+        "runtimeCodeKeccak256": "0x0855e691adf48a1a47437ec347119ebfea7d3997af9a17f253178569753665c0",
+        "runtimeBytes": 1741
       }
     },
     "approval": "Official Circle Base Sepolia testnet token address and block-scoped code/metadata observation are recorded. This is a test asset, not mainnet redeemable USDC. Funding is expected from an operator-controlled testnet balance or Circle testnet faucet; this workflow will not deploy, mint, or request faucet funds. Asset-use approval, payer address, available balance, and exact allowance remain unresolved.",
@@ -333,7 +339,14 @@
           "paused": false,
           "currency": "USD",
           "version": "2"
-        }
+        },
+        "implementationLibrary": {
+          "name": "SignatureChecker",
+          "address": "0xba3b60c21e28c41df4babd90f228e1d368627da6",
+          "runtimeCodeKeccak256": "0x0855e691adf48a1a47437ec347119ebfea7d3997af9a17f253178569753665c0",
+          "runtimeBytes": 1741
+        },
+        "sourceParityEvidence": "config/pro-rata-v2-entitlement/circle-base-sepolia-usdc-source-parity.v1.json"
       }
     ],
     "qualification": "Read-only observed identity and metadata only. The external dependency implementation must pin both proxy and implementation identity and re-check the proxy implementation pointer before public deployment."

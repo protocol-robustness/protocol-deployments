@@ -1,0 +1,81 @@
+{
+  "schema": "protocol-deployments.external-contract-source-parity.v1",
+  "subject": "Circle Base Sepolia USDC proxy and implementation",
+  "chainId": 84532,
+  "observation": {
+    "blockNumber": 48021662,
+    "blockHash": "0xd75dd70e46902903f9c1ff7247ed11b17471413ba9895ff70cfa6ee64ba19c02",
+    "rpc": "Configured Base Sepolia read-only RPC; endpoint credential withheld",
+    "transactionBroadcast": false
+  },
+  "source": {
+    "repository": "https://github.com/circlefin/stablecoin-evm",
+    "releaseTag": "release-2026-08-12T202509",
+    "commit": "fc85788bc7c23cefe3df1a757133048bfddadeaa",
+    "workingTreeCleanAtBuild": true,
+    "localReleaseSignatureVerification": "not performed; signing key unavailable in local keyring"
+  },
+  "build": {
+    "compiler": "solc 0.6.12+commit.27d51765",
+    "optimizerEnabled": true,
+    "optimizerRuns": 10000000,
+    "evmVersion": "istanbul",
+    "foundry": "Circle setup-pinned nightly f625d0fa7c51e65b4bf1e8f7931cd1c6e2e285e9",
+    "command": "forge build",
+    "result": "success"
+  },
+  "verification": {
+    "verifier": "Circle scripts/hardhat/verifyOnChainBytecode.ts",
+    "mode": "partial runtime; excludes Solidity CBOR/IPFS metadata hash",
+    "result": "passed for all listed components",
+    "components": [
+      {
+        "contract": "FiatTokenProxy",
+        "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        "runtimeBytes": 1798,
+        "observedRuntimeKeccak256": "0xedc5281a85c0efecd49999a1ef668390c59b88702f2d4a07029d7f5d63059d6c",
+        "partialRuntimeMatch": true
+      },
+      {
+        "contract": "FiatTokenV2_2",
+        "address": "0xd74cc5d436923b8ba2c179b4bCA2841D8A52C5B5",
+        "runtimeBytes": 23464,
+        "observedRuntimeKeccak256": "0x1254951e5483b882fd5def9452f58fe786eb3380c0bf9bb2744fa21a0a97a16c",
+        "link": {
+          "name": "SignatureChecker",
+          "address": "0xba3b60c21e28c41df4babd90f228e1d368627da6",
+          "runtimeReferenceOffsets": [
+            18391,
+            20106
+          ]
+        },
+        "partialRuntimeMatch": true
+      },
+      {
+        "contract": "SignatureChecker",
+        "address": "0xba3b60c21e28c41df4babd90f228e1d368627da6",
+        "runtimeBytes": 1741,
+        "observedRuntimeKeccak256": "0x0855e691adf48a1a47437ec347119ebfea7d3997af9a17f253178569753665c0",
+        "partialRuntimeMatch": true
+      }
+    ],
+    "fullRuntimeAndMetadataMatch": false,
+    "metadataLimitation": "The executable runtime region matches, but the deployed CBOR/IPFS metadata digest differs from the release build. The deployed metadata document was not fetched from IPFS, so full metadata/source-input equivalence is not claimed."
+  },
+  "reproduction": {
+    "prepare": [
+      "Install Node 20.18.0.",
+      "Clone circlefin/stablecoin-evm and check out release-2026-08-12T202509 (fc85788bc7c23cefe3df1a757133048bfddadeaa).",
+      "Run corepack yarn install --frozen-lockfile; Circle setup installs its pinned Foundry nightly and submodules.",
+      "Run forge build.",
+      "At block 48021662, retrieve eth_getCode for the proxy, implementation, and linked SignatureChecker addresses into local files.",
+      "Run hardhat verifyOnChainBytecode for each component with --verification-type partial; for FiatTokenV2_2 provide --library-name SignatureChecker and the observed --library-address; for SignatureChecker use --is-library true."
+    ],
+    "expected": "Each Circle verifier invocation reports that supplied partial runtime bytecode is consistent with the local version."
+  },
+  "assuranceBoundary": [
+    "This is read-only testnet code identity evidence at one pinned block, not a deployment or token-use approval.",
+    "It does not prove the asset has financial value, that an operator controls funded USDC, or that any deployment has occurred.",
+    "Full CBOR/IPFS metadata and exact source-input equivalence remain unresolved."
+  ]
+}
