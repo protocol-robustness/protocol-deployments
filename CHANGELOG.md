@@ -6,6 +6,7 @@
 
 - Plan-selected deployments reject repeated-byte sentinel values in constructor root bindings before producing a deployable configuration; canonical root derivation and semantic approval remain separate requirements.
 - Stage-output verification now authenticates contract facts against their producing stage and live deployment evidence. Auxiliary values are retained only when declared and unconsumed, under the receipt commitment; they cannot be used as downstream authority without a stage-specific verifier.
+- Stage-output consumption now requires `--source-revision` to equal the executing checkout's Git HEAD and refuses a dirty checkout; a caller-supplied revision string alone is no longer accepted as source identity.
 
 ### Added
 

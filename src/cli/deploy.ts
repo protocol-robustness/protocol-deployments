@@ -35,6 +35,7 @@ import { deploymentPlanHash, planExecutionRoot } from '../deployment/plan-execut
 import { assertPlanDeployable, unsupportedDeploymentPrerequisite } from '../deployment/successor-plan';
 import { verifyStageOutputReceiptGraph } from '../deployment/stage-output';
 import { mayRetainCommittedAuxiliaryOutput, verifyStageOutputContractFact } from '../deployment/stage-output-live';
+import { assertSourceRevisionMatchesCheckout } from '../deployment/source-revision';
 
 interface DeployOptions {
   bundle: BundleConsumer;
@@ -237,6 +238,7 @@ async function run(
     if (!plan || !resolved.stageOutputReceipts) throw new ConfigError('PLAN_STAGE_OUTPUT_RECEIPTS_REQUIRED', 'Selected stage-output dependencies require --stage-output-receipts');
     const sourceRevision = flagValue('source-revision');
     if (!sourceRevision) throw new ConfigError('PLAN_STAGE_OUTPUT_SOURCE_REVISION_REQUIRED', 'Selected stage-output dependencies require --source-revision matching the producing execution');
+    assertSourceRevisionMatchesCheckout(sourceRevision);
     stageOutputBindings = await verifyPlanStageOutputDependencies({
       plan, receipts: resolved.stageOutputReceipts, resolved, bundle, transport: bound.transport, sourceRevision, chainId,
     });
