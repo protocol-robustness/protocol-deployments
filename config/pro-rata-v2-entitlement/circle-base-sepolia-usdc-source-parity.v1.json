@@ -137,7 +137,8 @@
         "Explorer verification is secondary provenance and does not bind the source to a Circle-published public git commit.",
         "The implementation remains only partially verified; full runtime/metadata equality was not reproduced.",
         "The proxy and SignatureChecker source content is runtime-consistent but differs byte-for-byte from the public Circle release sources."
-      ]
+      ],
+      "digestScope": "SHA-256 over compact JSON.stringify of the parsed response object; this is not a digest of the raw HTTP wire representation."
     }
   },
   "reproduction": {
