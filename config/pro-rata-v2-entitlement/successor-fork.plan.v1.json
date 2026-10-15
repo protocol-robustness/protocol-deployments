@@ -118,7 +118,8 @@
       "consumes": {},
       "produces": [
         "localToken"
-      ]
+      ],
+      "contractOutputs": { "localToken": "prf/local-token" }
     },
     {
       "id": "derive-genesis-roots",
@@ -153,7 +154,13 @@
         "sp1Verifier",
         "successorAdapter",
         "verifierId"
-      ]
+      ],
+      "contractOutputs": {
+        "authorityAdapter": "prf/governance-authority",
+        "registry": "prf/verifier-registry",
+        "sp1Verifier": "prf/sp1-verifier-groth16",
+        "successorAdapter": "prf/source-bound-entitlement-verifier-adapter-v1"
+      }
     },
     {
       "id": "derive-initial-configuration",
@@ -298,7 +305,8 @@
       "produces": [
         "genesisAddress",
         "genesisRuntimeCodeHash"
-      ]
+      ],
+      "contractOutputs": { "genesisAddress": "prf/genesis" }
     },
     {
       "id": "derive-chain-instance-root",
@@ -396,7 +404,8 @@
       },
       "produces": [
         "configurationExecutor"
-      ]
+      ],
+      "contractOutputs": { "configurationExecutor": "prf/configuration-executor" }
     },
     {
       "id": "derive-successor-configuration",
@@ -520,7 +529,8 @@
       },
       "produces": [
         "admission"
-      ]
+      ],
+      "contractOutputs": { "admission": "prf/statement-admission" }
     },
     {
       "id": "deploy-protected-operations",
@@ -539,7 +549,12 @@
         "preparedController",
         "allocator",
         "reserve"
-      ]
+      ],
+      "contractOutputs": {
+        "preparedController": "shortfall/prepared-operation-controller-v2",
+        "allocator": "shortfall/pro-rata-allocator-v2",
+        "reserve": "shortfall/shortfall-reserve-v2"
+      }
     },
     {
       "id": "deploy-successor-entitlements",
@@ -563,7 +578,11 @@
         "assurance",
         "ratificationController",
         "boundRoles"
-      ]
+      ],
+      "contractOutputs": {
+        "assurance": "shortfall/source-bound-entitlement-assurance-v1",
+        "ratificationController": "shortfall/entitlement-ratification-controller-v1"
+      }
     },
     {
       "id": "proof-admission-and-operation",

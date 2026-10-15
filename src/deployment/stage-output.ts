@@ -112,10 +112,17 @@ export function readStageOutputReceiptDirectory(directory: string): Record<strin
 export function stageOutputValuesForPlan(
   plan: SuccessorDeploymentPlanV1,
   receipts: Readonly<Record<string, unknown>>,
+  crossPlanValues: Readonly<Record<string, unknown>> = {},
 ): Record<string, unknown> {
   const values: Record<string, unknown> = {};
   for (const [logicalId, source] of Object.entries(plan.contracts)) {
     if (source.kind !== 'stage-output') continue;
+    if (source.producer) {
+      const value = crossPlanValues[logicalId];
+      if (!value || typeof value !== 'object') throw new ConfigError('CROSS_PLAN_STAGE_OUTPUT_EVIDENCE_REQUIRED', `Pinned producer evidence is required for '${logicalId}'`);
+      values[logicalId] = value;
+      continue;
+    }
     const parsed = stageOutputReceiptV1Schema.safeParse(receipts[source.stage]);
     if (!parsed.success) throw new ConfigError('STAGE_OUTPUT_RECEIPT_INVALID', `No valid stage-output receipt was supplied for '${source.stage}'`);
     const receipt = parsed.data;

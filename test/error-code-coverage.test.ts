@@ -22,6 +22,23 @@ function tsFiles(dir: string, out: string[] = []): string[] {
  * must state why; anything else has to gain a test.
  */
 const UNTESTED: Record<string, string> = {
+  CROSS_PLAN_CONTRACT_SUBSTITUTION: 'requires a producer execution output that disagrees with its retained deployment manifest; consumer tests cover output substitution before live execution',
+  CROSS_PLAN_LOCAL_ONLY_DEPENDENCY: 'requires promoting a local-only producer into a non-local consumer profile; public chain execution is intentionally not run in unit tests',
+  CROSS_PLAN_MANIFEST_MISMATCH: 'requires a fully re-rooted producer evidence package whose manifest differs from the consumer-pinned manifest root',
+  CROSS_PLAN_PRODUCER_PLAN_INVALID: 'requires malformed nested producer-plan data; plan schema validation is covered independently',
+  CROSS_PLAN_STAGE_OUTPUT_DEPENDENCIES_MISSING: 'requires recursively nested cross-plan evidence with one omitted producer dependency; current producer plan has no nested cross-plan dependency',
+  CROSS_PLAN_STAGE_OUTPUT_DIRECTORY_MISSING: 'requires invoking the resolver with a nonexistent CLI evidence directory',
+  CROSS_PLAN_STAGE_OUTPUT_DUPLICATE: 'requires filesystem directory loading with two evidence packages for the same logical contract',
+  CROSS_PLAN_STAGE_OUTPUT_EVIDENCE_REQUIRED: 'resolver/deploy CLI preflight when a pinned cross-plan source omits its evidence directory',
+  CROSS_PLAN_STAGE_OUTPUT_EVIDENCE_SET: 'requires a filesystem evidence directory with extra or missing package files versus the selected plan',
+  CROSS_PLAN_STAGE_OUTPUT_EXISTS_CONFLICT: 'requires writing conflicting immutable evidence to an already occupied content-addressed filename',
+  CROSS_PLAN_STAGE_OUTPUT_LIVE_VERIFICATION_FAILED: 'requires a full deploy CLI run with RPC receipt/runtime evidence disagreeing with the producer output',
+  CROSS_PLAN_STAGE_OUTPUT_NOT_PINNED: 'requires invoking the verifier for a logical contract not selected as a pinned cross-plan source',
+  CROSS_PLAN_STAGE_OUTPUT_ROOT_MISMATCH: 'requires tampering with an evidence package without changing its consumer-pinned root',
+  CROSS_PLAN_VERIFICATION_CONTRACT_MISSING: 'requires a fully re-rooted producer verification report omitting its deployed contract observation',
+  CROSS_PLAN_VERIFICATION_INVALID: 'requires malformed producer verification report schema; the wrong-root and wrong-chain verification cases are covered',
+  CROSS_PLAN_VERIFICATION_ROOT_MISMATCH: 'requires a consumer plan whose verification-root pin alone differs from an otherwise valid evidence package',
+  DEPLOYMENT_PLAN_STAGE_OUTPUT_CYCLE: 'requires a self-referential consumer plan hash pin, which would require a cryptographic fixed point',
   DEVNET_NOT_READY: 'requires a pid file naming a live but unresponsive anvil',
   DEVNET_PORT_IN_USE: 'requires a foreign process to already own the devnet port',
   DEVNET_START_TIMEOUT: 'requires anvil to never become ready (up to 20s)',

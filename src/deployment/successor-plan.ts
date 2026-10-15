@@ -3,20 +3,32 @@ import { z } from 'zod';
 import { ConfigError } from '../errors';
 import type { LoadedConfig } from '../config/load';
 import type { RawEnvironment } from '../config/raw-types';
+import { deploymentPlanHash } from './plan-execution';
 
 const valueRefSchema = z.object({ stage: z.string().min(1), output: z.string().min(1) }).strict();
+const producerIdentitySchema = z.object({
+  planId: z.string().min(1),
+  planHash: z.string().regex(/^0x[0-9a-f]{64}$/),
+  executionRoot: z.string().regex(/^0x[0-9a-f]{64}$/),
+  manifestRoot: z.string().regex(/^0x[0-9a-f]{64}$/),
+  verificationRoot: z.string().regex(/^0x[0-9a-f]{64}$/),
+  evidenceRoot: z.string().regex(/^0x[0-9a-f]{64}$/),
+  outputRoot: z.string().regex(/^0x[0-9a-f]{64}$/),
+  address: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+}).strict();
 const stageSchema = z.object({
   id: z.string().min(1),
   kind: z.enum(['external-preflight', 'deploy', 'derive-canonical-roots', 'authorize-configuration', 'seal-genesis', 'verify', 'proof-admission', 'protected-execution', 'entitlement-execution', 'reconcile']),
   dependsOn: z.array(z.string()),
   consumes: z.record(z.string(), valueRefSchema).default({}),
   produces: z.array(z.string()),
+  contractOutputs: z.record(z.string(), z.string().min(1)).optional(),
 }).strict();
 
 const contractSourceSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('deploy'), unit: z.string().min(1), stage: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('external'), unit: z.string().min(1), dependencyId: z.string().min(1), stage: z.string().min(1) }).strict(),
-  z.object({ kind: z.literal('stage-output'), unit: z.string().min(1), stage: z.string().min(1), output: z.string().min(1) }).strict(),
+  z.object({ kind: z.literal('stage-output'), unit: z.string().min(1), stage: z.string().min(1), output: z.string().min(1), producer: producerIdentitySchema.optional() }).strict(),
   z.object({ kind: z.literal('admitted-release'), unit: z.string().min(1), releaseId: z.string().min(1), logicalId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('local-fixture'), unit: z.string().min(1), fixtureId: z.string().min(1), stage: z.string().min(1) }).strict(),
 ]);
@@ -147,6 +159,15 @@ export function validateSuccessorDeploymentPlan(plan: SuccessorDeploymentPlanV1)
     if (new Set(stage.produces).size !== stage.produces.length || stage.produces.some((value) => value.length === 0)) {
       throw new ConfigError('DEPLOYMENT_PLAN_STAGE_OUTPUT', `Stage '${stage.id}' has empty or duplicate outputs`);
     }
+    if (stage.contractOutputs) {
+      if (stage.kind !== 'deploy' || Object.keys(stage.contractOutputs).some((output) => !stage.produces.includes(output))) {
+        throw new ConfigError('DEPLOYMENT_PLAN_CONTRACT_OUTPUT', `Stage '${stage.id}' contractOutputs must map declared outputs of a deploy stage`);
+      }
+      const logicalIds = Object.values(stage.contractOutputs);
+      if (new Set(logicalIds).size !== logicalIds.length) {
+        throw new ConfigError('DEPLOYMENT_PLAN_CONTRACT_OUTPUT', `Stage '${stage.id}' contractOutputs must uniquely name contracts deployed by that stage`);
+      }
+    }
     seenStages.set(stage.id, stage);
     stageOutputs.set(stage.id, new Set(stage.produces));
   }
@@ -161,9 +182,28 @@ export function validateSuccessorDeploymentPlan(plan: SuccessorDeploymentPlanV1)
       }
     }
     if (source.kind === 'stage-output') {
-      const stage = seenStages.get(source.stage);
-      if (!stage?.dependsOn.length) throw new ConfigError('DEPLOYMENT_PLAN_STAGE_DEPENDENCY', `'${logicalId}' stage output must come from an explicitly declared earlier stage`);
-      if (!stage?.produces.includes(source.output)) throw new ConfigError('DEPLOYMENT_PLAN_STAGE_OUTPUT', `'${logicalId}' references an unavailable stage output`);
+      if (source.producer) {
+        if (source.producer.planId === plan.planId && source.producer.planHash === deploymentPlanHash(plan)) {
+          throw new ConfigError('DEPLOYMENT_PLAN_STAGE_OUTPUT_CYCLE', `Stage output '${logicalId}' cannot depend on itself`);
+        }
+      } else {
+        const stage = seenStages.get(source.stage);
+        if (!stage?.dependsOn.length) throw new ConfigError('DEPLOYMENT_PLAN_STAGE_DEPENDENCY', `'${logicalId}' stage output must come from an explicitly declared earlier stage`);
+        if (!stage?.produces.includes(source.output)) throw new ConfigError('DEPLOYMENT_PLAN_STAGE_OUTPUT', `'${logicalId}' references an unavailable stage output`);
+      }
+    }
+  }
+  for (const stage of plan.stages) {
+    for (const [output, logicalId] of Object.entries(stage.contractOutputs ?? {})) {
+      const source = plan.contracts[logicalId];
+      if (!source) continue; // A consumer plan may retain the producer's output map for provenance.
+      if (source.kind === 'stage-output') {
+        if (source.stage !== stage.id || source.output !== output) throw new ConfigError('DEPLOYMENT_PLAN_CONTRACT_OUTPUT', `Stage output '${stage.id}.${output}' conflicts with the selected cross-plan source for '${logicalId}'`);
+      } else if (source.kind === 'admitted-release' || source.kind === 'external') {
+        continue;
+      } else if ((source.kind !== 'deploy' && source.kind !== 'local-fixture') || source.stage !== stage.id) {
+        throw new ConfigError('DEPLOYMENT_PLAN_CONTRACT_OUTPUT', `Stage output '${stage.id}.${output}' does not identify a contract deployed by that stage`);
+      }
     }
   }
   const stageIndex = new Map(plan.stages.map((stage, index) => [stage.id, index]));
@@ -295,7 +335,7 @@ export function projectConfigurationForPlan(
       case 'admitted-release':
         throw new ConfigError('PLAN_ADMITTED_RELEASE_UNSUPPORTED', `Admitted release '${source.releaseId}' is declared but no admitted-release resolver is configured`);
     }
-    if ('stage' in source) {
+    if ('stage' in source && !(source.kind === 'stage-output' && source.producer)) {
       const stage = stageOrder.get(source.stage);
       if (stage === undefined) throw new ConfigError('DEPLOYMENT_PLAN_CONTRACT_STAGE', `No execution stage is declared for '${id}'`);
     }
@@ -323,7 +363,7 @@ export function projectConfigurationForPlan(
     ]);
     for (const dependencyId of dependencies) {
       const dependencySource = plan.contracts[dependencyId];
-      if (dependencySource?.kind !== 'stage-output') continue;
+      if (dependencySource?.kind !== 'stage-output' || dependencySource.producer) continue;
       if (!consumerStage || stageOrder.get(dependencySource.stage)! >= stageOrder.get(consumerStage)! ||
           !stageDependsOn(consumerStage, dependencySource.stage)) {
         throw new ConfigError('PLAN_STAGE_OUTPUT_ORDER', `Selected contract '${id}' consumes stage output '${dependencyId}' without depending on its completed producer stage '${dependencySource.stage}'`);

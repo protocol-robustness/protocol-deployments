@@ -311,6 +311,28 @@ describe('bounded successor deployment plan', () => {
     const receipt = { ...body, planExecutionRoot: planExecutionRoot(body) };
     expect(() => assertPlanExecutionMatchesManifest(receipt, fixture, manifest)).not.toThrow();
 
+    const crossPlan = structuredClone(fixture);
+    (crossPlan.contracts['prf/sp1-verifier-groth16'] as Extract<typeof crossPlan.contracts[string], { kind: 'stage-output' }>).producer = {
+      planId: 'prf/controlled-shortfall-successor-fork.v1', planHash: `0x${'01'.repeat(32)}`,
+      executionRoot: `0x${'02'.repeat(32)}`, manifestRoot: `0x${'03'.repeat(32)}`, verificationRoot: `0x${'04'.repeat(32)}`,
+      evidenceRoot: `0x${'05'.repeat(32)}`, outputRoot: `0x${'88'.repeat(32)}`, address: `0x${'55'.repeat(20)}`,
+    };
+    const crossBody = {
+      ...body,
+      planHash: deploymentPlanHash(crossPlan),
+      selectedContracts: Object.entries(crossPlan.contracts).map(([logicalId, source]) => ({ logicalId, ...source })),
+      stageOutputBindings: [{ logicalId: 'prf/sp1-verifier-groth16', stage: 'deploy-authority-and-verifier', output: 'sp1Verifier', evidenceRoot: `0x${'05'.repeat(32)}`, outputRoot: `0x${'88'.repeat(32)}`, address: `0x${'55'.repeat(20)}` }],
+    };
+    const crossReceipt = { ...crossBody, planExecutionRoot: planExecutionRoot(crossBody) };
+    expect(() => assertPlanExecutionMatchesManifest(crossReceipt, crossPlan, manifest)).not.toThrow();
+    const mislabeledEvidence = structuredClone(crossReceipt);
+    const mislabeledBinding = mislabeledEvidence.stageOutputBindings[0] as Record<string, unknown>;
+    mislabeledBinding.receiptRoot = `0x${'05'.repeat(32)}`;
+    delete mislabeledBinding.evidenceRoot;
+    const { planExecutionRoot: _mislabeledRoot, ...mislabeledBody } = mislabeledEvidence;
+    mislabeledEvidence.planExecutionRoot = planExecutionRoot(mislabeledBody);
+    expectCode(() => assertPlanExecutionMatchesManifest(mislabeledEvidence, crossPlan, manifest), 'PLAN_EXECUTION_STAGE_OUTPUTS_MISMATCH');
+
     const { stageOutputBindings: _omittedBindings, planExecutionRoot: _missingRoot, ...missingBody } = structuredClone(receipt);
     const missing = { ...missingBody, planExecutionRoot: planExecutionRoot(missingBody) };
     expectCode(() => assertPlanExecutionMatchesManifest(missing, fixture, manifest), 'PLAN_EXECUTION_STAGE_OUTPUTS_MISSING');
@@ -428,6 +450,12 @@ describe('bounded successor deployment plan', () => {
     missingOutput.stages[2]!.dependsOn.push('deploy-local-token');
     missingOutput.stages[2]!.consumes!.notARealFact = { stage: 'deploy-local-token', output: 'notARealFact' };
     expectCode(() => validateSuccessorDeploymentPlan(missingOutput), 'DEPLOYMENT_PLAN_STAGE_OUTPUT');
+  });
+
+  it('rejects a contract output mapped to a contract from another stage', () => {
+    const mismatched = structuredClone(plan);
+    mismatched.stages.find((stage) => stage.id === 'deploy-local-token')!.contractOutputs = { localToken: 'prf/sp1-verifier-groth16' };
+    expectCode(() => validateSuccessorDeploymentPlan(mismatched), 'DEPLOYMENT_PLAN_CONTRACT_OUTPUT');
   });
 
   it('keeps the unit catalog closed to malformed dependency classes', () => {

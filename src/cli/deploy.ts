@@ -36,6 +36,7 @@ import { assertPlanDeployable, unsupportedDeploymentPrerequisite } from '../depl
 import { verifyStageOutputReceiptGraph } from '../deployment/stage-output';
 import { mayRetainCommittedAuxiliaryOutput, verifyStageOutputContractFact } from '../deployment/stage-output-live';
 import { assertSourceRevisionMatchesCheckout } from '../deployment/source-revision';
+import { verifyCrossPlanStageOutput } from '../deployment/cross-plan-stage-output';
 
 interface DeployOptions {
   bundle: BundleConsumer;
@@ -132,10 +133,11 @@ async function main(): Promise<void> {
   const timeoutArg = flagValue('receipt-timeout-ms');
   const planArg = flagValue('plan');
   const stageOutputReceiptsDirArg = flagValue('stage-output-receipts');
+  const crossPlanStageOutputEvidenceDirArg = flagValue('cross-plan-stage-output-evidence');
   const legacyFlat = process.argv.includes('--legacy-flat');
   const profileDir = profileArg >= 0 ? path.resolve(process.cwd(), process.argv[profileArg + 1]!) : undefined;
   if (!environment || (planArg !== undefined) === legacyFlat) {
-    console.error('Usage: deploy.ts <environment> (--plan <plan.json> | --legacy-flat) [--profile <dir>] [--fixtures <dir>] [--stage-output-receipts <dir>] [--source-revision <id>] [--deployment-key <key>] [--resume] [--dry-run] [--yes] [--max-fee <wei>] [--priority-fee <wei>] [--receipt-timeout-ms <ms>]');
+    console.error('Usage: deploy.ts <environment> (--plan <plan.json> | --legacy-flat) [--profile <dir>] [--fixtures <dir>] [--stage-output-receipts <dir>] [--cross-plan-stage-output-evidence <dir>] [--source-revision <id>] [--deployment-key <key>] [--resume] [--dry-run] [--yes] [--max-fee <wei>] [--priority-fee <wei>] [--receipt-timeout-ms <ms>]');
     process.exit(2);
   }
   if (priorityFeeArg !== undefined && maxFeeArg === undefined) {
@@ -176,6 +178,7 @@ async function main(): Promise<void> {
     requirePinnedProvenance,
     deploymentPlanFile: planArg ? path.resolve(process.cwd(), planArg) : undefined,
     stageOutputReceiptsDir: stageOutputReceiptsDirArg ? path.resolve(process.cwd(), stageOutputReceiptsDirArg) : undefined,
+    crossPlanStageOutputEvidenceDir: crossPlanStageOutputEvidenceDirArg ? path.resolve(process.cwd(), crossPlanStageOutputEvidenceDirArg) : undefined,
   });
   if (resolved.deploymentPlan && !resume) {
     assertPlanDeployable(resolved.deploymentPlan);
@@ -233,15 +236,35 @@ async function run(
   assertChainIdMatches({ chainId: resolved.spec.chain.chainId, environment }, chainId);
   const deployer = await bound.signer.getAddress();
   const stageOutputSources = Object.entries(plan?.contracts ?? {}).filter(([, source]) => source.kind === 'stage-output');
-  let stageOutputBindings: Array<{ logicalId: string; stage: string; output: string; receiptRoot: string; outputRoot: string; address: string }> = [];
+  let stageOutputBindings: Array<{ logicalId: string; stage: string; output: string; receiptRoot?: string; evidenceRoot?: string; outputRoot: string; address: string }> = [];
   if (stageOutputSources.length > 0) {
-    if (!plan || !resolved.stageOutputReceipts) throw new ConfigError('PLAN_STAGE_OUTPUT_RECEIPTS_REQUIRED', 'Selected stage-output dependencies require --stage-output-receipts');
-    const sourceRevision = flagValue('source-revision');
-    if (!sourceRevision) throw new ConfigError('PLAN_STAGE_OUTPUT_SOURCE_REVISION_REQUIRED', 'Selected stage-output dependencies require --source-revision matching the producing execution');
-    assertSourceRevisionMatchesCheckout(sourceRevision);
-    stageOutputBindings = await verifyPlanStageOutputDependencies({
-      plan, receipts: resolved.stageOutputReceipts, resolved, bundle, transport: bound.transport, sourceRevision, chainId,
-    });
+    if (!plan) throw new ConfigError('PLAN_STAGE_OUTPUT_RECEIPTS_REQUIRED', 'Selected stage-output dependencies require a plan');
+    const legacy = stageOutputSources.some(([, source]) => source.kind === 'stage-output' && !source.producer);
+    if (legacy) {
+      if (!resolved.stageOutputReceipts) throw new ConfigError('PLAN_STAGE_OUTPUT_RECEIPTS_REQUIRED', 'Legacy stage-output dependencies require --stage-output-receipts');
+      const sourceRevision = flagValue('source-revision');
+      if (!sourceRevision) throw new ConfigError('PLAN_STAGE_OUTPUT_SOURCE_REVISION_REQUIRED', 'Legacy stage-output dependencies require --source-revision matching the producing execution');
+      assertSourceRevisionMatchesCheckout(sourceRevision);
+      stageOutputBindings.push(...await verifyPlanStageOutputDependencies({
+        plan, receipts: resolved.stageOutputReceipts, resolved, bundle, transport: bound.transport, sourceRevision, chainId,
+      }));
+    }
+    for (const [logicalId, source] of stageOutputSources) {
+      if (source.kind !== 'stage-output' || !source.producer) continue;
+      const evidence = resolved.crossPlanStageOutputEvidence?.[logicalId];
+      if (!evidence) throw new ConfigError('CROSS_PLAN_STAGE_OUTPUT_EVIDENCE_REQUIRED', `Cross-plan producer evidence is missing for '${logicalId}'`);
+      const authenticated = verifyCrossPlanStageOutput({ consumerPlan: plan, logicalId, evidence });
+      const contractOutput = await verifyStageOutputContractFact({
+        plan, stageId: source.stage, outputName: source.output, value: authenticated.value,
+        contracts: resolved.spec.contracts, bundle, transport: bound.transport, expectedChainId: chainId,
+      });
+      if (!contractOutput?.selectedStageOutput || contractOutput.address.toLowerCase() !== source.producer.address.toLowerCase()) {
+        throw new ConfigError('CROSS_PLAN_STAGE_OUTPUT_LIVE_VERIFICATION_FAILED', `Producer contract '${logicalId}' failed live receipt/runtime verification`);
+      }
+      stageOutputBindings.push({ logicalId, stage: source.stage, output: source.output, evidenceRoot: authenticated.evidenceRoot,
+        outputRoot: authenticated.outputRoot, address: authenticated.value.address });
+    }
+    stageOutputBindings.sort((a, b) => a.logicalId.localeCompare(b.logicalId));
   }
   const externalContractObservations = await verifyExternalContracts(resolved.spec, bundle, bound.transport, deployer);
   for (const dependency of externalContractObservations) {

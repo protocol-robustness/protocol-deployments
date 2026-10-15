@@ -52,18 +52,29 @@ export function assertPlanExecutionMatchesManifest(
     ? [{ logicalId, stage: source.stage, output: source.output }]
     : []);
   const stageOutputBindings = receipt.stageOutputBindings as Array<{
-    logicalId: string; stage: string; output: string; receiptRoot: string; outputRoot: string; address: string;
+    logicalId: string; stage: string; output: string; receiptRoot?: string; evidenceRoot?: string; outputRoot: string; address: string;
   }> | undefined;
   if (stageOutputSources.length > 0) {
     if (!Array.isArray(stageOutputBindings)) throw new ConfigError('PLAN_EXECUTION_STAGE_OUTPUTS_MISSING', 'Plan execution receipt omits authenticated stage-output bindings');
     const expected = [...stageOutputSources].sort((a, b) => a.logicalId.localeCompare(b.logicalId));
     const observed = stageOutputBindings.map(({ logicalId, stage, output }) => ({ logicalId, stage, output })).sort((a, b) => a.logicalId.localeCompare(b.logicalId));
-    if (canonicalJson(observed) !== canonicalJson(expected) || stageOutputBindings.some((binding) => !/^0x[0-9a-f]{64}$/.test(binding.receiptRoot) || !/^0x[0-9a-f]{64}$/.test(binding.outputRoot) || !/^0x[0-9a-fA-F]{40}$/.test(binding.address))) {
+    if (canonicalJson(observed) !== canonicalJson(expected) || stageOutputBindings.some((binding) => !/^0x[0-9a-f]{64}$/.test(binding.outputRoot) || !/^0x[0-9a-fA-F]{40}$/.test(binding.address))) {
       throw new ConfigError('PLAN_EXECUTION_STAGE_OUTPUTS_MISMATCH', 'Plan execution stage-output bindings do not match selected sources or contain malformed commitments');
+    }
+    for (const binding of stageOutputBindings) {
+      const source = plan.contracts[binding.logicalId];
+      const validLegacy = source?.kind === 'stage-output' && !source.producer &&
+        /^0x[0-9a-f]{64}$/.test(binding.receiptRoot ?? '') && binding.evidenceRoot === undefined;
+      const validCrossPlan = source?.kind === 'stage-output' && source.producer &&
+        binding.receiptRoot === undefined && binding.evidenceRoot === source.producer.evidenceRoot;
+      if (!validLegacy && !validCrossPlan) throw new ConfigError('PLAN_EXECUTION_STAGE_OUTPUTS_MISMATCH', `Stage-output binding '${binding.logicalId}' does not match its declared evidence type`);
     }
     if (manifest.type !== 'protocol-deployment-manifest/v2' || stageOutputBindings.some((binding) => {
       const observedContract = manifest.externalContracts.find((candidate) => candidate.logicalId === binding.logicalId);
-      return !observedContract || observedContract.address.toLowerCase() !== binding.address.toLowerCase();
+      const source = plan.contracts[binding.logicalId];
+      const producerMismatch = source?.kind === 'stage-output' && source.producer &&
+        (binding.evidenceRoot !== source.producer.evidenceRoot || binding.outputRoot !== source.producer.outputRoot || binding.address.toLowerCase() !== source.producer.address.toLowerCase());
+      return !observedContract || observedContract.address.toLowerCase() !== binding.address.toLowerCase() || producerMismatch;
     })) {
       throw new ConfigError('PLAN_EXECUTION_STAGE_OUTPUT_MANIFEST_MISMATCH', 'Stage-output bindings do not match the external observations in the manifest');
     }

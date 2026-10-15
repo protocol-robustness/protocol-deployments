@@ -85,9 +85,19 @@ to exactly the plan's contract set. Constructor/relationship references to an
 unselected contract fail closed; explicit sources determine deployment order,
 and only `deploy` and local-only `local-fixture` sources produce deployment
 steps. External sources must be explicitly bound in the environment and are
-verified by the existing external-contract checker. `stage-output` and
-`admitted-release` sources currently fail closed because this repository does
-not yet have verified stage-output receipts or admitted-release resolution.
+verified by the existing external-contract checker. Same-plan `stage-output`
+sources use the existing v1 receipt graph. A cross-plan stage output may instead
+pin its producer plan hash, execution root, deployment manifest root, live
+verification root, output root, evidence package root, and deployed address in
+the consumer plan. `--cross-plan-stage-output-evidence <dir>` supplies the
+retained producer plan, execution receipt, manifest, verification report, and
+nested producer evidence. The resolver reconstructs those roots and rejects
+missing, substituted, incomplete, cyclic, or wrong-chain evidence; before any
+transaction the CLI also rechecks the producer deployment transaction, block,
+historical runtime, and current runtime against the consumer's selected pinned
+artifact. Cross-plan evidence is recorded in its own `evidenceRoot` field and
+does not reinterpret the same-plan v1 `receiptRoot`. Admitted-release sources
+remain fail-closed pending the authoritative downstream release format.
 Legacy flat execution remains available only with the explicit
 `--legacy-flat` flag. Fresh selected-plan deployment also checks stage
 prerequisites before signer/runtime use and refuses if a selected deployment
