@@ -60,7 +60,47 @@
       }
     ],
     "fullRuntimeAndMetadataMatch": false,
-    "metadataLimitation": "The executable runtime region matches, but the deployed CBOR/IPFS metadata digest differs from the release build. The deployed metadata document was not fetched from IPFS, so full metadata/source-input equivalence is not claimed."
+    "metadataLimitation": "The proxy metadata was fetched by its embedded IPFS CID and the CID recomputed successfully. Its metadata source paths name a private Circle Base Sepolia USDC source tree. Four Circle proxy source hashes differ from the public release checkout; the OpenZeppelin Address.sol source hash matches. The implementation and linked-library metadata CIDs could not be retrieved from available public gateways. Runtime logic matches before the CBOR/IPFS metadata region, but exact deployed source/artifact equivalence is not established.",
+    "proxyMetadata": {
+      "ipfsCid": "QmVp8Jgv5NKUoSC1TXhRMmEi9jiUvqGupW7iDmaCr9mBeE",
+      "cidRecomputedFromRetrievedRawMetadata": true,
+      "compilationTargetPath": "/Users/quang.lam/Documents/GitHub/stablecoin-evm-private-usdc-cbase-testnet/contracts/v1/FiatTokenProxy.sol",
+      "sourceHashComparisons": [
+        {
+          "source": "contracts/upgradeability/AdminUpgradeabilityProxy.sol",
+          "deployedMetadataKeccak256": "0x3700a1429346a9becbbd544277e913aaf830dab3fe33e103bf1150e882c02850",
+          "publicReleaseKeccak256": "0x55b58fa45bd1ebf255d2eabbd9257445fce2ae7486e8e683623d3375d2d93d1e",
+          "match": false
+        },
+        {
+          "source": "contracts/upgradeability/Proxy.sol",
+          "deployedMetadataKeccak256": "0xf8039682ff5cec14b6198c824419f592693e0b9c5194dded5325592956304cdb",
+          "publicReleaseKeccak256": "0x2cfa23c03d22d153d41e3b4f2c68e46e4b207205b5d12345b43e575b1da8164a",
+          "match": false
+        },
+        {
+          "source": "contracts/upgradeability/UpgradeabilityProxy.sol",
+          "deployedMetadataKeccak256": "0x744492ffda6ce75de57a8698392600503898fdf2fd519039362ad21fd3d15a7c",
+          "publicReleaseKeccak256": "0x7d1312c9090e5fb98d6ab676edcf0c64099e7a251a18091566816a6a2dece517",
+          "match": false
+        },
+        {
+          "source": "contracts/v1/FiatTokenProxy.sol",
+          "deployedMetadataKeccak256": "0xe1a4cdc22ee5e0066976f87c13f90f009eefea4b7b371bb068a056799eae7745",
+          "publicReleaseKeccak256": "0x7ee55764f74b2983880409ab3873ad6a7299231cd48cb4b9d40a10259d012424",
+          "match": false
+        },
+        {
+          "source": "@openzeppelin/contracts/utils/Address.sol",
+          "deployedMetadataKeccak256": "0x28911e614500ae7c607a432a709d35da25f3bc5ddc8bd12b278b66358070c0ea",
+          "publicReleaseKeccak256": "0x28911e614500ae7c607a432a709d35da25f3bc5ddc8bd12b278b66358070c0ea",
+          "match": true
+        }
+      ],
+      "implementationMetadataCid": "QmUTXaoQGszf6ciXvSucGXQJckyKJHd8cDbxpxrKNeVUGK",
+      "signatureCheckerMetadataCid": "Qmc4oYNY4mLMgeDx4xQPXNM9kheqbFeB3MBzBx3FjMw7WY",
+      "implementationAndLibraryMetadataRetrieval": "unavailable; tested public gateway requests timed out or were rate limited"
+    }
   },
   "reproduction": {
     "prepare": [
@@ -76,6 +116,7 @@
   "assuranceBoundary": [
     "This is read-only testnet code identity evidence at one pinned block, not a deployment or token-use approval.",
     "It does not prove the asset has financial value, that an operator controls funded USDC, or that any deployment has occurred.",
-    "Full CBOR/IPFS metadata and exact source-input equivalence remain unresolved."
+    "Full CBOR/IPFS metadata and exact source-input equivalence remain unresolved.",
+    "The public Circle release source files are not proven byte-identical to the deployed proxy source snapshot; the retrieved metadata records four differing Circle source hashes."
   ]
 }
