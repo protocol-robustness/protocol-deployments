@@ -6,6 +6,7 @@ import { artifactIdentityOf, type ArtifactIdentity } from './record';
 import { runtimeMatches } from './engine';
 import type { ResolvedContract } from '../canonical';
 import type { RpcTransport } from '../runtime/transport';
+import type { SuccessorDeploymentPlanV1 } from './successor-plan';
 
 export const stageOutputDeploymentFactV1Schema = z.object({
   logicalId: z.string().min(1),
@@ -21,6 +22,67 @@ export const stageOutputDeploymentFactV1Schema = z.object({
 }).strict();
 
 export type StageOutputDeploymentFactV1 = z.infer<typeof stageOutputDeploymentFactV1Schema>;
+
+/**
+ * Auxiliary stage values have no semantic verifier in plan v1. They may be
+ * retained as receipt-committed evidence only while they are not used as an
+ * input by another stage or selected as a contract dependency. This prevents
+ * an unverified value from becoming deployment authority.
+ */
+export function mayRetainCommittedAuxiliaryOutput(input: {
+  plan: SuccessorDeploymentPlanV1;
+  stageId: string;
+  outputName: string;
+  value: unknown;
+}): boolean {
+  const stage = input.plan.stages.find((candidate) => candidate.id === input.stageId);
+  if (!stage?.produces.includes(input.outputName)) return false;
+  if (typeof input.value === 'object' && input.value !== null && 'logicalId' in input.value) return false;
+  const consumedByStage = input.plan.stages.some((candidate) =>
+    Object.values(candidate.consumes).some((reference) => reference.stage === input.stageId && reference.output === input.outputName));
+  const selectedAsContract = Object.values(input.plan.contracts).some((source) =>
+    source.kind === 'stage-output' && source.stage === input.stageId && source.output === input.outputName);
+  return !consumedByStage && !selectedAsContract;
+}
+
+/**
+ * Authenticate a contract fact emitted by a declared deployment stage. A
+ * selected stage-output dependency additionally requires the exact output
+ * name in the plan. Other values are deliberately not promoted by this
+ * helper; they need a stage-specific semantic verifier.
+ */
+export async function verifyStageOutputContractFact(input: {
+  plan: SuccessorDeploymentPlanV1;
+  stageId: string;
+  outputName: string;
+  value: unknown;
+  contracts: Readonly<Record<string, ResolvedContract>>;
+  bundle: BundleConsumer;
+  transport: RpcTransport;
+  expectedChainId: number;
+}): Promise<{ logicalId: string; address: string; selectedStageOutput: boolean } | undefined> {
+  const parsed = stageOutputDeploymentFactV1Schema.safeParse(input.value);
+  if (!parsed.success) return undefined;
+  const fact = parsed.data;
+  const source = input.plan.contracts[fact.logicalId];
+  const contract = input.contracts[fact.logicalId];
+  if (!source || !contract || !('stage' in source) || source.stage !== input.stageId) return undefined;
+  const selectedStageOutput = source.kind === 'stage-output';
+  if (selectedStageOutput && source.output !== input.outputName) return undefined;
+  if (source.kind !== 'deploy' && source.kind !== 'local-fixture' && !selectedStageOutput) return undefined;
+
+  const expectedArtifact = artifactIdentityOf(contract);
+  if (!await verifyStageOutputDeploymentFact({
+    logicalId: fact.logicalId,
+    value: fact,
+    contract,
+    expectedArtifact,
+    bundle: input.bundle,
+    transport: input.transport,
+    expectedChainId: input.expectedChainId,
+  })) return undefined;
+  return { logicalId: fact.logicalId, address: fact.address, selectedStageOutput };
+}
 
 /** Reauthenticate a stage output against its deployment transaction and pinned artifact. */
 export async function verifyStageOutputDeploymentFact(input: {

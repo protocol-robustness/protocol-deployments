@@ -34,7 +34,7 @@ import type { ResolvedBinding } from '../canonical';
 import { deploymentPlanHash, planExecutionRoot } from '../deployment/plan-execution';
 import { assertPlanDeployable, unsupportedDeploymentPrerequisite } from '../deployment/successor-plan';
 import { verifyStageOutputReceiptGraph } from '../deployment/stage-output';
-import { verifyStageOutputDeploymentFact } from '../deployment/stage-output-live';
+import { mayRetainCommittedAuxiliaryOutput, verifyStageOutputContractFact } from '../deployment/stage-output-live';
 
 interface DeployOptions {
   bundle: BundleConsumer;
@@ -91,23 +91,24 @@ async function verifyPlanStageOutputDependencies(input: {
     sourceRevision: input.sourceRevision,
     artifactIdentities,
     verifyOutput: async (stageId, outputName, value) => {
-      const fact = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
-      if (!fact || typeof fact.logicalId !== 'string') return false;
-      const source = input.plan.contracts[fact.logicalId];
-      const contract = input.resolved.spec.contracts[fact.logicalId];
-      if (source?.kind !== 'stage-output' || source.stage !== stageId || source.output !== outputName || !contract) return false;
-      const expectedArtifact = artifactIdentityOf(contract);
-      if (!await verifyStageOutputDeploymentFact({
-        logicalId: fact.logicalId,
+      const authenticated = await verifyStageOutputContractFact({
+        plan: input.plan,
+        stageId,
+        outputName,
         value,
-        contract,
-        expectedArtifact,
+        contracts: input.resolved.spec.contracts,
         bundle: input.bundle,
         transport: input.transport,
         expectedChainId: input.chainId,
-      })) return false;
-      observed.push({ logicalId: fact.logicalId, stage: stageId, output: outputName, address: String(fact.address) });
-      return true;
+      });
+      if (authenticated?.selectedStageOutput) {
+        observed.push({ logicalId: authenticated.logicalId, stage: stageId, output: outputName, address: authenticated.address });
+      }
+      if (authenticated) return true;
+      // The receipt verifier independently checks the output and receipt
+      // commitments. Unrecognized non-contract outputs are retained only if
+      // the selected plan does not consume them as authority anywhere.
+      return mayRetainCommittedAuxiliaryOutput({ plan: input.plan, stageId, outputName, value });
     },
   });
   return observed.map((binding) => {
