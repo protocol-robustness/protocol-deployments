@@ -100,6 +100,44 @@
       "implementationMetadataCid": "QmUTXaoQGszf6ciXvSucGXQJckyKJHd8cDbxpxrKNeVUGK",
       "signatureCheckerMetadataCid": "Qmc4oYNY4mLMgeDx4xQPXNM9kheqbFeB3MBzBx3FjMw7WY",
       "implementationAndLibraryMetadataRetrieval": "unavailable; tested public gateway requests timed out or were rate limited"
+    },
+    "explorerSourceEvidence": {
+      "explorer": "Blockscout Base Sepolia public API; corroborating source evidence, not issuer provenance",
+      "retrievedAtUtc": "2026-10-15",
+      "responses": [
+        {
+          "contract": "FiatTokenProxy",
+          "endpoint": "https://base-sepolia.blockscout.com/api/v2/smart-contracts/0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+          "responseSha256": "5d9d69a7768d557628bf91ba74be0698f00a13d314a5a54b6474b7645c52fb92",
+          "explorerStatus": "fully verified; is_changed_bytecode=false",
+          "sourceUnits": 5,
+          "independentCompile": "Solidity 0.6.12 using returned sources and compiler settings produced full runtime bytes equal to the pinned onchain proxy runtime",
+          "sourceUnitsWithContentHashMatchingPublicCircleRelease": 1
+        },
+        {
+          "contract": "FiatTokenV2_2",
+          "endpoint": "https://base-sepolia.blockscout.com/api/v2/smart-contracts/0xd74cc5d436923b8ba2c179b4bCA2841D8A52C5B5",
+          "responseSha256": "e008691077bfec403929d650d190624697457f5ae03d33bb91fbbc9e01d37ed7",
+          "explorerStatus": "partially verified; is_changed_bytecode=false; verifier-alliance and eth-bytecode-db flags true",
+          "sourceUnits": 23,
+          "independentCompile": "Solidity 0.6.12 using returned sources and compiler settings produced the same pre-metadata runtime region, but not full runtime bytes",
+          "sourceUnitsWithContentHashMatchingPublicCircleRelease": 6
+        },
+        {
+          "contract": "SignatureChecker",
+          "endpoint": "https://base-sepolia.blockscout.com/api/v2/smart-contracts/0xba3b60c21e28c41df4babd90f228e1d368627da6",
+          "responseSha256": "7617c65a0cc797148830f0987501232732b931fae0433cc968c4dadf268edecd",
+          "explorerStatus": "fully verified; is_changed_bytecode=false",
+          "sourceUnits": 3,
+          "independentCompile": "Solidity 0.6.12 using returned sources and compiler settings, with the observed library address, produced full runtime bytes equal to the pinned onchain library runtime",
+          "sourceUnitsWithContentHashMatchingPublicCircleRelease": 0
+        }
+      ],
+      "limitations": [
+        "Explorer verification is secondary provenance and does not bind the source to a Circle-published public git commit.",
+        "The implementation remains only partially verified; full runtime/metadata equality was not reproduced.",
+        "The proxy and SignatureChecker source content is runtime-consistent but differs byte-for-byte from the public Circle release sources."
+      ]
     }
   },
   "reproduction": {
