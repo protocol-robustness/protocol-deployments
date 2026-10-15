@@ -60,7 +60,7 @@
       }
     ],
     "fullRuntimeAndMetadataMatch": false,
-    "metadataLimitation": "The proxy metadata was fetched by its embedded IPFS CID and the CID recomputed successfully. Its metadata source paths name a private Circle Base Sepolia USDC source tree. Four Circle proxy source hashes differ from the public release checkout; the OpenZeppelin Address.sol source hash matches. The implementation and linked-library metadata CIDs could not be retrieved from available public gateways. Runtime logic matches before the CBOR/IPFS metadata region, but exact deployed source/artifact equivalence is not established.",
+    "metadataLimitation": "The proxy metadata and linked-library metadata CIDs reproduce from the explorer source payloads. The implementation metadata CID was not retrieved from available public gateways; compiling the explorer source/settings produces a different CID than the one embedded onchain. Its executable runtime region matches, but exact implementation source/artifact equivalence is not established.",
     "proxyMetadata": {
       "ipfsCid": "QmVp8Jgv5NKUoSC1TXhRMmEi9jiUvqGupW7iDmaCr9mBeE",
       "cidRecomputedFromRetrievedRawMetadata": true,
@@ -139,6 +139,30 @@
         "The proxy and SignatureChecker source content is runtime-consistent but differs byte-for-byte from the public Circle release sources."
       ],
       "digestScope": "SHA-256 over compact JSON.stringify of the parsed response object; this is not a digest of the raw HTTP wire representation."
+    },
+    "metadataCidReproduction": {
+      "method": "Solidity 0.6.12 standard JSON compile of Blockscout API source payloads using the returned compiler settings; CID computed with ipfs-only-hash, then compared with the IPFS multihash embedded in onchain runtime CBOR.",
+      "results": [
+        {
+          "contract": "FiatTokenProxy",
+          "generatedMetadataCid": "QmVp8Jgv5NKUoSC1TXhRMmEi9jiUvqGupW7iDmaCr9mBeE",
+          "onchainMetadataCid": "QmVp8Jgv5NKUoSC1TXhRMmEi9jiUvqGupW7iDmaCr9mBeE",
+          "matches": true
+        },
+        {
+          "contract": "FiatTokenV2_2",
+          "generatedMetadataCid": "QmZjjzyzfqDU56H1zBj4cfc6pgw1tBrYnBAboeNPaZkcJs",
+          "onchainMetadataCid": "QmUTXaoQGszf6ciXvSucGXQJckyKJHd8cDbxpxrKNeVUGK",
+          "matches": false
+        },
+        {
+          "contract": "SignatureChecker",
+          "generatedMetadataCid": "Qmc4oYNY4mLMgeDx4xQPXNM9kheqbFeB3MBzBx3FjMw7WY",
+          "onchainMetadataCid": "Qmc4oYNY4mLMgeDx4xQPXNM9kheqbFeB3MBzBx3FjMw7WY",
+          "matches": true
+        }
+      ],
+      "interpretation": "The public explorer source and compiler settings reproduce exact source metadata for the proxy and linked library. For FiatTokenV2_2, the generated metadata commitment differs despite matching executable runtime bytes before metadata; source/metadata inputs for the implementation do not yet reproduce the onchain commitment."
     }
   },
   "reproduction": {

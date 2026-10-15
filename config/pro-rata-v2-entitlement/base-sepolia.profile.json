@@ -228,7 +228,7 @@
       "implementationRuntimeCodeKeccak256": "0x1254951e5483b882fd5def9452f58fe786eb3380c0bf9bb2744fa21a0a97a16c",
       "implementationRuntimeBytes": 23464,
       "proxyImplementationAtObservation": "0xd74cc5d436923b8ba2c179b4bCA2841D8A52C5B5",
-      "runtimeVerification": "Exact onchain runtime hashes are pinned at the observation block. Circle partial runtime verification passes for proxy, implementation (with its observed SignatureChecker link), and library. Independent Solidity 0.6.12 builds from Blockscout source reproduce full proxy and library runtime bytecode; implementation runtime matches only before metadata. The explorer implementation source is partial, so complete source/artifact equivalence remains unresolved.",
+      "runtimeVerification": "Exact onchain runtime hashes are pinned at the observation block. Circle partial runtime verification passes for proxy, implementation (with its observed SignatureChecker link), and library. Solidity 0.6.12 builds from Blockscout sources reproduce full runtime and metadata CIDs for proxy and library; implementation runtime matches only before metadata and its generated metadata CID differs from the onchain CID. Complete implementation source/artifact equivalence remains unresolved.",
       "observedMetadata": {
         "name": "USDC",
         "symbol": "USDC",
