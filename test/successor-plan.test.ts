@@ -74,7 +74,7 @@ describe('bounded successor deployment plan', () => {
     expectCode(() => validateSuccessorDeploymentPlan(cyclic), 'DEPLOYMENT_PLAN_STAGE_CYCLE');
   });
 
-  it('derives initial configuration only after address-bound inputs exist and uses the empty registry root', () => {
+  it('derives initial configuration before deployment and uses only the empty registry root', () => {
     const stageIndex = new Map(plan.stages.map((stage, index) => [stage.id, index]));
     const initialRoots = plan.stages.find((stage) => stage.id === 'derive-genesis-roots')!;
     const deployAuthority = plan.stages.find((stage) => stage.id === 'deploy-authority-and-verifier')!;
@@ -84,9 +84,9 @@ describe('bounded successor deployment plan', () => {
     const sealEmptyRegistry = plan.stages.find((stage) => stage.id === 'seal-empty-verifier-registry')!;
     const deployGenesis = plan.stages.find((stage) => stage.id === 'deploy-genesis')!;
 
-    expect(stageIndex.get(initialRoots.id)).toBeLessThan(stageIndex.get(deployAuthority.id)!);
-    expect(stageIndex.get(deployToken.id)).toBeLessThan(stageIndex.get(initialConfiguration.id)!);
-    expect(stageIndex.get(deployAuthority.id)).toBeLessThan(stageIndex.get(initialConfiguration.id)!);
+    expect(stageIndex.get(initialRoots.id)).toBeLessThan(stageIndex.get(initialConfiguration.id)!);
+    expect(stageIndex.get(initialConfiguration.id)).toBeLessThan(stageIndex.get(deployToken.id)!);
+    expect(stageIndex.get(initialConfiguration.id)).toBeLessThan(stageIndex.get(deployAuthority.id)!);
     expect(stageIndex.get(initialConfiguration.id)).toBeLessThan(stageIndex.get(deployGenesis.id)!);
     expect(initialRoots.produces).toContain('emptyRegistryRoot');
     expect(initialRoots.produces).not.toContain('initialConfigurationRoot');
@@ -95,12 +95,12 @@ describe('bounded successor deployment plan', () => {
     expect(initialConfiguration.consumes.emptyRegistryRoot).toEqual({
       stage: 'derive-genesis-roots', output: 'emptyRegistryRoot',
     });
-    expect(initialConfiguration.consumes.localToken).toEqual({
-      stage: 'deploy-local-token', output: 'localToken',
+    expect(initialConfiguration.dependsOn).toEqual(['derive-genesis-roots']);
+    expect(initialConfiguration.consumes).toEqual({
+      protocolGenesisRoot: { stage: 'derive-genesis-roots', output: 'protocolGenesisRoot' },
+      emptyRegistryRoot: { stage: 'derive-genesis-roots', output: 'emptyRegistryRoot' },
     });
-    expect(initialConfiguration.consumes.successorAdapter).toEqual({
-      stage: 'deploy-authority-and-verifier', output: 'successorAdapter',
-    });
+    expect(initialConfiguration.consumes).not.toHaveProperty('successorRegistryRoot');
     expect(deriveSuccessorRegistry.produces).toEqual(['successorRegistryRoot']);
     expect(sealEmptyRegistry.consumes.emptyRegistryRoot).toEqual({
       stage: 'derive-genesis-roots', output: 'emptyRegistryRoot',
@@ -110,11 +110,42 @@ describe('bounded successor deployment plan', () => {
     });
   });
 
+  it('rejects missing or substituted predeployment roots', () => {
+    const missing = structuredClone(plan);
+    const initial = missing.stages.find((stage) => stage.id === 'derive-initial-configuration')!;
+    delete initial.consumes.emptyRegistryRoot;
+    expectCode(() => validateSuccessorDeploymentPlan(missing), 'DEPLOYMENT_PLAN_STAGE_OUTPUT');
+
+    const substituted = structuredClone(plan);
+    const initialSubstituted = substituted.stages.find((stage) => stage.id === 'derive-initial-configuration')!;
+    initialSubstituted.consumes.emptyRegistryRoot = { stage: 'derive-genesis-roots', output: 'protocolGenesisRoot' };
+    expectCode(() => validateSuccessorDeploymentPlan(substituted), 'DEPLOYMENT_PLAN_STAGE_OUTPUT');
+
+    const wrongGenesisInput = structuredClone(plan);
+    wrongGenesisInput.stages.find((stage) => stage.id === 'deploy-genesis')!.consumes.authorityStateRoot = {
+      stage: 'derive-initial-configuration', output: 'initialConfigurationRoot',
+    };
+    expectCode(() => validateSuccessorDeploymentPlan(wrongGenesisInput), 'DEPLOYMENT_PLAN_STAGE_OUTPUT');
+
+    const deploymentBeforeInitial = structuredClone(plan);
+    const initialIndex = deploymentBeforeInitial.stages.findIndex((stage) => stage.id === 'derive-initial-configuration');
+    const tokenIndex = deploymentBeforeInitial.stages.findIndex((stage) => stage.id === 'deploy-local-token');
+    [deploymentBeforeInitial.stages[initialIndex], deploymentBeforeInitial.stages[tokenIndex]] =
+      [deploymentBeforeInitial.stages[tokenIndex]!, deploymentBeforeInitial.stages[initialIndex]!];
+    expectCode(() => validateSuccessorDeploymentPlan(deploymentBeforeInitial), 'DEPLOYMENT_PLAN_INITIAL_CONFIGURATION_ORDER');
+  });
+
+  it('keeps structural validation separate from deployment execution availability', () => {
+    expect(() => validateSuccessorDeploymentPlan(plan)).not.toThrow();
+    expect(unsupportedDeploymentPrerequisite(plan)).toEqual({ contract: 'prf/governance-authority', stage: 'derive-genesis-roots' });
+    expectCode(() => assertPlanDeployable(plan), 'PLAN_STAGE_EXECUTOR_UNAVAILABLE');
+  });
+
   it('records PRF-owned genesis derivations without promoting candidate semantic inputs', () => {
     const graph = JSON.parse(fs.readFileSync(path.join(root, 'config/pro-rata-v2-entitlement/genesis-dependency-graph.v1.json'), 'utf8')) as {
       schema: string;
       qualification: string;
-      roots: Array<{ id: string; producer: string; artifactStatus: string; inputs: string[] }>;
+      roots: Array<{ id: string; producer: string; artifactStatus: string; inputs: string[]; availableAt?: string; deploymentDependency?: boolean }>;
       cycleAssessment: string;
     };
     const byId = new Map(graph.roots.map((entry) => [entry.id, entry]));
@@ -124,6 +155,8 @@ describe('bounded successor deployment plan', () => {
     expect(byId.get('protocolGenesisRoot')!.artifactStatus).toContain('requires-owner-approval');
     expect(byId.get('authorityStateRoot')!.artifactStatus).toContain('missing-semantic-definition');
     expect(byId.get('initialConfigurationRoot')!.inputs).toContain('verifier-registry/root = emptyRegistryRoot');
+    expect(byId.get('initialConfigurationRoot')!.availableAt).toContain('before deployment');
+    expect(byId.get('initialConfigurationRoot')!.deploymentDependency).toBe(false);
     expect(byId.get('successorRegistryRoot')!.artifactStatus).toContain('not executed');
     expect(graph.cycleAssessment).toContain('No constructor cycle identified');
   });
@@ -444,11 +477,12 @@ describe('bounded successor deployment plan', () => {
 
   it('rejects dependencies on later stages and undeclared stage outputs', () => {
     const fixture = structuredClone(plan);
-    fixture.stages[0]!.dependsOn = ['deploy-authority-and-verifier'];
+    fixture.stages.find((stage) => stage.id === 'deploy-local-token')!.dependsOn = ['deploy-genesis'];
     expectCode(() => validateSuccessorDeploymentPlan(fixture), 'DEPLOYMENT_PLAN_STAGE_ORDER');
     const missingOutput = structuredClone(plan);
-    missingOutput.stages[2]!.dependsOn.push('deploy-local-token');
-    missingOutput.stages[2]!.consumes!.notARealFact = { stage: 'deploy-local-token', output: 'notARealFact' };
+    const registryRoots = missingOutput.stages.find((stage) => stage.id === 'derive-registry-roots')!;
+    registryRoots.dependsOn.push('deploy-local-token');
+    registryRoots.consumes.notARealFact = { stage: 'deploy-local-token', output: 'notARealFact' };
     expectCode(() => validateSuccessorDeploymentPlan(missingOutput), 'DEPLOYMENT_PLAN_STAGE_OUTPUT');
   });
 
@@ -520,7 +554,9 @@ describe('bounded successor deployment plan', () => {
     badStage.contracts['prf/genesis'] = { kind: 'deploy', unit: 'prf-assurance', stage: 'missing' };
     expectCode(() => validateSuccessorDeploymentPlan(badStage), 'DEPLOYMENT_PLAN_CONTRACT_STAGE');
     const undeclared = structuredClone(plan);
-    undeclared.stages[1]!.consumes!.chain = { stage: 'deploy-local-token', output: 'chainId' };
+    undeclared.stages.find((stage) => stage.id === 'derive-registry-roots')!.consumes.chain = {
+      stage: 'deploy-local-token', output: 'chainId',
+    };
     expectCode(() => validateSuccessorDeploymentPlan(undeclared), 'DEPLOYMENT_PLAN_STAGE_DEPENDENCY');
     const wrongUnit = structuredClone(plan);
     wrongUnit.contracts['prf/verifier-registry'] = { kind: 'deploy', unit: 'sew-protocol', stage: 'deploy-authority-and-verifier' };

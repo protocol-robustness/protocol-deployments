@@ -112,16 +112,6 @@
   ],
   "stages": [
     {
-      "id": "deploy-local-token",
-      "kind": "deploy",
-      "dependsOn": [],
-      "consumes": {},
-      "produces": [
-        "localToken"
-      ],
-      "contractOutputs": { "localToken": "prf/local-token" }
-    },
-    {
       "id": "derive-genesis-roots",
       "kind": "derive-canonical-roots",
       "dependsOn": [],
@@ -131,6 +121,38 @@
         "authorityStateRoot",
         "emptyRegistryRoot"
       ]
+    },
+    {
+      "id": "derive-initial-configuration",
+      "kind": "derive-canonical-roots",
+      "dependsOn": [
+        "derive-genesis-roots"
+      ],
+      "consumes": {
+        "protocolGenesisRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "protocolGenesisRoot"
+        },
+        "emptyRegistryRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "emptyRegistryRoot"
+        }
+      },
+      "produces": [
+        "initialConfigurationRoot"
+      ]
+    },
+    {
+      "id": "deploy-local-token",
+      "kind": "deploy",
+      "dependsOn": [],
+      "consumes": {},
+      "produces": [
+        "localToken"
+      ],
+      "contractOutputs": {
+        "localToken": "prf/local-token"
+      }
     },
     {
       "id": "deploy-authority-and-verifier",
@@ -161,36 +183,6 @@
         "sp1Verifier": "prf/sp1-verifier-groth16",
         "successorAdapter": "prf/source-bound-entitlement-verifier-adapter-v1"
       }
-    },
-    {
-      "id": "derive-initial-configuration",
-      "kind": "derive-canonical-roots",
-      "dependsOn": [
-        "derive-genesis-roots",
-        "deploy-local-token",
-        "deploy-authority-and-verifier"
-      ],
-      "consumes": {
-        "protocolGenesisRoot": {
-          "stage": "derive-genesis-roots",
-          "output": "protocolGenesisRoot"
-        },
-        "emptyRegistryRoot": {
-          "stage": "derive-genesis-roots",
-          "output": "emptyRegistryRoot"
-        },
-        "localToken": {
-          "stage": "deploy-local-token",
-          "output": "localToken"
-        },
-        "successorAdapter": {
-          "stage": "deploy-authority-and-verifier",
-          "output": "successorAdapter"
-        }
-      },
-      "produces": [
-        "initialConfigurationRoot"
-      ]
     },
     {
       "id": "derive-registry-roots",
@@ -306,7 +298,9 @@
         "genesisAddress",
         "genesisRuntimeCodeHash"
       ],
-      "contractOutputs": { "genesisAddress": "prf/genesis" }
+      "contractOutputs": {
+        "genesisAddress": "prf/genesis"
+      }
     },
     {
       "id": "derive-chain-instance-root",
@@ -405,7 +399,9 @@
       "produces": [
         "configurationExecutor"
       ],
-      "contractOutputs": { "configurationExecutor": "prf/configuration-executor" }
+      "contractOutputs": {
+        "configurationExecutor": "prf/configuration-executor"
+      }
     },
     {
       "id": "derive-successor-configuration",
@@ -530,7 +526,9 @@
       "produces": [
         "admission"
       ],
-      "contractOutputs": { "admission": "prf/statement-admission" }
+      "contractOutputs": {
+        "admission": "prf/statement-admission"
+      }
     },
     {
       "id": "deploy-protected-operations",

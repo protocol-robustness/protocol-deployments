@@ -22,7 +22,10 @@
         "cross-domain/authority-policy-root"
       ],
       "availableAt": "before-deployment",
-      "consumers": ["PrfLocalAuthorityAdapter", "PrfChainInstanceGenesis"],
+      "consumers": [
+        "PrfLocalAuthorityAdapter",
+        "PrfChainInstanceGenesis"
+      ],
       "inputArtifact": {
         "repository": "PRF",
         "path": "etc/deployments/eae-controlled-entitlement-demo/protocol-genesis-package.edn"
@@ -36,9 +39,17 @@
       "type": "sha256:<64 lowercase hex>",
       "producer": "no successor-authoritative PRF derivation identified",
       "encoding": "must be selected from an approved authority-state artifact; generic evidence-content hashes in examples are not authority",
-      "inputs": ["protocolGenesisRoot", "governor/deployer identity", "execution chain id", "approved authority policy"],
+      "inputs": [
+        "protocolGenesisRoot",
+        "governor/deployer identity",
+        "execution chain id",
+        "approved authority policy"
+      ],
       "availableAt": "predeployment if approved inputs and derivation are fixed",
-      "consumers": ["PrfLocalAuthorityAdapter constructor", "PrfChainInstanceGenesis constructor"],
+      "consumers": [
+        "PrfLocalAuthorityAdapter constructor",
+        "PrfChainInstanceGenesis constructor"
+      ],
       "artifactStatus": "missing-semantic-definition-and-approval",
       "deploymentDependency": false
     },
@@ -48,9 +59,14 @@
       "type": "sha256:<64 lowercase hex>",
       "producer": "resolver-sim.genesis/canonical-verifier-registry-root([])",
       "encoding": "SHA-256 over PRF_VERIFIER_REGISTRY_V1 || uint256_be(0); matches PrfVerifierRegistry.computeCanonicalRoot",
-      "inputs": ["empty verifier entry sequence"],
+      "inputs": [
+        "empty verifier entry sequence"
+      ],
       "availableAt": "before-deployment",
-      "consumers": ["initial chain-configuration.v1 verifier-registry/root", "PrfVerifierRegistry empty-root seal"],
+      "consumers": [
+        "initial chain-configuration.v1 verifier-registry/root",
+        "PrfVerifierRegistry empty-root seal"
+      ],
       "artifactStatus": "derivation-defined; confirm contract artifact version before qualification",
       "deploymentDependency": false
     },
@@ -70,10 +86,13 @@
         "governance-policy/root",
         "interoperability-policy/root"
       ],
-      "availableAt": "after approved policy artifacts and any address-bound module-registry inputs are available",
-      "consumers": ["PrfChainInstanceGenesis constructor", "SewConfigurationExecutor initial state"],
-      "artifactStatus": "complete-semantic-input-artifact-missing-owner-approval-required",
-      "deploymentDependency": "successor adapter and local token are declared plan inputs for address-bound module-registry material; confirm this policy in the approved artifact"
+      "availableAt": "before deployment after approved semantic sub-root artifacts and the canonical empty verifier-registry root are available",
+      "consumers": [
+        "PrfChainInstanceGenesis constructor",
+        "SewConfigurationExecutor initial state"
+      ],
+      "artifactStatus": "canonical derivation defined; candidate semantic inputs require owner approval; module-registry material must be predeployment and may not depend on deployed addresses",
+      "deploymentDependency": false
     },
     {
       "id": "chainInstanceGenesisRoot",
@@ -93,7 +112,9 @@
         "configuration/initial-root = initialConfigurationRoot"
       ],
       "availableAt": "after genesis and authority adapter deployment observations",
-      "consumers": ["PrfChainInstanceGenesis.sealGenesis"],
+      "consumers": [
+        "PrfChainInstanceGenesis.sealGenesis"
+      ],
       "artifactStatus": "derivation-defined; no deployment observation in this task",
       "deploymentDependency": true
     },
@@ -103,9 +124,20 @@
       "type": "sha256:<64 lowercase hex>",
       "producer": "resolver-sim.genesis/canonical-verifier-registry-root(entries)",
       "encoding": "SHA-256 over PRF_VERIFIER_REGISTRY_V1 || uint256_be(count) || sorted verifier-entry hashes; entry binds adapter, VKey, ELF, program id, schema hashes and active bit",
-      "inputs": ["observed successor adapter address", "pinned VKey", "ELF SHA-256", "program id", "statement schema hash", "public-values schema hash", "active=true"],
+      "inputs": [
+        "observed successor adapter address",
+        "pinned VKey",
+        "ELF SHA-256",
+        "program id",
+        "statement schema hash",
+        "public-values schema hash",
+        "active=true"
+      ],
       "availableAt": "after verifier adapter deployment and pinned identity selection",
-      "consumers": ["registry successor registration/sealing", "later chain configuration transition"],
+      "consumers": [
+        "registry successor registration/sealing",
+        "later chain configuration transition"
+      ],
       "artifactStatus": "derivation-defined; registration and observation not executed",
       "deploymentDependency": true
     },
@@ -115,22 +147,31 @@
       "type": "sha256:<64 lowercase hex> for configuration; decision root is bytes32 projection of canonical transition root",
       "producer": "resolver-sim.genesis/chain-configuration-root and chain-configuration-transition-root",
       "encoding": "PRF canonical binary SHA-256; chain-configuration-transition.v1 commits transition/schema, protocol/genesis-root, target/type and target/root, configuration/parent-root, configuration/new-root, verifier-registry/root and epoch",
-      "inputs": ["initialConfigurationRoot", "successorRegistryRoot", "approved successor policy subroots", "chain-instance target and epoch"],
+      "inputs": [
+        "initialConfigurationRoot",
+        "successorRegistryRoot",
+        "approved successor policy subroots",
+        "chain-instance target and epoch"
+      ],
       "availableAt": "after chain genesis seal and successor registry observation",
-      "consumers": ["PrfLocalAuthorityAdapter.authoriseDecision", "SewConfigurationExecutor.applyConfiguration", "PrfStatementAdmission expectedConfigurationRoot/expectedConfigurationEpoch"],
+      "consumers": [
+        "PrfLocalAuthorityAdapter.authoriseDecision",
+        "SewConfigurationExecutor.applyConfiguration",
+        "PrfStatementAdmission expectedConfigurationRoot/expectedConfigurationEpoch"
+      ],
       "artifactStatus": "successor policy artifacts and authorized action not approved/executed",
       "deploymentDependency": true
     }
   ],
   "ordering": [
-    "approved protocol/authority artifacts + empty registry root",
-    "deploy authority adapter, registry, verifier and successor adapter",
-    "derive initial configuration from approved semantic artifacts and verified deployment outputs, using empty registry root",
-    "deploy genesis and observe runtime identities",
-    "derive and seal chain-instance genesis root",
-    "derive successor registry root from actual verifier identity and adapter address",
-    "deploy configuration executor against sealed genesis and empty registry root",
-    "authorize and apply successor configuration transition"
+    "approved protocol-genesis, authority-state, initial-configuration semantic artifacts + canonical empty registry root",
+    "derive protocolGenesisRoot, authorityStateRoot, emptyRegistryRoot and initialConfigurationRoot before deployment",
+    "deploy local token and authority/verifier contracts using only predeployment commitments",
+    "deploy genesis using protocolGenesisRoot, authorityStateRoot and initialConfigurationRoot; observe runtime identities",
+    "derive and seal chain-instance genesis root from observed genesis/authority identities",
+    "derive successor registry root from actual verifier registration facts",
+    "deploy configuration executor against sealed genesis and initial configuration",
+    "authorize and apply successor configuration transition using successorRegistryRoot"
   ],
-  "cycleAssessment": "No constructor cycle identified: the chain-instance root is not a constructor input; it is sealed after deployment observations. Initial configuration may depend on deployed addresses, so it follows those deployments. Semantic artifact approval and an executable staged runner remain prerequisites."
+  "cycleAssessment": "No constructor cycle identified if initial configuration commits only approved predeployment policy material and the empty verifier-registry root. Deployed addresses and runtime identities enter only chain-instance genesis and later successor configuration derivations."
 }

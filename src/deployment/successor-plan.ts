@@ -193,6 +193,7 @@ export function validateSuccessorDeploymentPlan(plan: SuccessorDeploymentPlanV1)
       }
     }
   }
+  validateGenesisRootStageOrdering(plan);
   for (const stage of plan.stages) {
     for (const [output, logicalId] of Object.entries(stage.contractOutputs ?? {})) {
       const source = plan.contracts[logicalId];
@@ -219,6 +220,80 @@ export function validateSuccessorDeploymentPlan(plan: SuccessorDeploymentPlanV1)
         (stageIndex.get(targetSource.stage) ?? Number.MAX_SAFE_INTEGER) >= (stageIndex.get(action.stage) ?? -1)) {
       throw new ConfigError('DEPLOYMENT_PLAN_AUTH_TARGET_ORDER', `Authorized action '${action.id}' targets '${action.target}' before its source stage has completed`);
     }
+  }
+}
+
+/**
+ * Enforce the successor genesis cutpoint: protocol/authority roots and the
+ * initial configuration (which commits the empty verifier registry) are
+ * predeployment inputs. Address and runtime observations are introduced only
+ * by the postdeployment chain-instance and successor-configuration stages.
+ */
+function validateGenesisRootStageOrdering(plan: SuccessorDeploymentPlanV1): void {
+  const stages = new Map(plan.stages.map((stage, index) => [stage.id, { stage, index }]));
+  const required = (id: string): { stage: SuccessorDeploymentPlanV1['stages'][number]; index: number } => {
+    const found = stages.get(id);
+    if (!found) throw new ConfigError('DEPLOYMENT_PLAN_STAGE_ORDER', `Successor plan omits required genesis stage '${id}'`);
+    return found;
+  };
+  const requireOutput = (consumer: SuccessorDeploymentPlanV1['stages'][number], input: string, producerId: string, output: string): void => {
+    const ref = consumer.consumes[input];
+    if (!ref || ref.stage !== producerId || ref.output !== output) {
+      throw new ConfigError('DEPLOYMENT_PLAN_STAGE_OUTPUT', `Stage '${consumer.id}' must bind '${input}' to '${producerId}.${output}'`);
+    }
+  };
+
+  const genesis = required('derive-genesis-roots');
+  const initial = required('derive-initial-configuration');
+  const localToken = required('deploy-local-token');
+  const authorityAndVerifier = required('deploy-authority-and-verifier');
+  const genesisDeploy = required('deploy-genesis');
+  const chainInstance = required('derive-chain-instance-root');
+  const chainSeal = required('seal-chain-instance-genesis');
+  const registry = required('derive-registry-roots');
+  const successorConfiguration = required('derive-successor-configuration');
+
+  for (const output of ['protocolGenesisRoot', 'authorityStateRoot', 'emptyRegistryRoot']) {
+    if (genesis.stage.kind !== 'derive-canonical-roots' || !genesis.stage.produces.includes(output)) {
+      throw new ConfigError('DEPLOYMENT_PLAN_STAGE_OUTPUT', `Stage 'derive-genesis-roots' must produce '${output}' as a canonical derivation`);
+    }
+  }
+  if (initial.stage.kind !== 'derive-canonical-roots') {
+    throw new ConfigError('DEPLOYMENT_PLAN_STAGE_ORDER', "Stage 'derive-initial-configuration' must be a canonical derivation");
+  }
+  requireOutput(initial.stage, 'protocolGenesisRoot', 'derive-genesis-roots', 'protocolGenesisRoot');
+  requireOutput(initial.stage, 'emptyRegistryRoot', 'derive-genesis-roots', 'emptyRegistryRoot');
+  if (initial.stage.dependsOn.length !== 1 || initial.stage.dependsOn[0] !== 'derive-genesis-roots' ||
+      Object.values(initial.stage.consumes).some((ref) => ['deploy-local-token', 'deploy-authority-and-verifier'].includes(ref.stage)) ||
+      initial.stage.consumes.successorRegistryRoot) {
+    throw new ConfigError('DEPLOYMENT_PLAN_INITIAL_CONFIGURATION_ORDER', 'Initial configuration must depend only on predeployment genesis inputs and the canonical empty verifier-registry root');
+  }
+  for (const deploy of [localToken, authorityAndVerifier, genesisDeploy]) {
+    if (deploy.index <= initial.index) {
+      throw new ConfigError('DEPLOYMENT_PLAN_INITIAL_CONFIGURATION_ORDER', `Initial configuration must be derived before deployment stage '${deploy.stage.id}'`);
+    }
+  }
+  requireOutput(genesisDeploy.stage, 'protocolGenesisRoot', 'derive-genesis-roots', 'protocolGenesisRoot');
+  requireOutput(genesisDeploy.stage, 'authorityStateRoot', 'derive-genesis-roots', 'authorityStateRoot');
+  requireOutput(genesisDeploy.stage, 'initialConfigurationRoot', 'derive-initial-configuration', 'initialConfigurationRoot');
+  if (!initial.stage.produces.includes('initialConfigurationRoot')) {
+    throw new ConfigError('DEPLOYMENT_PLAN_STAGE_OUTPUT', "Stage 'derive-initial-configuration' must produce 'initialConfigurationRoot'");
+  }
+  for (const output of ['genesisAddress', 'genesisRuntimeCodeHash']) {
+    requireOutput(chainInstance.stage, output, 'deploy-genesis', output);
+  }
+  requireOutput(chainInstance.stage, 'initialConfigurationRoot', 'derive-initial-configuration', 'initialConfigurationRoot');
+  if (chainInstance.index <= genesisDeploy.index) {
+    throw new ConfigError('DEPLOYMENT_PLAN_STAGE_ORDER', 'Chain-instance genesis must be derived after genesis deployment observations');
+  }
+  requireOutput(registry.stage, 'adapter', 'deploy-authority-and-verifier', 'successorAdapter');
+  if (registry.index <= authorityAndVerifier.index) {
+    throw new ConfigError('DEPLOYMENT_PLAN_STAGE_ORDER', 'Successor registry root must be derived after verifier adapter deployment');
+  }
+  requireOutput(successorConfiguration.stage, 'initialConfigurationRoot', 'derive-initial-configuration', 'initialConfigurationRoot');
+  requireOutput(successorConfiguration.stage, 'successorRegistryRoot', 'derive-registry-roots', 'successorRegistryRoot');
+  if (successorConfiguration.index <= registry.index || successorConfiguration.index <= chainSeal.index) {
+    throw new ConfigError('DEPLOYMENT_PLAN_STAGE_ORDER', 'Successor configuration must follow chain-instance sealing and successor registry derivation');
   }
 }
 
