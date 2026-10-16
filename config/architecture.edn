@@ -11,6 +11,18 @@
 
 {:schemaVersion 1
 
+ ;; ============================================================================
+ ;; Cross-repo provenance (which version/commit each external input is pinned to)
+ ;;
+ ;;   SEW deployables        : sew-protocol @ appeal-primitive-v1-2026-10
+ ;;                            (package @sew/deployables@0.1.0; bundle manifest records the git sha)
+ ;;   PRF deployables        : prf-evm @ @protocol-robustness/prf-evm-deployables@0.2.0
+ ;;   Derived canonical roots: agent-c @ commit 6344909c36a2eda4711efa6a4acd310870fe9f41
+ ;;                            (scripts/deployment/genesis_roots.clj, PRF_DEPLOY_CHAIN_ID=84532),
+ ;;                            templates etc/deployments/prf-base-sepolia/*.edn; re-derive after
+ ;;                            owner-approved canonical inputs (P, A0, C0) are supplied.
+ ;; ============================================================================
+
  ;; Named, pinned deployable artifact sources. These are the consumer boundary.
  ;; Each points at a versioned package exposed by an authoritative source repo.
  :artifactSources

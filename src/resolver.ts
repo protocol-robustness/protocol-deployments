@@ -98,7 +98,13 @@ export function resolve(input: ResolveInput, options: ResolveOptions = {}): Reso
   const { architecture, governance, verification } = config;
 
   if (environment.chain.kind === 'testnet' || environment.chain.kind === 'mainnet') {
-    assertPublicEnvironmentHasNoPlaceholders(architecture.contracts);
+    assertPublicEnvironmentHasNoPlaceholders(
+      architecture.contracts,
+      // External contracts (e.g. an already-deployed governance token) are not
+      // constructed by this deployment, so their constructor bindings are not
+      // public-environment identity/role placeholders.
+      new Set(Object.keys(environment.externalContracts ?? {})),
+    );
   }
 
   const contractIds = new Set(Object.keys(architecture.contracts));
@@ -309,10 +315,14 @@ function hasDeployerBinding(binding: RawBinding): boolean {
 }
 
 /** Public-network resolution fails closed until identity and privileged roles are explicit. */
-function assertPublicEnvironmentHasNoPlaceholders(contracts: Record<string, RawLogicalContract>): void {
+function assertPublicEnvironmentHasNoPlaceholders(
+  contracts: Record<string, RawLogicalContract>,
+  externalContractIds: ReadonlySet<string> = new Set(),
+): void {
   // Report identity placeholders before role configuration so an operator can
   // correct the proof/config commitment first, even when both are invalid.
   for (const [logicalId, contract] of Object.entries(contracts)) {
+    if (externalContractIds.has(logicalId)) continue;
     for (const [name, binding] of Object.entries(contract.constructorBindings ?? {})) {
       if ('literal' in binding && isZeroBytes32(binding.literal)) {
         throw new ConfigError(
@@ -323,6 +333,7 @@ function assertPublicEnvironmentHasNoPlaceholders(contracts: Record<string, RawL
     }
   }
   for (const [logicalId, contract] of Object.entries(contracts)) {
+    if (externalContractIds.has(logicalId)) continue;
     for (const [name, binding] of Object.entries(contract.constructorBindings ?? {})) {
       if (authorityBindingNames.has(name) && hasDeployerBinding(binding)) {
         throw new ConfigError(
