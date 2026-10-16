@@ -143,7 +143,7 @@ export function verifyCrossPlanStageOutput(input: {
     throw new ConfigError('CROSS_PLAN_STAGE_OUTPUT_DEPENDENCIES_MISSING', 'Producer evidence omits or adds nested cross-plan dependencies');
   }
   for (const [dependencyId] of nestedSources) {
-    verifyCrossPlanStageOutput({ consumerPlan: producerPlan, logicalId: dependencyId, evidence: evidence.producerDependencies[dependencyId], ancestorPlanHashes: ancestors });
+    verifyCrossPlanStageOutput({ consumerPlan: producerPlan, logicalId: dependencyId, evidence: evidence.producerDependencies[dependencyId], ancestorPlanHashes: ancestors, expectedChainId: input.expectedChainId });
   }
 
   const manifest = evidence.producerManifest as unknown as DeploymentManifest;

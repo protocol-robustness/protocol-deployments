@@ -253,7 +253,7 @@ async function run(
       if (source.kind !== 'stage-output' || !source.producer) continue;
       const evidence = resolved.crossPlanStageOutputEvidence?.[logicalId];
       if (!evidence) throw new ConfigError('CROSS_PLAN_STAGE_OUTPUT_EVIDENCE_REQUIRED', `Cross-plan producer evidence is missing for '${logicalId}'`);
-      const authenticated = verifyCrossPlanStageOutput({ consumerPlan: plan, logicalId, evidence });
+      const authenticated = verifyCrossPlanStageOutput({ consumerPlan: plan, logicalId, evidence, expectedChainId: chainId });
       const contractOutput = await verifyStageOutputContractFact({
         plan, stageId: source.stage, outputName: source.output, value: authenticated.value,
         contracts: resolved.spec.contracts, bundle, transport: bound.transport, expectedChainId: chainId,
