@@ -99,12 +99,14 @@ describe('independent retained PRF evidence replay', () => {
   it('replays the seal-result verifier against its retained preflight, transaction and RPC', () => {
     const f = fixture();
     try {
-      const requestPath = 'evidence/seal-request.edn';
-      const contextPath = 'evidence/seal-context.edn';
-      fs.mkdirSync(path.dirname(path.join(f.trustedContextRoot, requestPath)), { recursive: true });
-      fs.writeFileSync(path.join(f.trustedContextRoot, requestPath), '{:request true}');
-      fs.mkdirSync(path.dirname(path.join(f.trustedContextRoot, contextPath)), { recursive: true });
-      fs.writeFileSync(path.join(f.trustedContextRoot, contextPath), '{:trusted true}');
+      const requestFile = path.join(f.trustedContextRoot, 'evidence/seal-request.edn');
+      const contextFile = path.join(f.trustedContextRoot, 'evidence/seal-context.edn');
+      const requestPath = path.relative(f.root, requestFile);
+      const contextPath = path.relative(f.root, contextFile);
+      fs.mkdirSync(path.dirname(requestFile), { recursive: true });
+      fs.writeFileSync(requestFile, '{:request true}');
+      fs.mkdirSync(path.dirname(contextFile), { recursive: true });
+      fs.writeFileSync(contextFile, '{:trusted true}');
       const preflightOutput = JSON.stringify({ schema: 'prf-chain-instance-seal-preflight.v2', computedRoot: '0x' + '11'.repeat(32) });
       const sealOutput = JSON.stringify({ schema: 'prf-chain-instance-seal-result.v1', chainInstanceGenesisRoot: '0x' + '11'.repeat(32) });
       const finalAssertions = [...(f.manifest.finalAssertions as unknown as Array<Record<string, unknown>>),

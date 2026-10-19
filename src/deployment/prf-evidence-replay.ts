@@ -31,11 +31,11 @@ function retainedFiles(root: string, trustedContextRoot: string, evidence: Recor
       return fail(`Retained PRF evidence input ${i} has a missing or unexpected role, path, or digest`);
     }
     const relative = path.normalize(input.path);
-    if (path.isAbsolute(relative) || relative === '.' || relative === '..') return fail('Retained PRF evidence input escapes its source root');
+    const isTrustedContext = ['trusted-context', 'trusted-transition-context', 'approval-envelope', 'preflight-request'].includes(String(input.role));
+    if (path.isAbsolute(relative) || relative === '.') return fail('Retained PRF evidence input escapes its source root');
     // Approval artifacts may be held outside the source checkout. Resolve
     // retained paths against the checkout first, then accept them only when
     // their real file is contained by the separately supplied trusted root.
-    const isTrustedContext = ['trusted-context', 'trusted-transition-context', 'approval-envelope', 'preflight-request'].includes(String(input.role));
     const sourceCandidate = { base: root, file: path.resolve(root, relative), returnAbsolute: false };
     const trustedCandidates = [
       { base: trustedContextRoot, file: path.resolve(root, relative), returnAbsolute: true },
