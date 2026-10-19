@@ -63,7 +63,6 @@ export const CAPITAL_FLOW_FULL_EXECUTION_ORDER = [
   'caller-binding',
   'reserve-seed-approval',
   'reserve-seed-deposit',
-  ...CAPITAL_FLOW_EXECUTION_ORDER.slice(0, CAPITAL_FLOW_EXECUTION_ORDER.indexOf('unauthorized-configuration-route')),
   ...CAPITAL_FLOW_EXECUTION_ORDER.slice(0, CAPITAL_FLOW_EXECUTION_ORDER.indexOf('entitlement-activation')),
   'entitlement-representation-deployment',
   ...CAPITAL_FLOW_EXECUTION_ORDER.slice(CAPITAL_FLOW_EXECUTION_ORDER.indexOf('entitlement-activation')),
