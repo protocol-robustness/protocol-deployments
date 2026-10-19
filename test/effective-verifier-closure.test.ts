@@ -12,7 +12,7 @@ import type { RpcTransport } from '../src/runtime/transport';
 
 const root = path.resolve(__dirname, '..');
 const profileDir = path.join(root, 'config/pro-rata-v2-entitlement');
-const bundle = new BundleConsumer(new FixtureBundleLocator(path.join(root, 'fixtures/releases/0.4.1/packages')));
+const bundle = new BundleConsumer(new FixtureBundleLocator(path.join(root, 'fixtures/releases/0.4.2/packages')));
 const config = loadConfig({ configDir: path.join(root, 'config'), profileDir });
 const environment = loadEnvironment(path.join(root, 'config'), 'local', profileDir);
 // Resolve the pinned architecture directly. The test does not claim that its

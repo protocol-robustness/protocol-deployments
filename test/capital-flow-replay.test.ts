@@ -266,8 +266,8 @@ const expectationPackage = (stateAssertions = evidence.stateAssertions) => ({
   reserveSeed: { amount: '70', reserveBalanceBefore: '0', ownerBalanceBefore: '1000', allowanceBefore: '0' },
   stateAssertions,
 });
-const replay = (value: unknown, transport: FakeTransport, genesisRoot = evidence.chainInstanceGenesisRoot, c1Root = configurationRoot, epoch = configurationEpoch, c0Root = c0ConfigurationRoot, expectations: unknown = expectationPackage()) =>
-  replayCapitalFlowEvidence(value, transport, genesisRoot, c1Root, epoch, c0Root, manifest, spec, expectations, verifiedManifestRoot);
+const replay = (value: unknown, transport: FakeTransport, genesisRoot = evidence.chainInstanceGenesisRoot, c1Root = configurationRoot, epoch = configurationEpoch, c0Root = c0ConfigurationRoot, expectations: unknown = expectationPackage(), replaySpec: unknown = spec) =>
+  replayCapitalFlowEvidence(value, transport, genesisRoot, c1Root, epoch, c0Root, manifest, replaySpec as never, expectations, verifiedManifestRoot);
 const setupInputs: Record<string, string> = {
   'operation-executor-deployment': operationExecutorCreationInput,
   'caller-binding': encodeCall(toFunctionSelector(functionAbi('shortfall/entitlement-ratification-controller-v1', 'bindExecutionCaller')), [operationExecutorAddress]),
@@ -284,6 +284,7 @@ const matchingTransport = (
   identityOverrides: Partial<{ operator: string; operationId: string; controller: string; boundCaller: string; boundFlag: string }> = {},
   rpcOverrides: Partial<ConstructorParameters<typeof FakeTransport>[0]> = {},
   senderOverrides: Record<string, string> = {},
+  transactionOverrides: Record<string, Partial<{ hash: string; from: string; to: string | null; input: string; blockNumber: bigint; blockHash: string }>> = {},
 ) => {
   const blockHashAt = (index: number) => `0x${(index + 100).toString(16).padStart(64, '0')}` as `0x${string}`;
   const chronologyIndex = new Map(order.map((id, index) => [id, index]));
@@ -326,7 +327,10 @@ const matchingTransport = (
   };
   return new FakeTransport({
     ...rpcOverrides,
-    blockHashes: Object.fromEntries(Array.from({ length: maxBlock - 9 }, (_, index) => [(10 + index).toString(), blockHashAt(index)])),
+    blockHashes: {
+      ...Object.fromEntries(Array.from({ length: maxBlock - 9 }, (_, index) => [(10 + index).toString(), blockHashAt(index)])),
+      ...rpcOverrides.blockHashes,
+    },
     code: (address, blockNumber) => {
       const number = Number(blockNumber ?? maxBlock);
       if (address.toLowerCase() === operationExecutorAddress.toLowerCase() && number < blockFor('operation-executor-deployment')) return '0x' as `0x${string}`;
@@ -344,9 +348,9 @@ const matchingTransport = (
       const id = idForHash(hash);
       const blockNumber = blockFor(id);
       const setup = setupTransactions.find((step) => step.id === id);
-      if (setup) return { hash, from: senderOverrides[id] ?? operationExecutorPrincipal, to: setup.to, input: inputOverrides[id] ?? setupInputs[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10) } as never;
+      if (setup) return { hash, from: senderOverrides[id] ?? operationExecutorPrincipal, to: setup.to, input: inputOverrides[id] ?? setupInputs[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10), ...transactionOverrides[id] } as never;
       const operationExecutorCall = ['ratification-and-funding', 'entitlement-activation', 'repeated-ratification'].includes(id);
-      return { hash, from: operationExecutorPrincipal, to: operationExecutorCall ? operationExecutorAddress : to, input: inputOverrides[id] ?? actionInputs[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10) } as never;
+      return { hash, from: operationExecutorPrincipal, to: operationExecutorCall ? operationExecutorAddress : to, input: inputOverrides[id] ?? actionInputs[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10), ...transactionOverrides[id] } as never;
     },
     blockTransactionHashesFor: (blockNumber) => {
       const step = allTransactionSteps.find((candidate) => blockFor(candidate.id) === Number(blockNumber));
@@ -415,6 +419,48 @@ describe('capital-flow transaction replay', () => {
   it('rejects evidence for a different RPC chain', async () => {
     await expect(replay(evidence, new FakeTransport({ chainId: 1 })))
       .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_CHAIN_MISMATCH' }));
+  });
+
+  it('rejects a transaction whose RPC identity differs from the retained step', async () => {
+    const actionId = CAPITAL_FLOW_POSITIVE_STEPS[0]!;
+    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_FULL_EXECUTION_ORDER, {}, {}, {}, {}, {}, {}, {
+      [actionId]: { hash: `0x${'f'.repeat(64)}` },
+    }))).rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_TRANSACTION_MISMATCH' }));
+  });
+
+  it('rejects a transaction receipt that is not in the canonical block', async () => {
+    const actionId = CAPITAL_FLOW_POSITIVE_STEPS[0]!;
+    const blockNumber = 10 + CAPITAL_FLOW_FULL_EXECUTION_ORDER.indexOf(actionId);
+    const transport = matchingTransport();
+    const getBlock = transport.getBlock.bind(transport);
+    transport.getBlock = async (number) => {
+      const block = await getBlock(number);
+      return number === BigInt(blockNumber) ? { ...block, hash: `0x${'a'.repeat(64)}` } as never : block;
+    };
+    await expect(replay(evidence, transport))
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_BLOCK_MISMATCH' }));
+  });
+
+  it('rejects a pinned ABI without the ratification event', async () => {
+    const logicalId = 'shortfall/entitlement-ratification-controller-v1';
+    const replayBaseSpec = spec as any;
+    const controller = replayBaseSpec.contracts[logicalId]!;
+    const brokenSpec = {
+      ...replayBaseSpec,
+      contracts: {
+        ...replayBaseSpec.contracts,
+        [logicalId]: {
+          ...controller,
+          artifact: {
+            ...controller.artifact,
+            abi: controller.artifact.abi.filter((item: any) =>
+              !(item.type === 'event' && item.name === 'EntitlementRatificationFunded')),
+          },
+        },
+      },
+    };
+    await expect(replay(evidence, matchingTransport(), undefined, undefined, undefined, undefined, undefined, brokenSpec))
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_EVENT_ABI_MISMATCH' }));
   });
 
   it('requires state expectations from the independently selected context and exact deployment scope', async () => {

@@ -91,7 +91,7 @@ describe('resolver happy path', () => {
       configDir: CONFIG_DIR,
       environment: 'local',
       profileDir: path.join(CONFIG_DIR, 'pro-rata-v2-entitlement'),
-      fixtureRoot: path.join(FIXTURE_ROOT, '..', 'releases', '0.4.1', 'packages'),
+      fixtureRoot: path.join(FIXTURE_ROOT, '..', 'releases', '0.4.2', 'packages'),
       deploymentPlanFile: path.join(CONFIG_DIR, 'pro-rata-v2-entitlement', 'successor-fork.plan.v1.json'),
       approvedRootBindings: {
         protocolGenesisRoot: `0x${'a'.repeat(64)}`,
@@ -179,7 +179,7 @@ describe('resolver happy path', () => {
 
 describe('qualified successor artifact isolation', () => {
   const profileDir = path.join(CONFIG_DIR, 'pro-rata-v2-entitlement');
-  const fixtureRoot = path.resolve('fixtures/releases/0.4.1/packages');
+  const fixtureRoot = path.resolve('fixtures/releases/0.4.2/packages');
 
   it('resolves the local successor with the policy-v3 follow-up artifacts', () => {
     const { spec } = resolveDeployment({ configDir: CONFIG_DIR, environment: 'local', profileDir, fixtureRoot,
