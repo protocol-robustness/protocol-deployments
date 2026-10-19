@@ -283,6 +283,7 @@ const matchingTransport = (
   receiptLogMutations: Record<string, 'missing-transfer' | 'wrong-transfer-recipient' | 'wrong-transfer-amount' | 'extra-transfer' | 'wrong-operation'> = {},
   identityOverrides: Partial<{ operator: string; operationId: string; controller: string; boundCaller: string; boundFlag: string }> = {},
   rpcOverrides: Partial<ConstructorParameters<typeof FakeTransport>[0]> = {},
+  senderOverrides: Record<string, string> = {},
 ) => {
   const blockHashAt = (index: number) => `0x${(index + 100).toString(16).padStart(64, '0')}` as `0x${string}`;
   const chronologyIndex = new Map(order.map((id, index) => [id, index]));
@@ -343,7 +344,7 @@ const matchingTransport = (
       const id = idForHash(hash);
       const blockNumber = blockFor(id);
       const setup = setupTransactions.find((step) => step.id === id);
-      if (setup) return { hash, from: operationExecutorPrincipal, to: setup.to, input: inputOverrides[id] ?? setupInputs[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10) } as never;
+      if (setup) return { hash, from: senderOverrides[id] ?? operationExecutorPrincipal, to: setup.to, input: inputOverrides[id] ?? setupInputs[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10) } as never;
       const operationExecutorCall = ['ratification-and-funding', 'entitlement-activation', 'repeated-ratification'].includes(id);
       return { hash, from: operationExecutorPrincipal, to: operationExecutorCall ? operationExecutorAddress : to, input: inputOverrides[id] ?? actionInputs[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10) } as never;
     },
@@ -456,6 +457,19 @@ describe('capital-flow transaction replay', () => {
       transaction: { hash: evidence.positiveTransactions[0]!.transactionHash, to: '0x0000000000000000000000000000000000000001', input: steps[0]!.selector, blockNumber: 5n, blockHash } as never,
     });
     await expect(replay(evidence, transport))
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_SETUP_MISMATCH' }));
+  });
+
+  it('rejects setup transactions from an unapproved principal', async () => {
+    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_FULL_EXECUTION_ORDER, {}, {}, {}, {}, {}, {
+      'reserve-seed-deposit': '0x0000000000000000000000000000000000000001',
+    })))
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_SETUP_MISMATCH' }));
+  });
+
+  it('rejects reserve setup calldata that differs from the approved seed amount', async () => {
+    const changedAmount = encodeCall(toFunctionSelector(functionAbi('shortfall/shortfall-reserve-v2', 'deposit')), ['0x47']);
+    await expect(replay(evidence, matchingTransport({ 'reserve-seed-deposit': changedAmount })))
       .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_SETUP_MISMATCH' }));
   });
 
