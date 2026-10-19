@@ -28,7 +28,7 @@ describe('independent plan verification report', () => {
   it('is deterministic and scoped as verification evidence only', () => {
     const report = buildPlanVerificationReport(input);
     expect(buildPlanVerificationReport({ ...input })).toEqual(report);
-    expect(report.schema).toBe('protocol-deployment-independent-verification/v3');
+    expect(report.schema).toBe('protocol-deployment-independent-verification/v4');
     expect(report.status).toBe('verified');
     expect(report.scope).toBe('local-anvil-only');
     expect(report.qualification).toBe('verification-evidence-only-not-approval');
@@ -36,6 +36,13 @@ describe('independent plan verification report', () => {
     expect(report.trustAssumptions).toContain('Capital-flow state expectations are supplied in a separate file under the independently selected trusted-context root and bound to the manifest, sealed instance, applied C1, operation and replay digest; the qualification authority remains trusted to approve those expected values.');
     expect(verifyPlanVerificationReport(report)).toEqual(report);
     expect(report.reportRoot).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('verifies retained v3 reports against their original immutable trust list', () => {
+    const retained = JSON.parse(fs.readFileSync(path.resolve('deployments/pro-rata-v2-entitlement-local-revised-hist.9e41374c74e5.verification-report.json'), 'utf8')) as unknown;
+    const verified = verifyPlanVerificationReport(retained);
+    expect(verified.schema).toBe('protocol-deployment-independent-verification/v3');
+    expect(verified.reportRoot).toBe('5fdc9108e06fcd56aaf9a74eff5a071d93ffa9f7d5b4368026dcbd61bc06bc6b');
   });
 
   it('rejects altered trust assumptions even if the report root is recomputed', () => {

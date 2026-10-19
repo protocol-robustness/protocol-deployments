@@ -136,13 +136,15 @@ trusted-context paths and each file must match the digest in the approval.
 The plan verifier also invokes live verification against `--resolved`, the
 caller-selected pinned `--fixtures` bundle and `--rpc-url`; it does not accept
 a producer-supplied live-verification success flag. It can persist a deterministic, immutable
-`protocol-deployment-independent-verification/v3` report with `--out`; the report
+`protocol-deployment-independent-verification/v4` report with `--out`; the report
 binds the plan receipt, its complete/partial status, manifest, final
 resolved-spec digest, replay count and recomputed live-verification root, and
 states the remaining trust assumptions. A verified partial prefix remains
 explicitly marked partial. The report labels itself as local verification
-evidence rather than approval. The
-optional `--capital-flow-evidence` input supplies a `protocol-capital-flow-execution/v6`
+evidence rather than approval. Its verifier continues to accept retained v3 reports using their original
+fixed trust-assumption list and digest, so a later trust-list update cannot
+invalidate historical evidence. The optional `--capital-flow-evidence` input
+supplies a `protocol-capital-flow-execution/v6`
 bundle. The verifier checks the complete ordered set of six positive actions,
 including prepared-operation creation before admission,
 and nine negative cases against RPC transaction targets, selectors, receipt

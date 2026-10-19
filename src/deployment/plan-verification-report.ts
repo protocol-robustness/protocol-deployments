@@ -16,7 +16,16 @@ export interface PlanVerificationReportInput {
   replayedCapitalFlowStateAssertions: number;
 }
 
-export const PLAN_VERIFICATION_TRUST_ASSUMPTIONS = [
+export const PLAN_VERIFICATION_TRUST_ASSUMPTIONS_V3 = [
+  'The caller supplies the trusted-context root independently and verifies that its approval keys and source pins are controlled by the intended local authority.',
+  'The selected RPC endpoint reports authentic chain identity, historical block hashes, transaction receipts, and contract state for the local Anvil instance.',
+  'The pinned PRF checkout, deployment source bundle, compiler artifacts, and fixture bundle are the reviewed inputs selected by the qualification authority.',
+  'The human approval decision and custody of the configured approval keys are trusted; cryptographic verification proves key use and scope, not the legitimacy of that decision.',
+  'Capital-flow getter targets and arguments are checked against the pinned topology and transaction bindings; producer-supplied expected historical values still require qualification review against the approved operation.',
+  'Proof-system soundness and external toolchain supply-chain integrity remain assumptions outside this deployment-evidence verifier.',
+] as const;
+
+export const PLAN_VERIFICATION_TRUST_ASSUMPTIONS_V4 = [
   'The caller supplies the trusted-context root independently and verifies that its approval keys and source pins are controlled by the intended local authority.',
   'The selected RPC endpoint reports authentic chain identity, historical block hashes, transaction receipts, and contract state for the local Anvil instance.',
   'The pinned PRF checkout, deployment source bundle, compiler artifacts, and fixture bundle are the reviewed inputs selected by the qualification authority.',
@@ -24,6 +33,9 @@ export const PLAN_VERIFICATION_TRUST_ASSUMPTIONS = [
   'Capital-flow state expectations are supplied in a separate file under the independently selected trusted-context root and bound to the manifest, sealed instance, applied C1, operation and replay digest; the qualification authority remains trusted to approve those expected values.',
   'Proof-system soundness and external toolchain supply-chain integrity remain assumptions outside this deployment-evidence verifier.',
 ] as const;
+
+/** Current report assumptions. Keep v3's exact list above for immutable replay. */
+export const PLAN_VERIFICATION_TRUST_ASSUMPTIONS = PLAN_VERIFICATION_TRUST_ASSUMPTIONS_V4;
 
 export interface PlanVerificationReportV3 extends PlanVerificationReportInput {
   schema: 'protocol-deployment-independent-verification/v3';
@@ -33,6 +45,17 @@ export interface PlanVerificationReportV3 extends PlanVerificationReportInput {
   trustAssumptions: readonly string[];
   reportRoot: string;
 }
+
+export interface PlanVerificationReportV4 extends PlanVerificationReportInput {
+  schema: 'protocol-deployment-independent-verification/v4';
+  status: 'verified';
+  scope: 'local-anvil-only';
+  qualification: 'verification-evidence-only-not-approval';
+  trustAssumptions: readonly string[];
+  reportRoot: string;
+}
+
+export type PlanVerificationReport = PlanVerificationReportV3 | PlanVerificationReportV4;
 
 function validInput(input: PlanVerificationReportInput): boolean {
   return typeof input.planId === 'string' && input.planId.length > 0 &&
@@ -49,12 +72,12 @@ function validInput(input: PlanVerificationReportInput): boolean {
       ((input.capitalFlowEvidenceRoot === null) === (input.replayedCapitalFlowStateAssertions === 0));
 }
 
-export function buildPlanVerificationReport(input: PlanVerificationReportInput): PlanVerificationReportV3 {
+export function buildPlanVerificationReport(input: PlanVerificationReportInput): PlanVerificationReportV4 {
   if (!validInput(input)) {
     throw new ConfigError('CONFIG_SCHEMA', 'Independent verification report input is incomplete or malformed');
   }
   const body = {
-    schema: 'protocol-deployment-independent-verification/v3' as const,
+    schema: 'protocol-deployment-independent-verification/v4' as const,
     status: 'verified' as const,
     scope: 'local-anvil-only' as const,
     qualification: 'verification-evidence-only-not-approval' as const,
@@ -67,11 +90,11 @@ export function buildPlanVerificationReport(input: PlanVerificationReportInput):
   };
 }
 
-export function verifyPlanVerificationReport(value: unknown): PlanVerificationReportV3 {
+export function verifyPlanVerificationReport(value: unknown): PlanVerificationReport {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new ConfigError('PLAN_VERIFICATION_REPORT_INVALID', 'Independent verification report must be a JSON object');
   }
-  const report = value as Partial<PlanVerificationReportV3>;
+  const report = value as Partial<PlanVerificationReport>;
   const { reportRoot, ...body } = report;
   const input: PlanVerificationReportInput = {
     planId: report.planId ?? '',
@@ -88,19 +111,24 @@ export function verifyPlanVerificationReport(value: unknown): PlanVerificationRe
   const expectedKeys = ['planId', 'executionStatus', 'planExecutionRoot', 'manifestRoot', 'resolvedSpecSha256',
     'replayedPrfAssertions', 'liveVerificationRoot', 'capitalFlowEvidenceRoot', 'replayedCapitalFlowTransactions', 'replayedCapitalFlowStateAssertions', 'schema', 'status', 'scope',
     'qualification', 'trustAssumptions', 'reportRoot'].sort();
+  const expectedTrustAssumptions = report.schema === 'protocol-deployment-independent-verification/v3'
+    ? PLAN_VERIFICATION_TRUST_ASSUMPTIONS_V3
+    : report.schema === 'protocol-deployment-independent-verification/v4'
+      ? PLAN_VERIFICATION_TRUST_ASSUMPTIONS_V4
+      : undefined;
   if (canonicalJson(Object.keys(report).sort()) !== canonicalJson(expectedKeys) ||
-      report.schema !== 'protocol-deployment-independent-verification/v3' || report.status !== 'verified' ||
+      expectedTrustAssumptions === undefined || report.status !== 'verified' ||
       report.scope !== 'local-anvil-only' || report.qualification !== 'verification-evidence-only-not-approval' ||
       !validInput(input) || !Array.isArray(report.trustAssumptions) ||
-      canonicalJson(report.trustAssumptions) !== canonicalJson(PLAN_VERIFICATION_TRUST_ASSUMPTIONS) ||
+      canonicalJson(report.trustAssumptions) !== canonicalJson(expectedTrustAssumptions) ||
       typeof reportRoot !== 'string' || !/^[0-9a-f]{64}$/.test(reportRoot) ||
       createHash('sha256').update(canonicalJson(body), 'utf8').digest('hex') !== reportRoot) {
     throw new ConfigError('PLAN_VERIFICATION_REPORT_INVALID', 'Independent verification report fields, trust assumptions, or digest are invalid');
   }
-  return report as PlanVerificationReportV3;
+  return report as PlanVerificationReport;
 }
 
-export function persistPlanVerificationReport(report: PlanVerificationReportV3, file: string): void {
+export function persistPlanVerificationReport(report: PlanVerificationReport, file: string): void {
   const verified = verifyPlanVerificationReport(report);
   const content = `${JSON.stringify(verified, null, 2)}\n`;
   try { fs.writeFileSync(file, content, { flag: 'wx' }); }
