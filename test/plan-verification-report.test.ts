@@ -33,7 +33,7 @@ describe('independent plan verification report', () => {
     expect(report.scope).toBe('local-anvil-only');
     expect(report.qualification).toBe('verification-evidence-only-not-approval');
     expect(report.trustAssumptions.length).toBeGreaterThan(0);
-    expect(report.trustAssumptions).toContain('Capital-flow getter targets and arguments are checked against the pinned topology and transaction bindings; producer-supplied expected historical values still require qualification review against the approved operation.');
+    expect(report.trustAssumptions).toContain('Capital-flow state expectations are supplied in a separate file under the independently selected trusted-context root and bound to the manifest, sealed instance, applied C1, operation and replay digest; the qualification authority remains trusted to approve those expected values.');
     expect(verifyPlanVerificationReport(report)).toEqual(report);
     expect(report.reportRoot).toMatch(/^[0-9a-f]{64}$/);
   });

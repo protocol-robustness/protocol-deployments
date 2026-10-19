@@ -21,7 +21,7 @@ export const PLAN_VERIFICATION_TRUST_ASSUMPTIONS = [
   'The selected RPC endpoint reports authentic chain identity, historical block hashes, transaction receipts, and contract state for the local Anvil instance.',
   'The pinned PRF checkout, deployment source bundle, compiler artifacts, and fixture bundle are the reviewed inputs selected by the qualification authority.',
   'The human approval decision and custody of the configured approval keys are trusted; cryptographic verification proves key use and scope, not the legitimacy of that decision.',
-  'Capital-flow getter targets and arguments are checked against the pinned topology and transaction bindings; producer-supplied expected historical values still require qualification review against the approved operation.',
+  'Capital-flow state expectations are supplied in a separate file under the independently selected trusted-context root and bound to the manifest, sealed instance, applied C1, operation and replay digest; the qualification authority remains trusted to approve those expected values.',
   'Proof-system soundness and external toolchain supply-chain integrity remain assumptions outside this deployment-evidence verifier.',
 ] as const;
 

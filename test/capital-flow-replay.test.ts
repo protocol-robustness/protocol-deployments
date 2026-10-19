@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { keccak256, toBytes, toFunctionSelector } from 'viem';
+import { keccak256, toBytes, toEventSelector, toFunctionSelector } from 'viem';
 import { createHash } from 'crypto';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -55,6 +55,11 @@ const abiFor = (logicalId: string) => JSON.parse(readFileSync(resolve(artifactDi
 const functionAbi = (logicalId: string, name: string) => {
   const matches = abiFor(logicalId).filter((item) => item.type === 'function' && item.name === name);
   if (matches.length !== 1) throw new Error(`Expected exactly one ${logicalId}.${name} function in pinned fixture ABI`);
+  return matches[0] as never;
+};
+const eventAbi = (logicalId: string, name: string) => {
+  const matches = abiFor(logicalId).filter((item) => item.type === 'event' && item.name === name);
+  if (matches.length !== 1) throw new Error(`Expected exactly one ${logicalId}.${name} event in pinned fixture ABI`);
   return matches[0] as never;
 };
 const calls = Object.fromEntries(Object.entries(CAPITAL_FLOW_ACTION_CALLS).map(([id, call]) => [id, {
@@ -210,25 +215,68 @@ const evidence = {
   negativeTransactions: steps.slice(CAPITAL_FLOW_POSITIVE_STEPS.length),
   stateAssertions: assertions,
 };
-const replay = (value: unknown, transport: FakeTransport, genesisRoot = evidence.chainInstanceGenesisRoot, c1Root = configurationRoot, epoch = configurationEpoch, c0Root = c0ConfigurationRoot) =>
-  replayCapitalFlowEvidence(value, transport, genesisRoot, c1Root, epoch, c0Root, manifest, spec);
+const verifiedManifestRoot = `0x${'c'.repeat(64)}`;
+const expectationPackage = (stateAssertions = evidence.stateAssertions) => ({
+  schema: 'protocol-capital-flow-expectations/v1',
+  manifestRoot: verifiedManifestRoot,
+  chainInstanceGenesisRoot,
+  configurationRoot,
+  configurationEpoch,
+  operationId,
+  stateAssertions,
+});
+const replay = (value: unknown, transport: FakeTransport, genesisRoot = evidence.chainInstanceGenesisRoot, c1Root = configurationRoot, epoch = configurationEpoch, c0Root = c0ConfigurationRoot, expectations: unknown = expectationPackage()) =>
+  replayCapitalFlowEvidence(value, transport, genesisRoot, c1Root, epoch, c0Root, manifest, spec, expectations, verifiedManifestRoot);
 const matchingTransport = (
   inputOverrides: Record<string, string> = {},
   order: readonly string[] = CAPITAL_FLOW_EXECUTION_ORDER,
   blockOffsets: Record<string, number> = {},
   interveningTransactions: Record<number, `0x${string}`[]> = {},
+  receiptLogMutations: Record<string, 'missing-transfer' | 'wrong-transfer-recipient' | 'wrong-transfer-amount' | 'extra-transfer' | 'wrong-operation'> = {},
 ) => {
   const blockHashAt = (index: number) => `0x${(index + 100).toString(16).padStart(64, '0')}` as `0x${string}`;
   const chronologyIndex = new Map(order.map((id, index) => [id, index]));
   const idForHash = (hash: string) => steps[Number(BigInt(hash)) - 1]!.id;
   const blockFor = (id: string) => 10 + chronologyIndex.get(id)! + (blockOffsets[id] ?? 0);
   const maxBlock = Math.max(...order.map(blockFor));
+  const transferTopic = toEventSelector(eventAbi('prf/local-token', 'Transfer'));
+  const fundedTopic = toEventSelector(eventAbi('shortfall/entitlement-ratification-controller-v1', 'EntitlementRatificationFunded'));
+  const withdrawnTopic = toEventSelector(eventAbi('shortfall/pro-rata-allocator-v2', 'EntitlementWithdrawn'));
+  const addressTopic = (address: string) => `0x${address.slice(2).toLowerCase().padStart(64, '0')}`;
+  const amountData = (amount: bigint) => `0x${amount.toString(16).padStart(64, '0')}`;
+  const transferLog = (from: string, target: string, amount: bigint) => ({
+    address: to,
+    topics: [transferTopic, addressTopic(from), addressTopic(target)],
+    data: amountData(amount),
+  });
+  const receiptLogsFor = (id: string): unknown[] => {
+    if (id === 'ratification-and-funding') return [
+      { address: to, topics: [fundedTopic, operationId, admissionReceiptId], data: amountData(70n) },
+      transferLog(to, to, 70n),
+    ];
+    if (id === 'entitlement-withdrawal') return [
+      { address: to, topics: [withdrawnTopic, operationId, `0x${'0'.repeat(64)}`, addressTopic(to)], data: `0x${amountData(3n).slice(2)}${amountData(0n).slice(2)}${amountData(0n).slice(2)}${amountData(3n).slice(2)}${amountData(1n).slice(2)}` },
+      transferLog(to, to, 3n),
+    ];
+    return [];
+  };
+  const receiptLogs = (id: string): unknown[] => {
+    const logs = receiptLogsFor(id) as Array<{ address: string; topics: string[]; data: string }>;
+    switch (receiptLogMutations[id]) {
+      case 'missing-transfer': return logs.slice(0, 1);
+      case 'wrong-transfer-recipient': return [logs[0], { ...logs[1]!, topics: [...logs[1]!.topics.slice(0, 2), addressTopic('0x0000000000000000000000000000000000000001')] }];
+      case 'wrong-transfer-amount': return [logs[0], { ...logs[1]!, data: amountData(2n) }];
+      case 'extra-transfer': return [...logs, logs[1]];
+      case 'wrong-operation': return [{ ...logs[0]!, topics: [logs[0]!.topics[0]!, `0x${'f'.repeat(64)}`, ...logs[0]!.topics.slice(2)] }, logs[1]];
+      default: return logs;
+    }
+  };
   return new FakeTransport({
     blockHashes: Object.fromEntries(Array.from({ length: maxBlock - 9 }, (_, index) => [(10 + index).toString(), blockHashAt(index)])),
     receiptFor: (hash) => {
       const id = idForHash(hash);
       const blockNumber = blockFor(id);
-      return { transactionHash: hash, status: CAPITAL_FLOW_EXPECTED_STATUSES[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10) } as never;
+      return { transactionHash: hash, status: CAPITAL_FLOW_EXPECTED_STATUSES[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10), logs: receiptLogs(id) } as never;
     },
     transactionFor: (hash) => {
       const id = idForHash(hash);
@@ -270,6 +318,17 @@ describe('capital-flow transaction replay', () => {
   it('rejects evidence for a different RPC chain', async () => {
     await expect(replay(evidence, new FakeTransport({ chainId: 1 })))
       .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_CHAIN_MISMATCH' }));
+  });
+
+  it('requires state expectations from the independently selected context and exact deployment scope', async () => {
+    await expect(replay(evidence, matchingTransport(), evidence.chainInstanceGenesisRoot, configurationRoot, configurationEpoch, c0ConfigurationRoot, null))
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_EXPECTATIONS_INVALID' }));
+    await expect(replay(evidence, matchingTransport(), evidence.chainInstanceGenesisRoot, configurationRoot, configurationEpoch, c0ConfigurationRoot,
+      { ...expectationPackage(), manifestRoot: `0x${'d'.repeat(64)}` }))
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_EXPECTATIONS_MISMATCH' }));
+    await expect(replay(evidence, matchingTransport(), evidence.chainInstanceGenesisRoot, configurationRoot, configurationEpoch, c0ConfigurationRoot,
+      { ...expectationPackage(), configurationRoot: c0ConfigurationRoot }))
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_EXPECTATIONS_MISMATCH' }));
   });
 
   it('rejects a transaction receipt on a noncanonical block hash', async () => {
@@ -331,10 +390,25 @@ describe('capital-flow transaction replay', () => {
     });
     expect(report.capitalFlowEvidenceRoot).toBe(result.evidenceRoot);
     await expect(replay({ ...evidence, operationId: `0x${'f'.repeat(64)}` }, transport))
-      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_OPERATION_BINDING_MISMATCH' }));
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_EXPECTATIONS_MISMATCH' }));
     const forged = { ...evidence, stateAssertions: evidence.stateAssertions.map((assertion) => assertion.actionId === 'ratification-and-funding' && assertion.domain === 'liability' ? { ...assertion, expectedAfter: '0xff' } : assertion) };
     await expect(replay(forged, transport))
-      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_STATE_ASSERTION_MISMATCH' }));
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_EXPECTATIONS_MISMATCH' }));
+  });
+
+  it.each([
+    { action: 'ratification-and-funding', mutation: 'missing-transfer', label: 'missing reserve funding transfer' },
+    { action: 'ratification-and-funding', mutation: 'wrong-transfer-amount', label: 'funding transfer with wrong amount' },
+    { action: 'ratification-and-funding', mutation: 'extra-transfer', label: 'extra funding transfer' },
+    { action: 'ratification-and-funding', mutation: 'wrong-operation', label: 'funding event for another operation' },
+    { action: 'entitlement-withdrawal', mutation: 'missing-transfer', label: 'missing beneficiary payout' },
+    { action: 'entitlement-withdrawal', mutation: 'wrong-transfer-recipient', label: 'payout to another beneficiary' },
+    { action: 'entitlement-withdrawal', mutation: 'wrong-transfer-amount', label: 'payout with wrong amount' },
+    { action: 'entitlement-withdrawal', mutation: 'extra-transfer', label: 'extra payout transfer' },
+    { action: 'entitlement-withdrawal', mutation: 'wrong-operation', label: 'withdrawal event for another operation' },
+  ] as const)('rejects $label in the retained receipt logs', async ({ action, mutation }) => {
+    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_EXECUTION_ORDER, {}, {}, { [action]: mutation })))
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_LOG_MISMATCH' }));
   });
 
   it('rejects negative cases that change more than their declared identity binding', async () => {
@@ -375,7 +449,7 @@ describe('capital-flow transaction replay', () => {
         ? { ...assertion, expectedAfter: `0x${'0'.repeat(9 * 64 - 1)}1` }
         : assertion),
     };
-    await expect(replay(authorizedReadback, matchingTransport()))
+    await expect(replay(authorizedReadback, matchingTransport(), evidence.chainInstanceGenesisRoot, configurationRoot, configurationEpoch, c0ConfigurationRoot, expectationPackage(authorizedReadback.stateAssertions)))
       .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_STATE_ASSERTION_MISMATCH' }));
   });
 
@@ -406,7 +480,7 @@ describe('capital-flow transaction replay', () => {
         : assertion),
     };
     await expect(replay(changedBalance, matchingTransport()))
-      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_OPERATION_BINDING_MISMATCH' }));
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_EXPECTATIONS_MISMATCH' }));
     const changedClaim = {
       ...evidence,
       stateAssertions: assertions.map((assertion) => assertion.actionId === 'entitlement-withdrawal' && assertion.domain === 'consumed-claim'
@@ -414,7 +488,7 @@ describe('capital-flow transaction replay', () => {
         : assertion),
     };
     await expect(replay(changedClaim, matchingTransport()))
-      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_OPERATION_BINDING_MISMATCH' }));
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_EXPECTATIONS_MISMATCH' }));
   });
 
   it('binds prepared-operation topology addresses to deployed contracts', async () => {

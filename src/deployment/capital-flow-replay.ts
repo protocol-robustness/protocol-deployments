@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { decodeFunctionData, encodeFunctionData, keccak256, toBytes, toFunctionSelector, type Abi, type AbiFunction } from 'viem';
+import { decodeEventLog, decodeFunctionData, encodeFunctionData, keccak256, toBytes, toEventSelector, toFunctionSelector, type Abi, type AbiEvent, type AbiFunction } from 'viem';
 import { canonicalJson } from '../canonical-json';
 import { ConfigError } from '../errors';
 import type { RpcTransport } from '../runtime/transport';
@@ -88,6 +88,15 @@ type FlowEvidence = {
   publicValuesSha256: string;
   positiveTransactions: FlowStep[];
   negativeTransactions: FlowStep[];
+  stateAssertions: StateAssertion[];
+};
+type CapitalFlowExpectations = {
+  schema: 'protocol-capital-flow-expectations/v1';
+  manifestRoot: string;
+  chainInstanceGenesisRoot: string;
+  configurationRoot: string;
+  configurationEpoch: number;
+  operationId: string;
   stateAssertions: StateAssertion[];
 };
 
@@ -196,6 +205,33 @@ function parseEvidence(value: unknown): FlowEvidence {
   return evidence as FlowEvidence;
 }
 
+function assertCapitalFlowExpectations(
+  value: unknown,
+  evidence: FlowEvidence,
+  expectedManifestRoot: string,
+  expectedChainInstanceGenesisRoot: string,
+  expectedConfigurationRoot: string,
+  expectedConfigurationEpoch: number,
+): string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ConfigError('CAPITAL_FLOW_EXPECTATIONS_INVALID', 'Capital-flow expectations must come from the separately selected trusted-context package');
+  }
+  const expectations = value as Partial<CapitalFlowExpectations>;
+  const keys = ['schema', 'manifestRoot', 'chainInstanceGenesisRoot', 'configurationRoot', 'configurationEpoch', 'operationId', 'stateAssertions'].sort();
+  if (canonicalJson(Object.keys(expectations).sort()) !== canonicalJson(keys) ||
+      expectations.schema !== 'protocol-capital-flow-expectations/v1' ||
+      !isHash(expectedManifestRoot) || expectations.manifestRoot?.toLowerCase() !== expectedManifestRoot.toLowerCase() ||
+      expectations.chainInstanceGenesisRoot?.toLowerCase() !== expectedChainInstanceGenesisRoot.toLowerCase() ||
+      expectations.configurationRoot?.toLowerCase() !== expectedConfigurationRoot.toLowerCase() ||
+      expectations.configurationEpoch !== expectedConfigurationEpoch ||
+      expectations.operationId?.toLowerCase() !== evidence.operationId.toLowerCase() ||
+      !Array.isArray(expectations.stateAssertions) ||
+      canonicalJson(expectations.stateAssertions) !== canonicalJson(evidence.stateAssertions)) {
+    throw new ConfigError('CAPITAL_FLOW_EXPECTATIONS_MISMATCH', 'Producer-supplied historical state values differ from the independent expectation package bound to this manifest, instance, C1 and operation');
+  }
+  return createHash('sha256').update(canonicalJson(expectations), 'utf8').digest('hex');
+}
+
 function assertActionCalls(evidence: FlowEvidence, manifest: DeploymentManifest, spec: ResolvedSpec): void {
   for (const step of [...evidence.positiveTransactions, ...evidence.negativeTransactions]) {
     const expected = CAPITAL_FLOW_ACTION_CALLS[step.id];
@@ -261,16 +297,18 @@ function calldataBytes(data: string, index: number): string {
   return value.length === length * 2 ? `0x${value.toLowerCase()}` : '';
 }
 
-function withdrawalIdentity(data: string): { beneficiary: string; claimIdentityHash: string } | undefined {
+function withdrawalIdentity(data: string): { beneficiary: string; amount: bigint; index: bigint; claimIdentityHash: string } | undefined {
   const args = data.slice(10);
   const tupleOffsetWord = args.slice(64, 128);
   if (tupleOffsetWord.length !== 64) return undefined;
   const tupleOffset = Number(BigInt(`0x${tupleOffsetWord}`));
   if (!Number.isSafeInteger(tupleOffset) || tupleOffset < 0) return undefined;
   const tupleStart = tupleOffset * 2;
+  const indexWord = args.slice(tupleStart, tupleStart + 64);
   const claimOffsetWord = args.slice(tupleStart + 64, tupleStart + 128);
   const beneficiaryWord = args.slice(tupleStart + 128, tupleStart + 192);
-  if (claimOffsetWord.length !== 64 || beneficiaryWord.length !== 64 || !/^0{24}[0-9a-f]{40}$/i.test(beneficiaryWord)) return undefined;
+  const amountWord = args.slice(tupleStart + 192, tupleStart + 256);
+  if (indexWord.length !== 64 || claimOffsetWord.length !== 64 || beneficiaryWord.length !== 64 || amountWord.length !== 64 || !/^0{24}[0-9a-f]{40}$/i.test(beneficiaryWord)) return undefined;
   const claimOffset = Number(BigInt(`0x${claimOffsetWord}`));
   if (!Number.isSafeInteger(claimOffset) || claimOffset < 160) return undefined;
   const claimLengthOffset = tupleStart + claimOffset * 2;
@@ -290,8 +328,116 @@ function withdrawalIdentity(data: string): { beneficiary: string; claimIdentityH
   const lengthHex = lengthBytes.map((byte) => byte.toString(16).padStart(2, '0')).join('');
   return {
     beneficiary: `0x${beneficiaryWord.slice(24).toLowerCase()}`,
+    amount: BigInt(`0x${amountWord}`),
+    index: BigInt(`0x${indexWord}`),
     claimIdentityHash: keccak256(`0x20${lengthHex}${claimIdentity.toLowerCase()}`).toLowerCase(),
   };
+}
+
+function pinnedEvent(spec: ResolvedSpec, logicalId: string, eventName: string): AbiEvent {
+  const abi = spec.contracts[logicalId]?.artifact.abi as Abi | undefined;
+  const events = abi?.filter((item): item is AbiEvent => item.type === 'event' && item.name === eventName) ?? [];
+  if (events.length !== 1) throw new ConfigError('CAPITAL_FLOW_EVENT_ABI_MISMATCH', `Pinned ${logicalId} ABI does not contain exactly one ${eventName} event`);
+  return events[0]!;
+}
+
+function matchingEventLogs(
+  receipt: NonNullable<Awaited<ReturnType<RpcTransport['getTransactionReceipt']>>>,
+  emitter: string,
+  event: AbiEvent,
+  actionId: string,
+): Array<Record<string, unknown>> {
+  const selector = toEventSelector(event).toLowerCase();
+  const logs = receipt.logs.filter((log) => log.address.toLowerCase() === emitter.toLowerCase() && log.topics[0]?.toLowerCase() === selector);
+  if (logs.length !== 1) throw new ConfigError('CAPITAL_FLOW_LOG_MISMATCH', `Capital-flow action ${actionId} must emit exactly one ${event.name} event from its pinned contract`);
+  try {
+    const decoded = decodeEventLog({ abi: [event], data: logs[0]!.data, topics: logs[0]!.topics, strict: true });
+    return [decoded.args as Record<string, unknown>];
+  } catch {
+    throw new ConfigError('CAPITAL_FLOW_LOG_MISMATCH', `Capital-flow action ${actionId} emitted a malformed ${event.name} event`);
+  }
+}
+
+function eventValuesMatch(actual: Record<string, unknown>, expected: Record<string, string | bigint>): boolean {
+  return Object.entries(expected).every(([key, expectedValue]) => {
+    const actualValue = actual[key];
+    if (typeof expectedValue === 'bigint') return actualValue === expectedValue;
+    return typeof actualValue === 'string' && actualValue.toLowerCase() === expectedValue.toLowerCase();
+  });
+}
+
+function assertSingleTransfer(
+  receipt: NonNullable<Awaited<ReturnType<RpcTransport['getTransactionReceipt']>>>,
+  tokenAddress: string,
+  from: string,
+  to: string,
+  amount: bigint,
+  event: AbiEvent,
+  actionId: string,
+): void {
+  const transfers = matchingEventLogs(receipt, tokenAddress, event, actionId);
+  if (!eventValuesMatch(transfers[0]!, { from, to, value: amount })) {
+    throw new ConfigError('CAPITAL_FLOW_LOG_MISMATCH', `Capital-flow action ${actionId} does not emit exactly the token transfer bound to its call and operation`);
+  }
+}
+
+function assertOperationEvent(
+  receipt: NonNullable<Awaited<ReturnType<RpcTransport['getTransactionReceipt']>>>,
+  emitter: string,
+  event: AbiEvent,
+  expectedValues: Record<string, string | bigint>,
+  actionId: string,
+): void {
+  const events = matchingEventLogs(receipt, emitter, event, actionId);
+  if (!eventValuesMatch(events[0]!, expectedValues)) {
+    throw new ConfigError('CAPITAL_FLOW_LOG_MISMATCH', `Capital-flow action ${actionId} lacks its exact operation event cross-linked to the executed call`);
+  }
+}
+
+function assertCapitalActionLogs(
+  evidence: FlowEvidence,
+  inputs: Map<string, string>,
+  receipts: Map<string, NonNullable<Awaited<ReturnType<RpcTransport['getTransactionReceipt']>>>>,
+  manifest: DeploymentManifest,
+  spec: ResolvedSpec,
+): void {
+  const address = (logicalId: string) => manifest.contracts.find((contract) => contract.logicalId === logicalId)?.address;
+  const token = address('prf/local-token');
+  const reserve = address('shortfall/shortfall-reserve-v2');
+  const allocator = address('shortfall/pro-rata-allocator-v2');
+  const ratificationController = address('shortfall/entitlement-ratification-controller-v1');
+  if (!token || !reserve || !allocator || !ratificationController) {
+    throw new ConfigError('CAPITAL_FLOW_EVIDENCE_INVALID', 'Capital-flow transfer verification requires token, reserve, allocator and ratification-controller deployments');
+  }
+
+  const admissionValues = calldataBytes(inputs.get('statement-admission') ?? '', 3);
+  if (!admissionValues || admissionValues.length !== 2 + 9 * 64) {
+    throw new ConfigError('CAPITAL_FLOW_OPERATION_BINDING_MISMATCH', 'Capital-flow transfer verification requires canonical admitted entitlement public values');
+  }
+  const fundedAmount = BigInt(`0x${admissionValues.slice(2 + 7 * 64, 2 + 8 * 64)}`);
+  const ratificationReceipt = receipts.get('ratification-and-funding');
+  if (!ratificationReceipt) throw new ConfigError('CAPITAL_FLOW_EVIDENCE_INVALID', 'Ratification receipt is unavailable for event replay');
+  assertOperationEvent(
+    ratificationReceipt,
+    ratificationController,
+    pinnedEvent(spec, 'shortfall/entitlement-ratification-controller-v1', 'EntitlementRatificationFunded'),
+    { operationId: evidence.operationId, receiptId: evidence.admissionReceiptId, amount: fundedAmount },
+    'ratification-and-funding',
+  );
+  assertSingleTransfer(ratificationReceipt, token, reserve, allocator, fundedAmount, pinnedEvent(spec, 'prf/local-token', 'Transfer'), 'ratification-and-funding');
+
+  const withdrawal = inputs.get('entitlement-withdrawal') ?? '';
+  const identity = withdrawalIdentity(withdrawal);
+  const withdrawalReceipt = receipts.get('entitlement-withdrawal');
+  if (!identity || !withdrawalReceipt) throw new ConfigError('CAPITAL_FLOW_OPERATION_BINDING_MISMATCH', 'Withdrawal receipt cannot be bound to its decoded entitlement call');
+  assertOperationEvent(
+    withdrawalReceipt,
+    allocator,
+    pinnedEvent(spec, 'shortfall/pro-rata-allocator-v2', 'EntitlementWithdrawn'),
+    { operationId: evidence.operationId, entitlementIndex: identity.index, beneficiary: identity.beneficiary, amount: identity.amount },
+    'entitlement-withdrawal',
+  );
+  assertSingleTransfer(withdrawalReceipt, token, allocator, identity.beneficiary, identity.amount, pinnedEvent(spec, 'prf/local-token', 'Transfer'), 'entitlement-withdrawal');
 }
 
 function assertOperationBindings(evidence: FlowEvidence, inputs: Map<string, string>, manifest: DeploymentManifest, expectedC0Root: string): void {
@@ -447,7 +593,7 @@ function assertOperationBindings(evidence: FlowEvidence, inputs: Map<string, str
 }
 
 /** Replays action transactions and state-domain readbacks at isolated before/after blocks. */
-export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTransport, expectedChainInstanceGenesisRoot: string, expectedConfigurationRoot: string, expectedConfigurationEpoch: number, expectedInitialConfigurationRoot: string, manifest: DeploymentManifest, spec: ResolvedSpec): Promise<{ evidenceRoot: string; replayedTransactions: number; replayedStateAssertions: number }> {
+export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTransport, expectedChainInstanceGenesisRoot: string, expectedConfigurationRoot: string, expectedConfigurationEpoch: number, expectedInitialConfigurationRoot: string, manifest: DeploymentManifest, spec: ResolvedSpec, approvedExpectations: unknown, expectedManifestRoot: string): Promise<{ evidenceRoot: string; replayedTransactions: number; replayedStateAssertions: number }> {
   const evidence = parseEvidence(value);
   assertActionCalls(evidence, manifest, spec);
   if (!isHash(expectedChainInstanceGenesisRoot) || evidence.chainInstanceGenesisRoot.toLowerCase() !== expectedChainInstanceGenesisRoot.toLowerCase()) {
@@ -457,9 +603,11 @@ export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTr
       evidence.configurationEpoch !== expectedConfigurationEpoch) {
     throw new ConfigError('CAPITAL_FLOW_CONFIGURATION_MISMATCH', 'Capital-flow evidence is not bound to the applied successor configuration root and epoch');
   }
+  const expectationsDigest = assertCapitalFlowExpectations(approvedExpectations, evidence, expectedManifestRoot, expectedChainInstanceGenesisRoot, expectedConfigurationRoot, expectedConfigurationEpoch);
   const chainId = await transport.getChainId();
   if (chainId !== evidence.chainId) throw new ConfigError('CAPITAL_FLOW_CHAIN_MISMATCH', `Capital-flow evidence is for chain ${evidence.chainId}, RPC reports ${chainId}`);
   const observed = new Map<string, { blockNumber: bigint; transactionHash: `0x${string}` }>();
+  const observedReceipts = new Map<string, NonNullable<Awaited<ReturnType<RpcTransport['getTransactionReceipt']>>>>();
   const transactionInputs = new Map<string, string>();
   for (const step of [...evidence.positiveTransactions, ...evidence.negativeTransactions]) {
       const expectedStatus = CAPITAL_FLOW_EXPECTED_STATUSES[step.id];
@@ -479,6 +627,7 @@ export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTr
         throw new ConfigError('CAPITAL_FLOW_BLOCK_NOT_ISOLATED', `Capital-flow transaction ${step.id} must be the only transaction in its block for before/after state replay`);
       }
       observed.set(step.id, { blockNumber: receipt.blockNumber, transactionHash: hash });
+      observedReceipts.set(step.id, receipt);
       transactionInputs.set(step.id, transaction.input);
   }
   const chronology = CAPITAL_FLOW_EXECUTION_ORDER.map((id) => observed.get(id)?.blockNumber);
@@ -496,6 +645,7 @@ export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTr
     }
   }
   assertOperationBindings(evidence, transactionInputs, manifest, expectedInitialConfigurationRoot);
+  assertCapitalActionLogs(evidence, transactionInputs, observedReceipts, manifest, spec);
   for (const assertion of evidence.stateAssertions) {
     const action = observed.get(assertion.actionId);
     if (!action) throw new ConfigError('CAPITAL_FLOW_EVIDENCE_INVALID', `Missing observed transaction for state assertion ${assertion.actionId}/${assertion.domain}`);
@@ -518,7 +668,7 @@ export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTr
     }
   }
   return {
-    evidenceRoot: `0x${createHash('sha256').update(canonicalJson(evidence), 'utf8').digest('hex')}`,
+    evidenceRoot: `0x${createHash('sha256').update(canonicalJson({ evidence, expectationsDigest }), 'utf8').digest('hex')}`,
     replayedTransactions: evidence.positiveTransactions.length + evidence.negativeTransactions.length,
     replayedStateAssertions: evidence.stateAssertions.length,
   };

@@ -15,6 +15,7 @@ import type { DeploymentManifest } from '../deployment/manifest';
 import { buildPlanVerificationReport, persistPlanVerificationReport } from '../deployment/plan-verification-report';
 import { assertCapitalFlowExecutionComplete, replayCapitalFlowEvidence } from '../deployment/capital-flow-replay';
 import { replayEffectiveVerifierClosureFromManifest } from '../deployment/verifier-runtime-closure';
+import { readCapitalFlowExpectations } from '../deployment/capital-flow-expectations';
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -36,8 +37,12 @@ async function main(): Promise<void> {
   const fixtures = arg('fixtures');
   const reportFile = arg('out');
   const capitalFlowFile = arg('capital-flow-evidence');
+  const capitalFlowExpectationsFile = arg('capital-flow-expectations');
   if (!planFile || !manifestFile || !receiptFile || !prfRoot || !trustedContextRoot || !rpcUrl || !resolvedFile || !fixtures) {
-    throw new Error('Usage: verify-plan-execution.ts --plan <plan.json> --manifest <manifest.json> --receipt <plan-execution.json> --prf-root <PRF source root> --trusted-context-root <independently supplied context root> --resolved <resolved spec> --fixtures <pinned fixture root> --rpc-url <URL> [--capital-flow-evidence <capital-flow.json>] [--out <verification-report.json>]');
+    throw new Error('Usage: verify-plan-execution.ts --plan <plan.json> --manifest <manifest.json> --receipt <plan-execution.json> --prf-root <PRF source root> --trusted-context-root <independently supplied context root> --resolved <resolved spec> --fixtures <pinned fixture root> --rpc-url <URL> [--capital-flow-evidence <capital-flow.json> --capital-flow-expectations <relative-file-under-trusted-context-root>] [--out <verification-report.json>]');
+  }
+  if (Boolean(capitalFlowFile) !== Boolean(capitalFlowExpectationsFile)) {
+    throw new ConfigError('CAPITAL_FLOW_EXPECTATIONS_INVALID', 'Capital-flow evidence and its separately trusted expected-state package must be supplied together');
   }
   const plan = readSuccessorDeploymentPlan(planFile);
   const manifestSchema = z.discriminatedUnion('type', [
@@ -126,7 +131,8 @@ async function main(): Promise<void> {
     throw new ConfigError('CAPITAL_FLOW_CONFIGURATION_MISMATCH', 'Capital-flow replay requires the independently retained C0 root from successor derivation evidence');
   }
   const capitalFlow = capitalFlowFile
-    ? await replayCapitalFlowEvidence(read(capitalFlowFile), transport, sealedGenesisRoot ?? '', appliedConfigurationRoot, appliedConfigurationEpoch, initialConfigurationRoot, manifest, resolved)
+    ? await replayCapitalFlowEvidence(read(capitalFlowFile), transport, sealedGenesisRoot ?? '', appliedConfigurationRoot, appliedConfigurationEpoch, initialConfigurationRoot, manifest, resolved,
+      readCapitalFlowExpectations(trustedContextRoot, capitalFlowExpectationsFile!), computeManifestRoot(manifest))
     : { evidenceRoot: null, replayedTransactions: 0, replayedStateAssertions: 0 };
   const report = buildPlanVerificationReport({
     planId: plan.planId,
