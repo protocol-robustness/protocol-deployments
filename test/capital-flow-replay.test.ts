@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { keccak256, toBytes, toEventSelector, toFunctionSelector } from 'viem';
+import { encodeFunctionData, keccak256, toBytes, toEventSelector, toFunctionSelector } from 'viem';
 import { createHash } from 'crypto';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { assertCapitalFlowExecutionComplete, replayCapitalFlowEvidence, CAPITAL_FLOW_ACTION_CALLS, CAPITAL_FLOW_ASSERTION_DOMAINS, CAPITAL_FLOW_EXECUTION_ORDER, CAPITAL_FLOW_EXPECTED_STATUSES, CAPITAL_FLOW_NEGATIVE_CASES, CAPITAL_FLOW_POSITIVE_STEPS, CAPITAL_FLOW_STATE_CALLS, LOCAL_ENTITLEMENT_OPERATOR_ABI } from '../src/deployment/capital-flow-replay';
+import { assertCapitalFlowExecutionComplete, replayCapitalFlowEvidence, CAPITAL_FLOW_ACTION_CALLS, CAPITAL_FLOW_ASSERTION_DOMAINS, CAPITAL_FLOW_EXECUTION_ORDER, CAPITAL_FLOW_FULL_EXECUTION_ORDER, CAPITAL_FLOW_EXPECTED_STATUSES, CAPITAL_FLOW_NEGATIVE_CASES, CAPITAL_FLOW_POSITIVE_STEPS, CAPITAL_FLOW_SETUP_STEPS, CAPITAL_FLOW_STATE_CALLS, LOCAL_ENTITLEMENT_OPERATOR_ABI } from '../src/deployment/capital-flow-replay';
 import { buildPlanVerificationReport } from '../src/deployment/plan-verification-report';
 import { ConfigError } from '../src/errors';
 import { FakeTransport } from './fake-chain';
@@ -19,8 +19,12 @@ const verifierId = `0x${'6'.repeat(64)}`;
 const operationExecutorAddress = `0x${'2'.repeat(40)}`;
 const operationExecutorPrincipal = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 const representationAddress = `0x${'3'.repeat(40)}`;
+const beneficiaryAddress = `0x${'4'.repeat(40)}`;
 const fakeRuntimeCode = `0x${'60'.repeat(64)}` as const;
 const fakeRuntimeCodeHash = keccak256(fakeRuntimeCode);
+const operationExecutorCreationInput = '0x60006000';
+const representationCreationInput = '0x60016001';
+const creationInputSha256 = (input: string) => createHash('sha256').update(Buffer.from(input.slice(2), 'hex')).digest('hex');
 const claimIdentity = 'claim-1';
 const claimIdentityHex = Buffer.from(claimIdentity, 'utf8').toString('hex');
 const claimIdentityHash = keccak256(`0x2007${claimIdentityHex}`);
@@ -92,7 +96,7 @@ function encodeCall(selector: string, values: Array<string | null>, dynamic: Rec
   return `${selector}${head}${tail}`;
 }
 function encodeWithdrawal(selector: string): string {
-  const tuple = `${word(`0x${'0'.repeat(64)}`)}${word('0xa0')}${word(to)}${word('0x3')}${word(`0x${'7'.repeat(64)}`)}${word('0x7')}${claimIdentityHex.padEnd(64, '0')}`;
+  const tuple = `${word(`0x${'0'.repeat(64)}`)}${word('0xa0')}${word(beneficiaryAddress)}${word('0x3')}${word(`0x${'7'.repeat(64)}`)}${word('0x7')}${claimIdentityHex.padEnd(64, '0')}`;
   const tupleOffset = 6 * 32;
   const tableOffset = tupleOffset + tuple.length / 2;
   const allocationOffset = tableOffset + 32;
@@ -101,7 +105,7 @@ function encodeWithdrawal(selector: string): string {
 }
 const logicalIds = [...new Set([...Object.values(calls), ...Object.values(CAPITAL_FLOW_STATE_CALLS).map((call) => call), { logicalId: 'shortfall/entitlement-ratification-controller-v1' }].map((call) => call.logicalId))];
 const pinnedLogicalIds = logicalIds.filter((logicalId) => Object.hasOwn(artifactNames, logicalId));
-const manifest = { type: 'protocol-deployment-manifest/v1', contracts: pinnedLogicalIds.map((logicalId) => ({ logicalId, address: to })) } as never;
+const manifest = { type: 'protocol-deployment-manifest/v1', deployer: operationExecutorPrincipal, contracts: pinnedLogicalIds.map((logicalId) => ({ logicalId, address: to })) } as never;
 const spec = { contracts: Object.fromEntries(pinnedLogicalIds.map((logicalId) => [logicalId, { artifact: { abi: abiFor(logicalId) } }])) } as never;
 const steps = [...CAPITAL_FLOW_POSITIVE_STEPS, ...CAPITAL_FLOW_NEGATIVE_CASES].map((id, i) => ({
   id,
@@ -109,6 +113,13 @@ const steps = [...CAPITAL_FLOW_POSITIVE_STEPS, ...CAPITAL_FLOW_NEGATIVE_CASES].m
   to: ['ratification-and-funding', 'entitlement-activation', 'repeated-ratification'].includes(id) ? operationExecutorAddress : to,
   selector: calls[id]!.selector,
 }));
+const setupTransactions = [
+  { id: 'operation-executor-deployment', transactionHash: `0x${101n.toString(16).padStart(64, '0')}`, to: null, selector: null, deployedAddress: operationExecutorAddress },
+  { id: 'caller-binding', transactionHash: `0x${102n.toString(16).padStart(64, '0')}`, to, selector: toFunctionSelector(functionAbi('shortfall/entitlement-ratification-controller-v1', 'bindExecutionCaller')), deployedAddress: null },
+  { id: 'reserve-seed-approval', transactionHash: `0x${103n.toString(16).padStart(64, '0')}`, to, selector: toFunctionSelector(functionAbi('prf/local-token', 'approve')), deployedAddress: null },
+  { id: 'reserve-seed-deposit', transactionHash: `0x${104n.toString(16).padStart(64, '0')}`, to, selector: toFunctionSelector(functionAbi('shortfall/shortfall-reserve-v2', 'deposit')), deployedAddress: null },
+  { id: 'entitlement-representation-deployment', transactionHash: `0x${105n.toString(16).padStart(64, '0')}`, to: null, selector: null, deployedAddress: representationAddress },
+];
 const operationArgs = Array.from({ length: 19 }, () => `0x${'0'.repeat(64)}`);
 operationArgs[0] = operationId;
 operationArgs[2] = `0x${BigInt(31337).toString(16).padStart(64, '0')}`;
@@ -202,13 +213,13 @@ const assertions = Object.entries(CAPITAL_FLOW_ASSERTION_DOMAINS).flatMap(([acti
       : ['decision-authorization', 'decision-proof-mode'].includes(domain) ? [unauthorizedDecisionRoot]
       : domain === 'reserve-state' ? [preparedOperationRoot]
       : ['prepared-operation-root', 'prepared-operation-state', 'assurance-state', 'liability', 'operation-state', 'claim-state', 'consumed-claim'].includes(domain) ? [operationId, ...(domain === 'consumed-claim' ? [claimIdentityHash] : [])]
-          : domain === 'token-balance' ? [to]
+          : domain === 'token-balance' ? [beneficiaryAddress]
             : []),
   expectedBefore: expectedStateBefore(actionId, domain),
   expectedAfter: expectedStateAfter(actionId, domain, actionIndex),
 })));
 const evidence = {
-  schema: 'protocol-capital-flow-execution/v5',
+  schema: 'protocol-capital-flow-execution/v6',
   chainId: 31337,
   chainInstanceGenesisRoot,
   configurationRoot,
@@ -223,13 +234,14 @@ const evidence = {
   statementRoot,
   verifierId,
   publicValuesSha256: `0x${createHash('sha256').update(Buffer.from(publicValues.slice(2), 'hex')).digest('hex')}`,
+  setupTransactions,
   positiveTransactions: steps.slice(0, CAPITAL_FLOW_POSITIVE_STEPS.length),
   negativeTransactions: steps.slice(CAPITAL_FLOW_POSITIVE_STEPS.length),
   stateAssertions: assertions,
 };
 const verifiedManifestRoot = `0x${'c'.repeat(64)}`;
 const expectationPackage = (stateAssertions = evidence.stateAssertions) => ({
-  schema: 'protocol-capital-flow-expectations/v2',
+  schema: 'protocol-capital-flow-expectations/v3',
   manifestRoot: verifiedManifestRoot,
   chainInstanceGenesisRoot,
   configurationRoot,
@@ -240,28 +252,42 @@ const expectationPackage = (stateAssertions = evidence.stateAssertions) => ({
     operator: operationExecutorPrincipal,
     operationId,
     controller: to,
-    representation: representationAddress,
     sourceSha256: '49b2278666afca559d8690a47b39456fa38a5282b581a825ceab7981c2007a5c',
     artifactSha256: '2bd343ba5a78e886cce8945202bb10bdadcd60bcf4f38750ffd76e8d4d0088fc',
+    creationInputSha256: creationInputSha256(operationExecutorCreationInput),
     runtimeCodeKeccak256: fakeRuntimeCodeHash,
-    representationArtifactSha256: '8e172f5b1530117db25efd64cdbf822903ddc0d11d8d0578232f4e7b1f0c2148',
-    representationRuntimeCodeKeccak256: fakeRuntimeCodeHash,
   },
+  representation: {
+    address: representationAddress,
+    artifactSha256: '8e172f5b1530117db25efd64cdbf822903ddc0d11d8d0578232f4e7b1f0c2148',
+    creationInputSha256: creationInputSha256(representationCreationInput),
+    runtimeCodeKeccak256: fakeRuntimeCodeHash,
+  },
+  reserveSeed: { amount: '70', reserveBalanceBefore: '0', ownerBalanceBefore: '1000', allowanceBefore: '0' },
   stateAssertions,
 });
 const replay = (value: unknown, transport: FakeTransport, genesisRoot = evidence.chainInstanceGenesisRoot, c1Root = configurationRoot, epoch = configurationEpoch, c0Root = c0ConfigurationRoot, expectations: unknown = expectationPackage()) =>
   replayCapitalFlowEvidence(value, transport, genesisRoot, c1Root, epoch, c0Root, manifest, spec, expectations, verifiedManifestRoot);
+const setupInputs: Record<string, string> = {
+  'operation-executor-deployment': operationExecutorCreationInput,
+  'caller-binding': encodeCall(toFunctionSelector(functionAbi('shortfall/entitlement-ratification-controller-v1', 'bindExecutionCaller')), [operationExecutorAddress]),
+  'reserve-seed-approval': encodeCall(toFunctionSelector(functionAbi('prf/local-token', 'approve')), [to, '0x46']),
+  'reserve-seed-deposit': encodeCall(toFunctionSelector(functionAbi('shortfall/shortfall-reserve-v2', 'deposit')), ['0x46']),
+  'entitlement-representation-deployment': representationCreationInput,
+};
 const matchingTransport = (
   inputOverrides: Record<string, string> = {},
-  order: readonly string[] = CAPITAL_FLOW_EXECUTION_ORDER,
+  order: readonly string[] = CAPITAL_FLOW_FULL_EXECUTION_ORDER,
   blockOffsets: Record<string, number> = {},
   interveningTransactions: Record<number, `0x${string}`[]> = {},
   receiptLogMutations: Record<string, 'missing-transfer' | 'wrong-transfer-recipient' | 'wrong-transfer-amount' | 'extra-transfer' | 'wrong-operation'> = {},
   identityOverrides: Partial<{ operator: string; operationId: string; controller: string; boundCaller: string; boundFlag: string }> = {},
+  rpcOverrides: Partial<ConstructorParameters<typeof FakeTransport>[0]> = {},
 ) => {
   const blockHashAt = (index: number) => `0x${(index + 100).toString(16).padStart(64, '0')}` as `0x${string}`;
   const chronologyIndex = new Map(order.map((id, index) => [id, index]));
-  const idForHash = (hash: string) => steps[Number(BigInt(hash)) - 1]!.id;
+  const allTransactionSteps = [...setupTransactions, ...steps];
+  const idForHash = (hash: string) => allTransactionSteps.find((step) => step.transactionHash.toLowerCase() === hash.toLowerCase())!.id;
   const blockFor = (id: string) => 10 + chronologyIndex.get(id)! + (blockOffsets[id] ?? 0);
   const maxBlock = Math.max(...order.map(blockFor));
   const transferTopic = toEventSelector(eventAbi('prf/local-token', 'Transfer'));
@@ -275,13 +301,14 @@ const matchingTransport = (
     data: amountData(amount),
   });
   const receiptLogsFor = (id: string): unknown[] => {
+    if (id === 'reserve-seed-deposit') return [transferLog(operationExecutorPrincipal, to, 70n)];
     if (id === 'ratification-and-funding') return [
       { address: to, topics: [fundedTopic, operationId, admissionReceiptId], data: amountData(70n) },
       transferLog(to, to, 70n),
     ];
     if (id === 'entitlement-withdrawal') return [
-      { address: to, topics: [withdrawnTopic, operationId, `0x${'0'.repeat(64)}`, addressTopic(to)], data: `0x${amountData(3n).slice(2)}${amountData(0n).slice(2)}${amountData(0n).slice(2)}${amountData(3n).slice(2)}${amountData(1n).slice(2)}` },
-      transferLog(to, to, 3n),
+      { address: to, topics: [withdrawnTopic, operationId, `0x${'0'.repeat(64)}`, addressTopic(beneficiaryAddress)], data: `0x${amountData(3n).slice(2)}${amountData(0n).slice(2)}${amountData(0n).slice(2)}${amountData(3n).slice(2)}${amountData(1n).slice(2)}` },
+      transferLog(to, beneficiaryAddress, 3n),
     ];
     return [];
   };
@@ -297,25 +324,49 @@ const matchingTransport = (
     }
   };
   return new FakeTransport({
+    ...rpcOverrides,
     blockHashes: Object.fromEntries(Array.from({ length: maxBlock - 9 }, (_, index) => [(10 + index).toString(), blockHashAt(index)])),
+    code: (address, blockNumber) => {
+      const number = Number(blockNumber ?? maxBlock);
+      if (address.toLowerCase() === operationExecutorAddress.toLowerCase() && number < blockFor('operation-executor-deployment')) return '0x' as `0x${string}`;
+      if (address.toLowerCase() === representationAddress.toLowerCase() && number < blockFor('entitlement-representation-deployment')) return '0x' as `0x${string}`;
+      return fakeRuntimeCode;
+    },
     receiptFor: (hash) => {
       const id = idForHash(hash);
       const blockNumber = blockFor(id);
-      return { transactionHash: hash, status: CAPITAL_FLOW_EXPECTED_STATUSES[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10), logs: receiptLogs(id) } as never;
+      const createdAddress = id === 'operation-executor-deployment' ? operationExecutorAddress : id === 'entitlement-representation-deployment' ? representationAddress : null;
+      const setup = setupTransactions.some((step) => step.id === id);
+      return { transactionHash: hash, status: setup ? 'success' : CAPITAL_FLOW_EXPECTED_STATUSES[id], contractAddress: createdAddress, blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10), logs: receiptLogs(id) } as never;
     },
     transactionFor: (hash) => {
       const id = idForHash(hash);
       const blockNumber = blockFor(id);
+      const setup = setupTransactions.find((step) => step.id === id);
+      if (setup) return { hash, from: operationExecutorPrincipal, to: setup.to, input: inputOverrides[id] ?? setupInputs[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10) } as never;
       const operationExecutorCall = ['ratification-and-funding', 'entitlement-activation', 'repeated-ratification'].includes(id);
       return { hash, from: operationExecutorPrincipal, to: operationExecutorCall ? operationExecutorAddress : to, input: inputOverrides[id] ?? actionInputs[id], blockNumber: BigInt(blockNumber), blockHash: blockHashAt(blockNumber - 10) } as never;
     },
     blockTransactionHashesFor: (blockNumber) => {
-      const step = steps.find((candidate) => blockFor(candidate.id) === Number(blockNumber));
+      const step = allTransactionSteps.find((candidate) => blockFor(candidate.id) === Number(blockNumber));
       return step ? [step.transactionHash as `0x${string}`] : interveningTransactions[Number(blockNumber)] ?? [];
     },
     callFor: (request, blockNumber) => {
       const selector = request.data?.slice(0, 10).toLowerCase();
       const addressWord = (address: string) => `0x${address.slice(2).toLowerCase().padStart(64, '0')}` as `0x${string}`;
+      const tokenBalanceAbi = functionAbi('prf/local-token', 'balanceOf');
+      const tokenAllowanceAbi = functionAbi('prf/local-token', 'allowance');
+      const tokenBalanceCall = (address: string) => encodeFunctionData({ abi: [tokenBalanceAbi], functionName: 'balanceOf', args: [address] } as never);
+      const tokenAllowanceCall = encodeFunctionData({ abi: [tokenAllowanceAbi], functionName: 'allowance', args: [operationExecutorPrincipal, to] } as never);
+      const block = Number(blockNumber);
+      const approvalBlock = blockFor('reserve-seed-approval');
+      const depositBlock = blockFor('reserve-seed-deposit');
+      if (request.to?.toLowerCase() === to.toLowerCase() && request.data === tokenBalanceCall(to)) return block < depositBlock ? `0x${'0'.repeat(64)}` as `0x${string}` : `0x${'0'.repeat(62)}46` as `0x${string}`;
+      if (request.to?.toLowerCase() === to.toLowerCase() && request.data === tokenBalanceCall(operationExecutorPrincipal)) return block < depositBlock ? `0x${'0'.repeat(61)}3e8` as `0x${string}` : `0x${'0'.repeat(61)}3a2` as `0x${string}`;
+      if (request.to?.toLowerCase() === to.toLowerCase() && request.data === tokenAllowanceCall) {
+        if (block < approvalBlock) return `0x${'0'.repeat(64)}` as `0x${string}`;
+        return block < depositBlock ? `0x${'0'.repeat(62)}46` as `0x${string}` : `0x${'0'.repeat(64)}` as `0x${string}`;
+      }
       const executorGetters = ['operator', 'operationId', 'controller'] as const;
       if (request.to?.toLowerCase() === operationExecutorAddress.toLowerCase()) {
         for (const name of executorGetters) {
@@ -330,10 +381,9 @@ const matchingTransport = (
       if (request.to?.toLowerCase() === to.toLowerCase()) {
         const boundCallerSelector = toFunctionSelector(functionAbi('shortfall/entitlement-ratification-controller-v1', 'executionCaller')).toLowerCase();
         const boundFlagSelector = toFunctionSelector(functionAbi('shortfall/entitlement-ratification-controller-v1', 'executionCallerBound')).toLowerCase();
-        if (selector === boundCallerSelector) return addressWord(identityOverrides.boundCaller ?? operationExecutorAddress);
-        if (selector === boundFlagSelector) return (identityOverrides.boundFlag ?? `0x${'0'.repeat(63)}1`) as `0x${string}`;
+        if (selector === boundCallerSelector) return block < blockFor('caller-binding') ? addressWord(`0x${'0'.repeat(40)}`) : addressWord(identityOverrides.boundCaller ?? operationExecutorAddress);
+        if (selector === boundFlagSelector) return (block < blockFor('caller-binding') ? `0x${'0'.repeat(64)}` : identityOverrides.boundFlag ?? `0x${'0'.repeat(63)}1`) as `0x${string}`;
       }
-      const block = Number(blockNumber);
       const matches = assertions.flatMap((candidate) => {
         if (candidate.callData !== request.data) return [];
         const actionBlock = blockFor(candidate.actionId);
@@ -345,6 +395,7 @@ const matchingTransport = (
       if (!match) return '0x';
       return (match.before ? match.assertion.expectedBefore : match.assertion.expectedAfter) as `0x${string}`;
     },
+    ...rpcOverrides,
   });
 };
 
@@ -376,7 +427,7 @@ describe('capital-flow transaction replay', () => {
       .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_EXPECTATIONS_MISMATCH' }));
   });
 
-  it('rejects a transaction receipt on a noncanonical block hash', async () => {
+  it('requires independently replayable setup evidence before action replay', async () => {
     const hash = evidence.positiveTransactions[0]!.transactionHash as `0x${string}`;
     const transport = new FakeTransport({
       blockHashes: { '5': `0x${'f'.repeat(64)}` as `0x${string}` },
@@ -384,10 +435,10 @@ describe('capital-flow transaction replay', () => {
       transaction: { hash, to, input: actionInputs['operation-preparation'], blockNumber: 5n, blockHash: `0x${'e'.repeat(64)}` } as never,
     });
     await expect(replay(evidence, transport))
-      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_BLOCK_MISMATCH' }));
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_SETUP_MISMATCH' }));
   });
 
-  it('rejects transactions in blocks that cannot isolate rollback state', async () => {
+  it('rejects action evidence when required setup transactions are absent', async () => {
     const hash = evidence.positiveTransactions[0]!.transactionHash as `0x${string}`;
     const transport = new FakeTransport({
       blockHashes: { '5': blockHash as `0x${string}` },
@@ -395,17 +446,17 @@ describe('capital-flow transaction replay', () => {
       transaction: { hash, to, input: actionInputs['operation-preparation'], blockNumber: 5n, blockHash } as never,
     });
     await expect(replay(evidence, transport))
-      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_BLOCK_NOT_ISOLATED' }));
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_SETUP_MISMATCH' }));
   });
 
-  it('checks every action against transaction, receipt, and canonical block data', async () => {
+  it('rejects incomplete setup evidence before accepting action receipts', async () => {
     const transport = new FakeTransport({
       blockHashes: { '5': blockHash as `0x${string}` },
       receipt: { transactionHash: evidence.positiveTransactions[0]!.transactionHash, status: 'success', blockNumber: 5n, blockHash } as never,
       transaction: { hash: evidence.positiveTransactions[0]!.transactionHash, to: '0x0000000000000000000000000000000000000001', input: steps[0]!.selector, blockNumber: 5n, blockHash } as never,
     });
     await expect(replay(evidence, transport))
-      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_TRANSACTION_MISMATCH' }));
+      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_SETUP_MISMATCH' }));
   });
 
   it('rejects a producer-selected contract that differs from the fixed topology action map', async () => {
@@ -423,7 +474,7 @@ describe('capital-flow transaction replay', () => {
   it('replays all transactions and historical state domains when RPC evidence matches', async () => {
     const transport = matchingTransport();
     const result = await replay(evidence, transport);
-    expect(result.replayedTransactions).toBe(CAPITAL_FLOW_POSITIVE_STEPS.length + CAPITAL_FLOW_NEGATIVE_CASES.length);
+    expect(result.replayedTransactions).toBe(CAPITAL_FLOW_SETUP_STEPS.length + CAPITAL_FLOW_POSITIVE_STEPS.length + CAPITAL_FLOW_NEGATIVE_CASES.length);
     expect(result.replayedStateAssertions).toBe(assertions.length);
     expect(result.evidenceRoot).toMatch(/^0x[0-9a-f]{64}$/);
     const report = buildPlanVerificationReport({
@@ -453,8 +504,8 @@ describe('capital-flow transaction replay', () => {
     ['execution caller binding', { boundCaller: `0x${'f'.repeat(40)}` }],
     ['bound flag', { boundFlag: `0x${'0'.repeat(64)}` }],
   ])('rejects a mismatched immutable %s or controller binding', async (_label, override) => {
-    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_EXECUTION_ORDER, {}, {}, {}, override)))
-      .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_RUNTIME_IDENTITY_MISMATCH' }));
+    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_FULL_EXECUTION_ORDER, {}, {}, {}, override)))
+      .rejects.toThrowError(expect.objectContaining({ code: _label === 'operationId' ? 'CAPITAL_FLOW_RUNTIME_IDENTITY_MISMATCH' : 'CAPITAL_FLOW_SETUP_STATE_MISMATCH' }));
   });
 
   it.each([
@@ -468,7 +519,7 @@ describe('capital-flow transaction replay', () => {
     { action: 'entitlement-withdrawal', mutation: 'extra-transfer', label: 'extra payout transfer' },
     { action: 'entitlement-withdrawal', mutation: 'wrong-operation', label: 'withdrawal event for another operation' },
   ] as const)('rejects $label in the retained receipt logs', async ({ action, mutation }) => {
-    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_EXECUTION_ORDER, {}, {}, { [action]: mutation })))
+    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_FULL_EXECUTION_ORDER, {}, {}, { [action]: mutation })))
       .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_LOG_MISMATCH' }));
   });
 
@@ -515,7 +566,7 @@ describe('capital-flow transaction replay', () => {
   });
 
   it('rejects transactions that occur outside the required execution chronology', async () => {
-    const wrongOrder = [...CAPITAL_FLOW_EXECUTION_ORDER];
+    const wrongOrder = [...CAPITAL_FLOW_FULL_EXECUTION_ORDER];
     const instanceIndex = wrongOrder.indexOf('wrong-instance');
     const preparationIndex = wrongOrder.indexOf('operation-preparation');
     [wrongOrder[instanceIndex], wrongOrder[preparationIndex]] = [wrongOrder[preparationIndex]!, wrongOrder[instanceIndex]!];
@@ -524,10 +575,10 @@ describe('capital-flow transaction replay', () => {
   });
 
   it('allows empty gaps but rejects unreported transactions between isolated actions', async () => {
-    const offsets = Object.fromEntries(CAPITAL_FLOW_EXECUTION_ORDER.slice(2).map((id) => [id, 1]));
-    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_EXECUTION_ORDER, offsets)))
-      .resolves.toMatchObject({ replayedTransactions: steps.length });
-    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_EXECUTION_ORDER, offsets, {
+    const offsets = Object.fromEntries(CAPITAL_FLOW_FULL_EXECUTION_ORDER.slice(2).map((id) => [id, 1]));
+    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_FULL_EXECUTION_ORDER, offsets)))
+      .resolves.toMatchObject({ replayedTransactions: steps.length + setupTransactions.length });
+    await expect(replay(evidence, matchingTransport({}, CAPITAL_FLOW_FULL_EXECUTION_ORDER, offsets, {
       12: [`0x${'f'.repeat(64)}` as `0x${string}`],
     })))
       .rejects.toThrowError(expect.objectContaining({ code: 'CAPITAL_FLOW_BLOCK_NOT_ISOLATED' }));

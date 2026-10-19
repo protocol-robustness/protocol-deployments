@@ -28,6 +28,14 @@ export const CAPITAL_FLOW_NEGATIVE_CASES = [
   'repeated-withdrawal',
 ] as const;
 
+export const CAPITAL_FLOW_SETUP_STEPS = [
+  'operation-executor-deployment',
+  'caller-binding',
+  'reserve-seed-approval',
+  'reserve-seed-deposit',
+  'entitlement-representation-deployment',
+] as const;
+
 /** Required transaction chronology so each negative action exercises its intended boundary. */
 export const CAPITAL_FLOW_EXECUTION_ORDER = [
   'unauthorized-configuration-route',
@@ -46,6 +54,19 @@ export const CAPITAL_FLOW_EXECUTION_ORDER = [
   'entitlement-activation',
   'entitlement-withdrawal',
   'repeated-withdrawal',
+] as const;
+
+/** Global chronology includes the setup transactions that make the bounded
+ * capital path executable on the already-approved C1 deployment. */
+export const CAPITAL_FLOW_FULL_EXECUTION_ORDER = [
+  'operation-executor-deployment',
+  'caller-binding',
+  'reserve-seed-approval',
+  'reserve-seed-deposit',
+  ...CAPITAL_FLOW_EXECUTION_ORDER.slice(0, CAPITAL_FLOW_EXECUTION_ORDER.indexOf('unauthorized-configuration-route')),
+  ...CAPITAL_FLOW_EXECUTION_ORDER.slice(0, CAPITAL_FLOW_EXECUTION_ORDER.indexOf('entitlement-activation')),
+  'entitlement-representation-deployment',
+  ...CAPITAL_FLOW_EXECUTION_ORDER.slice(CAPITAL_FLOW_EXECUTION_ORDER.indexOf('entitlement-activation')),
 ] as const;
 
 export const CAPITAL_FLOW_EXPECTED_STATUSES: Record<string, 'success' | 'reverted'> = {
@@ -69,9 +90,10 @@ export const CAPITAL_FLOW_EXPECTED_STATUSES: Record<string, 'success' | 'reverte
 };
 
 type FlowStep = { id: string; transactionHash: string; to: string; selector: string };
+type SetupStep = { id: string; transactionHash: string; to: string | null; selector: string | null; deployedAddress: string | null };
 type StateAssertion = { actionId: string; domain: string; logicalId: string; contract: string; callData: string; expectedBefore: string; expectedAfter: string };
 type FlowEvidence = {
-  schema: 'protocol-capital-flow-execution/v5';
+  schema: 'protocol-capital-flow-execution/v6';
   chainId: number;
   chainInstanceGenesisRoot: string;
   configurationRoot: string;
@@ -86,12 +108,13 @@ type FlowEvidence = {
   statementRoot: string;
   verifierId: string;
   publicValuesSha256: string;
+  setupTransactions: SetupStep[];
   positiveTransactions: FlowStep[];
   negativeTransactions: FlowStep[];
   stateAssertions: StateAssertion[];
 };
 type CapitalFlowExpectations = {
-  schema: 'protocol-capital-flow-expectations/v2';
+  schema: 'protocol-capital-flow-expectations/v3';
   manifestRoot: string;
   chainInstanceGenesisRoot: string;
   configurationRoot: string;
@@ -105,10 +128,11 @@ type CapitalFlowExpectations = {
     representation: string;
     sourceSha256: string;
     artifactSha256: string;
+    creationInputSha256: string;
     runtimeCodeKeccak256: string;
-    representationArtifactSha256: string;
-    representationRuntimeCodeKeccak256: string;
   };
+  representation: { address: string; artifactSha256: string; creationInputSha256: string; runtimeCodeKeccak256: string };
+  reserveSeed: { amount: string; reserveBalanceBefore: string; ownerBalanceBefore: string; allowanceBefore: string };
   stateAssertions: StateAssertion[];
 };
 
@@ -203,9 +227,20 @@ function parseEvidence(value: unknown): FlowEvidence {
       !!step && typeof step === 'object' && !Array.isArray(step) &&
       (step as FlowStep).id === expected[i] && isHash((step as FlowStep).transactionHash) &&
       isAddress((step as FlowStep).to) && isSelector((step as FlowStep).selector));
-  const keys = ['schema', 'chainId', 'chainInstanceGenesisRoot', 'configurationRoot', 'configurationEpoch', 'operationId', 'admissionReceiptId', 'preparedOperationRoot', 'staleC0OperationRoot', 'staleC0Operation', 'staleC0AdmissionReceiptId', 'reserveStateCommitment', 'statementRoot', 'verifierId', 'publicValuesSha256', 'positiveTransactions', 'negativeTransactions', 'stateAssertions'].sort();
+  const checkSetupSteps = (steps: unknown): steps is SetupStep[] =>
+    Array.isArray(steps) && steps.length === CAPITAL_FLOW_SETUP_STEPS.length && steps.every((step, index) => {
+      if (!step || typeof step !== 'object' || Array.isArray(step)) return false;
+      const setup = step as SetupStep;
+      if (canonicalJson(Object.keys(setup).sort()) !== canonicalJson(['id', 'transactionHash', 'to', 'selector', 'deployedAddress'].sort()) ||
+          setup.id !== CAPITAL_FLOW_SETUP_STEPS[index] || !isHash(setup.transactionHash)) return false;
+      if (setup.id === 'operation-executor-deployment' || setup.id === 'entitlement-representation-deployment') {
+        return setup.to === null && setup.selector === null && isAddress(setup.deployedAddress);
+      }
+      return isAddress(setup.to) && isSelector(setup.selector) && setup.deployedAddress === null;
+    });
+  const keys = ['schema', 'chainId', 'chainInstanceGenesisRoot', 'configurationRoot', 'configurationEpoch', 'operationId', 'admissionReceiptId', 'preparedOperationRoot', 'staleC0OperationRoot', 'staleC0Operation', 'staleC0AdmissionReceiptId', 'reserveStateCommitment', 'statementRoot', 'verifierId', 'publicValuesSha256', 'setupTransactions', 'positiveTransactions', 'negativeTransactions', 'stateAssertions'].sort();
   if (canonicalJson(Object.keys(evidence).sort()) !== canonicalJson(keys) ||
-      evidence.schema !== 'protocol-capital-flow-execution/v5' ||
+      evidence.schema !== 'protocol-capital-flow-execution/v6' ||
       !Number.isSafeInteger(evidence.chainId) || (evidence.chainId ?? 0) <= 0 ||
       !isHash(evidence.chainInstanceGenesisRoot) ||
       !isHash(evidence.configurationRoot) || !Number.isSafeInteger(evidence.configurationEpoch) || (evidence.configurationEpoch ?? 0) <= 0 ||
@@ -213,6 +248,7 @@ function parseEvidence(value: unknown): FlowEvidence {
       !isHash(evidence.staleC0OperationRoot) || !isHash(evidence.staleC0AdmissionReceiptId) ||
       !Array.isArray(evidence.staleC0Operation) || evidence.staleC0Operation.length !== 19 || evidence.staleC0Operation.some((word) => !isHash(word)) ||
       !isHash(evidence.reserveStateCommitment) || !isHash(evidence.statementRoot) || !isHash(evidence.verifierId) || !isHash(evidence.publicValuesSha256) ||
+      !checkSetupSteps(evidence.setupTransactions) ||
       !checkSteps(evidence.positiveTransactions, CAPITAL_FLOW_POSITIVE_STEPS) ||
       !checkSteps(evidence.negativeTransactions, CAPITAL_FLOW_NEGATIVE_CASES) ||
       !Array.isArray(evidence.stateAssertions) || evidence.stateAssertions.some((assertion) =>
@@ -224,8 +260,8 @@ function parseEvidence(value: unknown): FlowEvidence {
         !isAddress(assertion.contract) || !isBytes(assertion.callData) || !isBytes(assertion.expectedBefore) || !isBytes(assertion.expectedAfter))) {
     throw new ConfigError('CAPITAL_FLOW_EVIDENCE_INVALID', 'Capital-flow evidence schema, ordered step set, or transaction identity is invalid');
   }
-  const hashes = [...evidence.positiveTransactions, ...evidence.negativeTransactions].map((step) => step.transactionHash.toLowerCase());
-  if (new Set(hashes).size !== hashes.length) throw new ConfigError('CAPITAL_FLOW_EVIDENCE_INVALID', 'Each capital-flow action must identify a distinct transaction');
+  const hashes = [...evidence.setupTransactions, ...evidence.positiveTransactions, ...evidence.negativeTransactions].map((step) => step.transactionHash.toLowerCase());
+  if (new Set(hashes).size !== hashes.length) throw new ConfigError('CAPITAL_FLOW_EVIDENCE_INVALID', 'Each capital-flow action and setup step must identify a distinct transaction');
   const expectedAssertions = Object.entries(CAPITAL_FLOW_ASSERTION_DOMAINS).flatMap(([actionId, domains]) => domains.map((domain) => `${actionId}\0${domain}`)).sort();
   const actualAssertions = evidence.stateAssertions.map((assertion) => `${assertion.actionId}\0${assertion.domain}`).sort();
   if (canonicalJson(expectedAssertions) !== canonicalJson(actualAssertions)) throw new ConfigError('CAPITAL_FLOW_EVIDENCE_INVALID', 'Capital-flow evidence must include exactly one state assertion for each required action domain');
@@ -247,12 +283,16 @@ function assertCapitalFlowExpectations(
     throw new ConfigError('CAPITAL_FLOW_EXPECTATIONS_INVALID', 'Capital-flow expectations must come from the separately selected trusted-context package');
   }
   const expectations = value as Partial<CapitalFlowExpectations>;
-  const keys = ['schema', 'manifestRoot', 'chainInstanceGenesisRoot', 'configurationRoot', 'configurationEpoch', 'operationId', 'operationExecutor', 'stateAssertions'].sort();
+  const keys = ['schema', 'manifestRoot', 'chainInstanceGenesisRoot', 'configurationRoot', 'configurationEpoch', 'operationId', 'operationExecutor', 'representation', 'reserveSeed', 'stateAssertions'].sort();
   const executor = expectations.operationExecutor;
+  const representation = expectations.representation;
+  const reserveSeed = expectations.reserveSeed;
   const ratificationController = manifest.contracts.find((contract) => contract.logicalId === 'shortfall/entitlement-ratification-controller-v1')?.address;
-  const executorKeys = ['address', 'operator', 'operationId', 'controller', 'representation', 'sourceSha256', 'artifactSha256', 'runtimeCodeKeccak256', 'representationArtifactSha256', 'representationRuntimeCodeKeccak256'].sort();
+  const executorKeys = ['address', 'operator', 'operationId', 'controller', 'sourceSha256', 'artifactSha256', 'creationInputSha256', 'runtimeCodeKeccak256'].sort();
+  const representationKeys = ['address', 'artifactSha256', 'creationInputSha256', 'runtimeCodeKeccak256'].sort();
+  const reserveSeedKeys = ['amount', 'reserveBalanceBefore', 'ownerBalanceBefore', 'allowanceBefore'].sort();
   if (canonicalJson(Object.keys(expectations).sort()) !== canonicalJson(keys) ||
-      expectations.schema !== 'protocol-capital-flow-expectations/v2' ||
+      expectations.schema !== 'protocol-capital-flow-expectations/v3' ||
       !isHash(expectedManifestRoot) || expectations.manifestRoot?.toLowerCase() !== expectedManifestRoot.toLowerCase() ||
       expectations.chainInstanceGenesisRoot?.toLowerCase() !== expectedChainInstanceGenesisRoot.toLowerCase() ||
       expectations.configurationRoot?.toLowerCase() !== expectedConfigurationRoot.toLowerCase() ||
@@ -262,12 +302,17 @@ function assertCapitalFlowExpectations(
       canonicalJson(Object.keys(executor).sort()) !== canonicalJson(executorKeys) ||
       !isAddress(executor.address) || !isAddress(executor.operator) || !isHash(executor.operationId) ||
       executor.operationId.toLowerCase() !== evidence.operationId.toLowerCase() ||
-      !isAddress(executor.controller) || !isAddress(executor.representation) ||
-      !isHash(executor.runtimeCodeKeccak256) || !isHash(executor.representationRuntimeCodeKeccak256) ||
+      !isAddress(executor.controller) || !isHash(executor.runtimeCodeKeccak256) ||
+      !/^[0-9a-f]{64}$/.test(executor.creationInputSha256) ||
       executor.sourceSha256 !== LOCAL_OPERATOR_SOURCE_SHA256 ||
       executor.artifactSha256 !== LOCAL_OPERATOR_ARTIFACT_SHA256 ||
-      executor.representationArtifactSha256 !== ENTITLEMENT_REPRESENTATION_ARTIFACT_SHA256 ||
       !isAddress(ratificationController) || executor.controller.toLowerCase() !== ratificationController.toLowerCase() ||
+      !representation || typeof representation !== 'object' || canonicalJson(Object.keys(representation).sort()) !== canonicalJson(representationKeys) ||
+      !isAddress(representation.address) || representation.artifactSha256 !== ENTITLEMENT_REPRESENTATION_ARTIFACT_SHA256 ||
+      !/^[0-9a-f]{64}$/.test(representation.creationInputSha256) || !isHash(representation.runtimeCodeKeccak256) ||
+      !reserveSeed || typeof reserveSeed !== 'object' || canonicalJson(Object.keys(reserveSeed).sort()) !== canonicalJson(reserveSeedKeys) ||
+      ![reserveSeed.amount, reserveSeed.reserveBalanceBefore, reserveSeed.ownerBalanceBefore, reserveSeed.allowanceBefore].every((amount) => typeof amount === 'string' && /^(0|[1-9][0-9]*)$/.test(amount)) ||
+      BigInt(reserveSeed.amount) <= 0n ||
       !Array.isArray(expectations.stateAssertions) ||
       canonicalJson(expectations.stateAssertions) !== canonicalJson(evidence.stateAssertions)) {
     throw new ConfigError('CAPITAL_FLOW_EXPECTATIONS_MISMATCH', 'Operation, runtime identity, or historical state assertions differ from the independent expectation package bound to this manifest, instance, C1 and operation');
@@ -489,7 +534,7 @@ function assertCapitalActionLogs(
   assertSingleTransfer(withdrawalReceipt, token, allocator, identity.beneficiary, identity.amount, pinnedEvent(spec, 'prf/local-token', 'Transfer'), 'entitlement-withdrawal');
 }
 
-function assertOperationBindings(evidence: FlowEvidence, inputs: Map<string, string>, manifest: DeploymentManifest, expectedC0Root: string, executor: CapitalFlowExpectations['operationExecutor']): void {
+function assertOperationBindings(evidence: FlowEvidence, inputs: Map<string, string>, manifest: DeploymentManifest, expectedC0Root: string, expectations: CapitalFlowExpectations): void {
   const admission = inputs.get('statement-admission') ?? '';
   const admissionValues = calldataBytes(admission, 3);
   const assurance = inputs.get('assurance-preparation') ?? '';
@@ -537,7 +582,7 @@ function assertOperationBindings(evidence: FlowEvidence, inputs: Map<string, str
   const ratification = inputs.get('ratification-and-funding') ?? '';
   const expectedResidualRecipient = calldataWord(operationPreparation, 18).slice(-40);
   const activation = inputs.get('entitlement-activation') ?? '';
-  const representationWord = `0x${executor.representation.slice(2).toLowerCase().padStart(64, '0')}`;
+  const representationWord = `0x${expectations.representation.address.slice(2).toLowerCase().padStart(64, '0')}`;
   if (calldataWord(ratification, 0) !== evidence.reserveStateCommitment.toLowerCase() ||
       calldataWord(ratification, 1).slice(-40) !== expectedResidualRecipient ||
       calldataWord(activation, 0) !== representationWord) {
@@ -649,7 +694,162 @@ function assertOperationBindings(evidence: FlowEvidence, inputs: Map<string, str
   }
 }
 
-/** Replays action transactions and state-domain readbacks at isolated before/after blocks. */
+function functionFor(spec: ResolvedSpec, logicalId: string, name: string): AbiFunction {
+  const abi = spec.contracts[logicalId]?.artifact.abi as Abi | undefined;
+  const matches = abi?.filter((item): item is AbiFunction => item.type === 'function' && item.name === name) ?? [];
+  if (matches.length !== 1) throw new ConfigError('CAPITAL_FLOW_SETUP_MISMATCH', `Pinned ${logicalId} ABI must contain exactly one ${name} function`);
+  return matches[0]!;
+}
+
+function setupTarget(step: SetupStep, expectations: CapitalFlowExpectations, manifest: DeploymentManifest, spec: ResolvedSpec): { to: string | null; selector: string | null; logicalId?: string; functionAbi?: AbiFunction } {
+  if (step.id === 'operation-executor-deployment') {
+    return { to: null, selector: null };
+  }
+  if (step.id === 'entitlement-representation-deployment') {
+    return { to: null, selector: null };
+  }
+  const bindings: Record<string, { logicalId: string; functionName: string }> = {
+    'caller-binding': { logicalId: 'shortfall/entitlement-ratification-controller-v1', functionName: 'bindExecutionCaller' },
+    'reserve-seed-approval': { logicalId: 'prf/local-token', functionName: 'approve' },
+    'reserve-seed-deposit': { logicalId: 'shortfall/shortfall-reserve-v2', functionName: 'deposit' },
+  };
+  const binding = bindings[step.id];
+  if (!binding) throw new ConfigError('CAPITAL_FLOW_SETUP_MISMATCH', `Unknown capital-flow setup action ${step.id}`);
+  const contract = manifest.contracts.find((entry) => entry.logicalId === binding.logicalId);
+  if (!contract) throw new ConfigError('CAPITAL_FLOW_SETUP_MISMATCH', `Deployment is missing setup target ${binding.logicalId}`);
+  const fn = functionFor(spec, binding.logicalId, binding.functionName);
+  void expectations;
+  return { to: contract.address, selector: toFunctionSelector(fn).toLowerCase(), logicalId: binding.logicalId, functionAbi: fn };
+}
+
+async function replayCapitalFlowSetup(
+  evidence: FlowEvidence,
+  transport: RpcTransport,
+  expectations: CapitalFlowExpectations,
+  manifest: DeploymentManifest,
+  spec: ResolvedSpec,
+  observed: Map<string, { blockNumber: bigint; transactionHash: `0x${string}` }>,
+  observedReceipts: Map<string, NonNullable<Awaited<ReturnType<RpcTransport['getTransactionReceipt']>>>>,
+  transactionInputs: Map<string, string>,
+): Promise<void> {
+  const contracts = new Map(manifest.contracts.map((contract) => [contract.logicalId, contract.address]));
+  const token = contracts.get('prf/local-token');
+  const reserve = contracts.get('shortfall/shortfall-reserve-v2');
+  const controller = contracts.get('shortfall/entitlement-ratification-controller-v1');
+  if (!token || !reserve || !controller) throw new ConfigError('CAPITAL_FLOW_SETUP_MISMATCH', 'Token, reserve and ratification-controller deployments are required for setup replay');
+  const setupById = new Map(evidence.setupTransactions.map((step) => [step.id, step]));
+  for (const step of evidence.setupTransactions) {
+    const expectedTarget = setupTarget(step, expectations, manifest, spec);
+    const hash = step.transactionHash as `0x${string}`;
+    const [transaction, receipt] = await Promise.all([transport.getTransaction(hash), transport.getTransactionReceipt(hash)]);
+    if (!transaction || !receipt || receipt.status !== 'success' || receipt.blockNumber === null ||
+        transaction.hash.toLowerCase() !== hash.toLowerCase() || receipt.transactionHash.toLowerCase() !== hash.toLowerCase() ||
+        transaction.to?.toLowerCase() !== expectedTarget.to?.toLowerCase() ||
+        step.to?.toLowerCase() !== expectedTarget.to?.toLowerCase() ||
+        step.selector?.toLowerCase() !== expectedTarget.selector?.toLowerCase() ||
+        (expectedTarget.selector && transaction.input.slice(0, 10).toLowerCase() !== expectedTarget.selector) ||
+        transaction.blockNumber !== receipt.blockNumber || transaction.blockHash !== receipt.blockHash) {
+      throw new ConfigError('CAPITAL_FLOW_SETUP_MISMATCH', `Capital-flow setup action ${step.id} differs from RPC transaction and receipt evidence`);
+    }
+    if (transaction.from.toLowerCase() !== manifest.deployer.toLowerCase()) {
+      throw new ConfigError('CAPITAL_FLOW_SETUP_MISMATCH', `Setup action ${step.id} was not submitted by the approved deployment principal`);
+    }
+    if (step.id === 'operation-executor-deployment' || step.id === 'entitlement-representation-deployment') {
+      const expectedAddress = step.id === 'operation-executor-deployment' ? expectations.operationExecutor.address : expectations.representation.address;
+      const expectedInputHash = step.id === 'operation-executor-deployment' ? expectations.operationExecutor.creationInputSha256 : expectations.representation.creationInputSha256;
+      const expectedRuntimeHash = step.id === 'operation-executor-deployment' ? expectations.operationExecutor.runtimeCodeKeccak256 : expectations.representation.runtimeCodeKeccak256;
+      const actualInputHash = createHash('sha256').update(Buffer.from(transaction.input.slice(2), 'hex')).digest('hex');
+      const runtime = await transport.getCode(expectedAddress as `0x${string}`, receipt.blockNumber);
+      const beforeRuntime = receipt.blockNumber === 0n ? undefined : await transport.getCode(expectedAddress as `0x${string}`, receipt.blockNumber - 1n);
+      if (step.deployedAddress?.toLowerCase() !== expectedAddress.toLowerCase() || receipt.contractAddress?.toLowerCase() !== expectedAddress.toLowerCase() ||
+          actualInputHash !== expectedInputHash || !runtime || runtime === '0x' || keccak256(runtime).toLowerCase() !== expectedRuntimeHash.toLowerCase() ||
+          (beforeRuntime && beforeRuntime !== '0x')) {
+        throw new ConfigError('CAPITAL_FLOW_RUNTIME_IDENTITY_MISMATCH', `Capital-flow ${step.id} creation input, address, or observed runtime differs from the approved artifact identity`);
+      }
+      if (step.id === 'operation-executor-deployment') {
+        const wordAddress = (address: string) => `0x${address.slice(2).toLowerCase().padStart(64, '0')}`;
+        const getter = async (name: string) => {
+          const fn = LOCAL_ENTITLEMENT_OPERATOR_ABI.find((item): item is AbiFunction => item.type === 'function' && item.name === name)!;
+          const data = encodeFunctionData({ abi: [fn], functionName: name } as never);
+          return transport.call({ to: expectedAddress as `0x${string}`, data }, receipt.blockNumber);
+        };
+        const [operator, operationId, boundController] = await Promise.all([getter('operator'), getter('operationId'), getter('controller')]);
+        if (operator.toLowerCase() !== wordAddress(expectations.operationExecutor.operator) || operationId.toLowerCase() !== evidence.operationId.toLowerCase() || boundController.toLowerCase() !== wordAddress(controller)) {
+          throw new ConfigError('CAPITAL_FLOW_RUNTIME_IDENTITY_MISMATCH', 'Deployed operation executor constructor bindings differ from the approved operation');
+        }
+      }
+    } else {
+      const fn = expectedTarget.functionAbi!;
+      try {
+        const decoded = decodeFunctionData({ abi: [fn], data: transaction.input as `0x${string}` });
+        const canonical = encodeFunctionData({ abi: [fn], functionName: decoded.functionName, args: decoded.args } as never);
+        if (canonical.toLowerCase() !== transaction.input.toLowerCase()) throw new Error('noncanonical setup calldata');
+      } catch {
+        throw new ConfigError('CAPITAL_FLOW_SETUP_MISMATCH', `Setup action ${step.id} calldata is not canonical for its pinned ABI`);
+      }
+      if (step.id === 'caller-binding' && calldataWord(transaction.input, 0).slice(-40) !== expectations.operationExecutor.address.slice(2).toLowerCase()) {
+        throw new ConfigError('CAPITAL_FLOW_SETUP_MISMATCH', 'Caller-binding transaction does not bind the approved operation executor');
+      }
+      if (step.id === 'reserve-seed-approval' && (calldataWord(transaction.input, 0).slice(-40) !== reserve.slice(2).toLowerCase() || BigInt(calldataWord(transaction.input, 1)) !== BigInt(expectations.reserveSeed.amount))) {
+        throw new ConfigError('CAPITAL_FLOW_SETUP_MISMATCH', 'Reserve approval does not target the deployed reserve for the approved seed amount');
+      }
+      if (step.id === 'reserve-seed-deposit' && BigInt(calldataWord(transaction.input, 0)) !== BigInt(expectations.reserveSeed.amount)) {
+        throw new ConfigError('CAPITAL_FLOW_SETUP_MISMATCH', 'Reserve deposit differs from the approved seed amount');
+      }
+    }
+    const block = await transport.getBlock(receipt.blockNumber);
+    if (block.hash.toLowerCase() !== receipt.blockHash.toLowerCase() || receipt.blockNumber === 0n ||
+        (await transport.getBlockTransactionHashes(receipt.blockNumber)).length !== 1 ||
+        (await transport.getBlockTransactionHashes(receipt.blockNumber))[0]?.toLowerCase() !== hash.toLowerCase()) {
+      throw new ConfigError('CAPITAL_FLOW_BLOCK_NOT_ISOLATED', `Capital-flow setup action ${step.id} is not isolated in a canonical block`);
+    }
+    observed.set(step.id, { blockNumber: receipt.blockNumber, transactionHash: hash });
+    observedReceipts.set(step.id, receipt);
+    transactionInputs.set(step.id, transaction.input);
+  }
+
+  const bindingStep = setupById.get('caller-binding')!;
+  const bindingBlock = observed.get('caller-binding')!.blockNumber;
+  const boundFlagSelector = toFunctionSelector(functionFor(spec, 'shortfall/entitlement-ratification-controller-v1', 'executionCallerBound'));
+  const boundCallerSelector = toFunctionSelector(functionFor(spec, 'shortfall/entitlement-ratification-controller-v1', 'executionCaller'));
+  const callWord = async (data: string, block: bigint) => transport.call({ to: controller as `0x${string}`, data: data as `0x${string}` }, block);
+  const [boundBefore, callerBefore, boundAfter, callerAfter] = await Promise.all([
+    callWord(boundFlagSelector, bindingBlock - 1n), callWord(boundCallerSelector, bindingBlock - 1n),
+    callWord(boundFlagSelector, bindingBlock), callWord(boundCallerSelector, bindingBlock),
+  ]);
+  if (BigInt(boundBefore) !== 0n || BigInt(callerBefore) !== 0n || BigInt(boundAfter) !== 1n ||
+      callerAfter.toLowerCase() !== `0x${expectations.operationExecutor.address.slice(2).toLowerCase().padStart(64, '0')}` ||
+      bindingStep.to?.toLowerCase() !== controller.toLowerCase()) {
+    throw new ConfigError('CAPITAL_FLOW_SETUP_STATE_MISMATCH', 'Historical controller binding state does not transition from unbound to the approved executor');
+  }
+
+  const approvalBlock = observed.get('reserve-seed-approval')!.blockNumber;
+  const depositBlock = observed.get('reserve-seed-deposit')!.blockNumber;
+  const balanceAbi = functionFor(spec, 'prf/local-token', 'balanceOf');
+  const allowanceAbi = functionFor(spec, 'prf/local-token', 'allowance');
+  const encodeTokenCall = (fn: AbiFunction, args: readonly unknown[]) => encodeFunctionData({ abi: [fn], functionName: fn.name, args } as never);
+  const reserveBalanceCall = encodeTokenCall(balanceAbi, [reserve]);
+  const ownerBalanceCall = encodeTokenCall(balanceAbi, [manifest.deployer]);
+  const allowanceCall = encodeTokenCall(allowanceAbi, [manifest.deployer, reserve]);
+  const read = (data: `0x${string}`, block: bigint) => transport.call({ to: token as `0x${string}`, data }, block);
+  const seed = expectations.reserveSeed;
+  const amount = BigInt(seed.amount);
+  const [reserveBefore, reserveAfter, ownerBefore, ownerAfter, allowanceBeforeApprove, allowanceAfterApprove, allowanceAfterDeposit] = await Promise.all([
+    read(reserveBalanceCall, depositBlock - 1n), read(reserveBalanceCall, depositBlock),
+    read(ownerBalanceCall, depositBlock - 1n), read(ownerBalanceCall, depositBlock),
+    read(allowanceCall, approvalBlock - 1n), read(allowanceCall, approvalBlock), read(allowanceCall, depositBlock),
+  ]);
+  const uintWord = (value: bigint) => `0x${value.toString(16).padStart(64, '0')}`;
+  if (reserveBefore.toLowerCase() !== uintWord(BigInt(seed.reserveBalanceBefore)) || reserveAfter.toLowerCase() !== uintWord(BigInt(seed.reserveBalanceBefore) + amount) ||
+      ownerBefore.toLowerCase() !== uintWord(BigInt(seed.ownerBalanceBefore)) || ownerAfter.toLowerCase() !== uintWord(BigInt(seed.ownerBalanceBefore) - amount) ||
+      allowanceBeforeApprove.toLowerCase() !== uintWord(BigInt(seed.allowanceBefore)) || allowanceAfterApprove.toLowerCase() !== uintWord(amount) ||
+      allowanceAfterDeposit.toLowerCase() !== uintWord(0n)) {
+    throw new ConfigError('CAPITAL_FLOW_SETUP_STATE_MISMATCH', 'Reserve seed deposit, deployer balance, or token allowance readbacks differ from the approved expectations');
+  }
+  assertSingleTransfer(observedReceipts.get('reserve-seed-deposit')!, token, manifest.deployer, reserve, amount, pinnedEvent(spec, 'prf/local-token', 'Transfer'), 'reserve-seed-deposit');
+}
+
+/** Replays setup and action transactions and state-domain readbacks at isolated before/after blocks. */
 export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTransport, expectedChainInstanceGenesisRoot: string, expectedConfigurationRoot: string, expectedConfigurationEpoch: number, expectedInitialConfigurationRoot: string, manifest: DeploymentManifest, spec: ResolvedSpec, approvedExpectations: unknown, expectedManifestRoot: string): Promise<{ evidenceRoot: string; replayedTransactions: number; replayedStateAssertions: number }> {
   const evidence = parseEvidence(value);
   if (!isHash(expectedChainInstanceGenesisRoot) || evidence.chainInstanceGenesisRoot.toLowerCase() !== expectedChainInstanceGenesisRoot.toLowerCase()) {
@@ -668,6 +868,7 @@ export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTr
   const observed = new Map<string, { blockNumber: bigint; transactionHash: `0x${string}` }>();
   const observedReceipts = new Map<string, NonNullable<Awaited<ReturnType<RpcTransport['getTransactionReceipt']>>>>();
   const transactionInputs = new Map<string, string>();
+  await replayCapitalFlowSetup(evidence, transport, expectations, manifest, spec, observed, observedReceipts, transactionInputs);
   for (const step of [...evidence.positiveTransactions, ...evidence.negativeTransactions]) {
       const expectedStatus = CAPITAL_FLOW_EXPECTED_STATUSES[step.id];
       const hash = step.transactionHash as `0x${string}`;
@@ -710,8 +911,8 @@ export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTr
           throw new ConfigError('CAPITAL_FLOW_RUNTIME_IDENTITY_MISMATCH', 'Operation executor immutable bindings or ratification-controller caller binding differ from the approved operation');
         }
         if (step.id === 'entitlement-activation') {
-          const representationCode = await transport.getCode(executor.representation as `0x${string}`, receipt.blockNumber);
-          if (!representationCode || representationCode === '0x' || keccak256(representationCode).toLowerCase() !== executor.representationRuntimeCodeKeccak256.toLowerCase()) {
+          const representationCode = await transport.getCode(expectations.representation.address as `0x${string}`, receipt.blockNumber);
+          if (!representationCode || representationCode === '0x' || keccak256(representationCode).toLowerCase() !== expectations.representation.runtimeCodeKeccak256.toLowerCase()) {
             throw new ConfigError('CAPITAL_FLOW_RUNTIME_IDENTITY_MISMATCH', 'Entitlement representation runtime differs from the approved artifact identity');
           }
         }
@@ -727,9 +928,9 @@ export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTr
       observedReceipts.set(step.id, receipt);
       transactionInputs.set(step.id, transaction.input);
   }
-  const chronology = CAPITAL_FLOW_EXECUTION_ORDER.map((id) => observed.get(id)?.blockNumber);
+  const chronology = CAPITAL_FLOW_FULL_EXECUTION_ORDER.map((id) => observed.get(id)?.blockNumber);
   if (chronology.some((block, index) => block === undefined || (index > 0 && block <= chronology[index - 1]!))) {
-    throw new ConfigError('CAPITAL_FLOW_ORDER_MISMATCH', 'Capital-flow transactions do not follow the required operation, proof, assurance and capital-consumption order');
+    throw new ConfigError('CAPITAL_FLOW_ORDER_MISMATCH', 'Capital-flow setup and action transactions do not follow the required C1, proof, assurance, funding, activation and withdrawal order');
   }
   for (let index = 1; index < chronology.length; index++) {
     const previous = chronology[index - 1]!;
@@ -741,7 +942,7 @@ export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTr
       }
     }
   }
-  assertOperationBindings(evidence, transactionInputs, manifest, expectedInitialConfigurationRoot, expectations.operationExecutor);
+  assertOperationBindings(evidence, transactionInputs, manifest, expectedInitialConfigurationRoot, expectations);
   assertCapitalActionLogs(evidence, transactionInputs, observedReceipts, manifest, spec);
   for (const assertion of evidence.stateAssertions) {
     const action = observed.get(assertion.actionId);
@@ -766,7 +967,7 @@ export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTr
   }
   return {
     evidenceRoot: `0x${createHash('sha256').update(canonicalJson({ evidence, expectationsDigest }), 'utf8').digest('hex')}`,
-    replayedTransactions: evidence.positiveTransactions.length + evidence.negativeTransactions.length,
+    replayedTransactions: evidence.setupTransactions.length + evidence.positiveTransactions.length + evidence.negativeTransactions.length,
     replayedStateAssertions: evidence.stateAssertions.length,
   };
 }

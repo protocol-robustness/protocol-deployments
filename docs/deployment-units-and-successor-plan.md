@@ -142,7 +142,7 @@ resolved-spec digest, replay count and recomputed live-verification root, and
 states the remaining trust assumptions. A verified partial prefix remains
 explicitly marked partial. The report labels itself as local verification
 evidence rather than approval. The
-optional `--capital-flow-evidence` input supplies a `protocol-capital-flow-execution/v5`
+optional `--capital-flow-evidence` input supplies a `protocol-capital-flow-execution/v6`
 bundle. The verifier checks the complete ordered set of six positive actions,
 including prepared-operation creation before admission,
 and nine negative cases against RPC transaction targets, selectors, receipt
