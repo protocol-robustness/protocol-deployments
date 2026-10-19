@@ -113,6 +113,38 @@ export function assertPlanExecutionMatchesManifest(
   const same = (left: unknown, right: unknown): boolean => canonicalJson(left) === canonicalJson(right);
   const canonicalRootToHex = (value: unknown): string | undefined => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value)
     ? `0x${value.slice(7)}` : undefined;
+  const enablement = assertionEvidence('prf-authority-transition-enablement');
+  if (enablement) {
+    const approval = assertionEvidence('prf-initial-input-approval');
+    const roots = approval?.approvedRootBindings as Record<string, unknown> | undefined;
+    const action = verifiedAction('prf/enable-authority-transitions');
+    const authority = manifest.contracts.find((contract) => contract.logicalId === 'prf/governance-authority');
+    const genesis = manifest.contracts.find((contract) => contract.logicalId === 'prf/genesis');
+    const validator = manifest.contracts.find((contract) => contract.logicalId === 'prf/authority-transition-validator');
+    if (!approval || !roots || !action || !authority || !genesis || !validator ||
+        enablement.schema !== 'prf-authority-transition-enable-preflight.v1' ||
+        enablement.manifestRoot !== approval.manifestRoot ||
+        enablement.localAuthorityPolicyRoot !== roots.localAuthorityPolicyRoot ||
+        enablement.initialAuthorityStateRoot !== roots.authorityStateRoot ||
+        String(enablement.genesisAddress).toLowerCase() !== genesis.address.toLowerCase() ||
+        String(enablement.deployedValidatorAddress).toLowerCase() !== validator.address.toLowerCase() ||
+        String(enablement.transitionValidatorAddress).toLowerCase() !== String(roots.authorityTransitionValidatorAddress).toLowerCase() ||
+        enablement.enabledBefore !== false || enablement.enabledAfter !== true ||
+        enablement.transactionHash !== action.transactionHash || enablement.blockNumber !== action.blockNumber) {
+      throw new ConfigError('PLAN_EXECUTION_AUTHORITY_ENABLEMENT_MISMATCH', 'Authority-transition enablement is not bound to the approved local policy, deployed validator, Genesis and verified transaction');
+    }
+  }
+  const prefix = assertionEvidence('plan-execution-prefix');
+  if (prefix) {
+    const declaredBlocked = Array.isArray(prefix.blockedStages) ? prefix.blockedStages : [];
+    const stageById = new Map(stageReceipts.map((stage) => [stage.id, stage]));
+    const blockedStatuses = stageReceipts.filter((stage) => stage.status === 'blocked').map((stage) => stage.id);
+    if (prefix.executionStatus !== receipt.executionStatus || receipt.executionStatus !== 'partial' ||
+        declaredBlocked.some((id) => typeof id !== 'string' || !['blocked', 'not-executed'].includes(stageById.get(id)?.status ?? '')) ||
+        blockedStatuses.some((id) => !declaredBlocked.includes(id))) {
+      throw new ConfigError('PLAN_EXECUTION_PREFIX_MISMATCH', 'Retained partial-prefix assertion differs from the plan execution receipt');
+    }
+  }
   const verifiedStatus = new Map<string, string>();
   for (const stage of plan.stages) {
     const stageReceipt = stageReceipts.find((entry) => entry.id === stage.id);

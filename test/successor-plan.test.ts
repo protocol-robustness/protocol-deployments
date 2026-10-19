@@ -373,6 +373,37 @@ describe('bounded successor deployment plan', () => {
     };
     const receipt = { ...body, planExecutionRoot: planExecutionRoot(body) };
     expect(() => assertPlanExecutionMatchesManifest(receipt, plan, manifest)).not.toThrow();
+    const reseal = (value: Record<string, unknown>) => {
+      const { planExecutionRoot: _old, ...valueBody } = value;
+      value.planExecutionRoot = planExecutionRoot(valueBody);
+      return value;
+    };
+    const prefixManifest = { ...manifest, finalAssertions: [{ id: 'plan-execution-prefix', status: 'passed' as const, verifiedAt: 'now', detail: JSON.stringify({ executionStatus: 'partial', blockedStages: [] }) }] };
+    const prefixReceipt = reseal({ ...structuredClone(receipt), manifestRoot: computeManifestRoot(prefixManifest) });
+    expectCode(() => assertPlanExecutionMatchesManifest(prefixReceipt, plan, prefixManifest), 'PLAN_EXECUTION_PREFIX_MISMATCH');
+
+    const address = (logicalId: string) => manifest.contracts.find((contract) => contract.logicalId === logicalId)!.address;
+    const approval = { manifestRoot: 'sha256:' + 'a'.repeat(64), approvedRootBindings: {
+      localAuthorityPolicyRoot: '0x' + '1'.repeat(64), authorityStateRoot: '0x' + '2'.repeat(64),
+      authorityTransitionValidatorAddress: address('prf/authority-transition-validator'),
+    } };
+    const enablement = {
+      schema: 'prf-authority-transition-enable-preflight.v1', manifestRoot: approval.manifestRoot,
+      localAuthorityPolicyRoot: approval.approvedRootBindings.localAuthorityPolicyRoot,
+      initialAuthorityStateRoot: approval.approvedRootBindings.authorityStateRoot,
+      genesisAddress: address('prf/genesis'), deployedValidatorAddress: address('prf/authority-transition-validator'),
+      transitionValidatorAddress: address('prf/authority-transition-validator'), enabledBefore: false, enabledAfter: true,
+      transactionHash: '0x' + '5'.repeat(64), blockNumber: '2',
+    };
+    const authorityManifest = { ...manifest,
+      bootstrapActions: [{ id: 'prf/enable-authority-transitions', status: 'verified' as const, transactionHash: enablement.transactionHash as `0x${string}`, blockNumber: enablement.blockNumber }],
+      finalAssertions: [
+        { id: 'prf-initial-input-approval', status: 'passed' as const, verifiedAt: 'now', detail: JSON.stringify(approval) },
+        { id: 'prf-authority-transition-enablement', status: 'passed' as const, verifiedAt: 'now', detail: JSON.stringify({ ...enablement, enabledAfter: false }) },
+      ],
+    };
+    const authorityReceipt = reseal({ ...structuredClone(receipt), manifestRoot: computeManifestRoot(authorityManifest) });
+    expectCode(() => assertPlanExecutionMatchesManifest(authorityReceipt, plan, authorityManifest), 'PLAN_EXECUTION_AUTHORITY_ENABLEMENT_MISMATCH');
     const dependencyViolation = structuredClone(receipt);
     dependencyViolation.stages.find((stage) => stage.id === 'deploy-genesis')!.status = 'verified';
     const { planExecutionRoot: _oldRoot, ...dependencyBody } = dependencyViolation;
@@ -380,11 +411,6 @@ describe('bounded successor deployment plan', () => {
     expectCode(() => assertPlanExecutionMatchesManifest(dependencyViolation, plan, manifest), 'PLAN_EXECUTION_STAGE_DEPENDENCY_MISMATCH');
     const substituted = { ...manifest, contracts: manifest.contracts.slice(1) };
     expectCode(() => assertPlanExecutionMatchesManifest(receipt, plan, substituted), 'PLAN_EXECUTION_MANIFEST_MISMATCH');
-    const reseal = (value: Record<string, unknown>) => {
-      const { planExecutionRoot: _old, ...valueBody } = value;
-      value.planExecutionRoot = planExecutionRoot(valueBody);
-      return value;
-    };
     const wrongChain = reseal({ ...structuredClone(receipt), chainId: 1 });
     expectCode(() => assertPlanExecutionMatchesManifest(wrongChain, plan, manifest), 'PLAN_EXECUTION_CONTEXT_MISMATCH');
     const unknownStageStatus = structuredClone(receipt) as Record<string, unknown>;

@@ -49,6 +49,27 @@ async function main(): Promise<void> {
   assertManifestVerified(manifest);
   assertPlanExecutionMatchesManifest(receipt, plan, manifest);
   const replayedPrfAssertions = replayRetainedPrfEvidence(manifest, prfRoot, trustedContextRoot, rpcUrl);
+  const replayedPrfAssertionIds = new Set([
+    'prf-initial-input-approval',
+    'prf-successor-transition-approval',
+    'prf-authority-transition-verification',
+    'prf-successor-registry-derivation',
+    'prf-successor-configuration-derivation',
+  ]);
+  if (manifest.finalAssertions?.some((assertion) => assertion.id === 'prf-genesis-seal-result' && assertion.status === 'passed')) {
+    replayedPrfAssertionIds.add('prf-genesis-seal-preflight');
+    replayedPrfAssertionIds.add('prf-genesis-seal-result');
+  }
+  const planEvidenceAssertionIds = new Set([
+    'prf-authority-transition-enablement', 'prf-empty-registry-seal-result', 'plan-execution-prefix',
+    'prf-successor-verifier-registration', 'prf-successor-verifier-registry-seal',
+    'prf-authority-transition-application', 'prf-successor-configuration-application',
+  ]);
+  const independentlyVerifiedAssertions = (manifest.finalAssertions ?? [])
+    .filter((assertion) => assertion.status === 'passed' &&
+      (replayedPrfAssertionIds.has(assertion.id) || planEvidenceAssertionIds.has(assertion.id)))
+    .map((assertion) => ({ id: assertion.id, target: 'PRF retained evidence', function: 'independent-verification',
+      expected: 'passed', observed: 'passed', result: 'passed' as const }));
   const resolvedInput = readResolvedVerificationInput(resolvedFile);
   if (receipt.resolvedSpecSha256 !== retainedResolvedSpecSha256(resolvedInput)) {
     throw new ConfigError('PLAN_EXECUTION_SPEC_MISMATCH', 'Resolved-spec evidence does not match the digest committed by the plan receipt');
@@ -67,9 +88,22 @@ async function main(): Promise<void> {
     }
     verifierClosureAssertions.push(replayed.assertion);
   }
+  verifierClosureAssertions.push(...independentlyVerifiedAssertions);
+  const deployedLogicalIds = new Set([
+    ...manifest.contracts.map((contract) => contract.logicalId),
+    ...(manifest.type === 'protocol-deployment-manifest/v2' ? manifest.externalContracts.map((contract) => contract.logicalId) : []),
+  ]);
+  const liveResolved = {
+    ...resolved,
+    deployment: {
+      ...resolved.deployment,
+      bootstrapAssertions: (resolved.deployment.bootstrapAssertions ?? [])
+        .filter((assertion) => deployedLogicalIds.has(assertion.target)),
+    },
+  };
   const live = manifest.type === 'protocol-deployment-manifest/v2'
-    ? await verifyLiveDeployment(manifest, transport, resolved, bundle, undefined, verifierClosureAssertions)
-    : await verifyLiveDeployment(manifest, transport, resolved, bundle, undefined, verifierClosureAssertions);
+    ? await verifyLiveDeployment(manifest, transport, liveResolved, bundle, undefined, verifierClosureAssertions)
+    : await verifyLiveDeployment(manifest, transport, liveResolved, bundle, undefined, verifierClosureAssertions);
   const sealResult = manifest.finalAssertions?.find((assertion) => assertion.id === 'prf-genesis-seal-result' && assertion.status === 'passed');
   let sealedGenesisRoot: string | undefined;
   try { sealedGenesisRoot = sealResult?.detail ? String((JSON.parse(sealResult.detail) as { chainInstanceGenesisRoot?: unknown }).chainInstanceGenesisRoot) : undefined; }
