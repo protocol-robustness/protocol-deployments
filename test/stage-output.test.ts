@@ -272,7 +272,7 @@ describe('stage-output receipts', () => {
       const resolved = resolveDeployment({
         configDir: path.join(root, 'config'),
         environment: 'local',
-        fixtureRoot: path.join(root, 'fixtures/releases/0.4.1/packages'),
+        fixtureRoot: path.join(root, 'fixtures/releases/0.4.2/packages'),
         profileDir: path.join(root, 'config/pro-rata-v2-entitlement'),
         preferFixtures: true,
         deploymentPlanFile: planFile,

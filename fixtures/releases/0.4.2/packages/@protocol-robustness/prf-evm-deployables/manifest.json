@@ -15,16 +15,16 @@
     "sourcePath": "src/applications/pro-rata/CommittedImmutableEntitlementRepresentationV1.sol"
   },
    "GovGovernor": {
-    "abiSha256": "f543603b6c8ce1b9ac53da956e6cbf065495726c44b5c0c349eaf76ff12c9af1",
+    "abiSha256": "4aa0a562acd0eaf9ebdbde12c50be641d03423f6bd6881216a7c6fdc3a6a68ba",
     "artifactFile": "artifacts/GovGovernor.json",
     "category": "governance",
     "constructorAbiSha256": "10b5da4049170b8dc568e7a0b8c04233195c089bc5c00fab5dc003bf736a590f",
     "contractName": "GovGovernor",
-    "creationBytecodeSha256": "86a78ab2a231c7057710e4edd5a9eff14a5a449735a408a578fe17685f68f8c5",
-    "fileSha256": "3850af1432b18e35f7dc7dd3f4f4579fc89fbc9a5f7a3d924343aa85c415951b",
+    "creationBytecodeSha256": "a9494256ce5a5e089f164f374286992fc23613dd9b1c5a47f2e028ac8c71439f",
+    "fileSha256": "da3c195af0bf9ce0d6d670a9fefc6b4f44e8f89ecf621c8d63de7907905e2e8d",
     "hasDeployedLinkReferences": false,
     "hasLinkReferences": false,
-    "runtimeBytecodeSha256": "ac0f25690bc262c28f895063f6d1ee4d39e66c2fc1559697566f81242858e878",
+    "runtimeBytecodeSha256": "2ae1c3a18e1acb4043157ba97abe6974f2232a569f0b1badc415469d57bd578e",
     "scopeHint": "prf",
     "sourcePath": "src/governance/GovGovernor.sol"
   },
@@ -113,6 +113,21 @@
     "scopeHint": "prf",
     "sourcePath": "src/core/PrfConfigurationSnapshot.sol"
   },
+   "PrfEcdsaAuthorityTransitionValidator": {
+    "abiSha256": "95607266e34482449f5c0f5bc0c24d58bbb1194eb3203129fff2185810c3ea1d",
+    "artifactFile": "artifacts/PrfEcdsaAuthorityTransitionValidator.json",
+    "category": "core",
+    "constructorAbiSha256": "ad7dc106322264a452b8ec6a6429f09efd3f4be190fed53d17c9dd586c7a57e1",
+    "contractName": "PrfEcdsaAuthorityTransitionValidator",
+    "creationBytecodeSha256": "914dec210220238f64a2bb42009397db20897c24ac5d5db5d051aa9655c94513",
+    "fileSha256": "600e98b71b33eda21592b20238bd82a2dbf971046a385e2dbfd35643bd66ccde",
+    "hasDeployedLinkReferences": false,
+    "hasLinkReferences": false,
+    "origin": "prf",
+    "runtimeBytecodeSha256": "cac561b5687050294f0d501c3220a7f86d885241cd4de7265d86dd6d7e6e6f4c",
+    "scopeHint": "prf",
+    "sourcePath": "src/core/PrfEcdsaAuthorityTransitionValidator.sol"
+  },
    "PrfEvidenceAnchor": {
     "abiSha256": "62da2abca3ab38db93a4f23ee0538bf0747ed9a1dc429a701aa5110edb72cccf",
     "artifactFile": "artifacts/PrfEvidenceAnchor.json",
@@ -128,17 +143,17 @@
     "sourcePath": "src/core/PrfEvidenceAnchor.sol"
   },
    "PrfLocalAuthorityAdapter": {
-    "abiSha256": "70148042da5f2a15a60891a3afdd991f8de7776de3ac425140a83fdd4c1e177a",
+    "abiSha256": "7423aeb69be002ea48eb4cc56166996537c1465b618510681aa3c0b180e98559",
     "artifactFile": "artifacts/PrfLocalAuthorityAdapter.json",
     "category": "core",
     "constructorAbiSha256": "06d56c4dd0e7de34abcd5f9d58a86b10b86206865e58d3c1849d52b4df4fdac0",
     "contractName": "PrfLocalAuthorityAdapter",
-    "creationBytecodeSha256": "90c73b33df0f24cb64990df340127225eab415885b27afdf0882a5f1d0cd6295",
-    "fileSha256": "2b4819531a3be0ce5eec4761b4c95c61d75b8409e1bbf859008deb0c3c932e4b",
+    "creationBytecodeSha256": "8d7d2d8db458d30816832dfb84b6c97f874c5607d0458c0c2b7743986cc2ab81",
+    "fileSha256": "4b26fc35cd56ef0bf6339c61ebdbaff362979c38ba4852c53b17fcb809f2a99d",
     "hasDeployedLinkReferences": false,
     "hasLinkReferences": false,
     "origin": "prf",
-    "runtimeBytecodeSha256": "ba9cea13687549e1c9e543d12f1125ded5abf2f0037d45d831890fe1e4e43004",
+    "runtimeBytecodeSha256": "834a1f321fdade6e68aec9d72488e1dbc923fc7e61a91f99189cbfeeb9ca21f5",
     "scopeHint": "prf",
     "sourcePath": "src/core/PrfLocalAuthorityAdapter.sol"
   },
@@ -367,16 +382,16 @@
     "sourcePath": "src/integrations/sew/SewConfigurationExecutor.sol"
   },
    "SewGovernanceAuthorityAdapter": {
-    "abiSha256": "70148042da5f2a15a60891a3afdd991f8de7776de3ac425140a83fdd4c1e177a",
+    "abiSha256": "7423aeb69be002ea48eb4cc56166996537c1465b618510681aa3c0b180e98559",
     "artifactFile": "artifacts/SewGovernanceAuthorityAdapter.json",
     "category": "integration",
     "constructorAbiSha256": "06d56c4dd0e7de34abcd5f9d58a86b10b86206865e58d3c1849d52b4df4fdac0",
     "contractName": "SewGovernanceAuthorityAdapter",
-    "creationBytecodeSha256": "817f92c20d3442cde1cd22fd180091c3fba03f68000882e4a754b65e9e3276c9",
-    "fileSha256": "6060d5a0dd2b7c5d472b42ffb92dfe371903803c6a2770e43636ff2f2ef5431f",
+    "creationBytecodeSha256": "fcc404544260258975542b730fee9419344bcfa5335e989024c2941c19528a24",
+    "fileSha256": "7df32ece367d229f22bec8269c5c9eb144abf5307b33911b85d5b24da6ac1f3b",
     "hasDeployedLinkReferences": false,
     "hasLinkReferences": false,
-    "runtimeBytecodeSha256": "88fe485a7535e3d9c723d6a52a923468fe622436c419321954596c50d2fd5e08",
+    "runtimeBytecodeSha256": "062193fa730d1ac67630f5ca9db124d868eebe7f02e167744f8ba8f287c5a648",
     "scopeHint": "prf",
     "sourcePath": "src/integrations/sew/SewGovernanceAuthorityAdapter.sol"
   },
@@ -478,14 +493,14 @@
     "viaIR": true
   }
  },
-  "bundleRoot": "5b9da0dfc6b1a2864d0ae174faef3ddf0095dab21b4a158de25aef677235b7ba",
+  "bundleRoot": "1c040be8f3364d303dc66cabd0bb676994c836eb4021e9216862dc991a9c3bae",
   "bundleVersion": "0.4.2",
   "packageName": "@protocol-robustness/prf-evm-deployables",
   "schemaVersion": 1,
   "source": {
-   "commit": "8ba7628bdfa46c1673aa15ba6205443ac1750ea9",
-   "commitOverride": true,
-   "commitSource": "jj",
+   "commit": "0dad4c2790a60ecca9a41c5d518f99522eab94ce",
+   "commitOverride": false,
+   "commitSource": "git",
    "dirty": false,
    "repository": "protocol-robustness/prf-evm"
  }

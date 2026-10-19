@@ -55,6 +55,28 @@ describe('bounded successor deployment plan', () => {
     ]);
     expect(projected.consumedExternalIds).toEqual([]);
     expect(Object.keys(projected.config.architecture.contracts).sort()).toEqual(Object.keys(plan.contracts).sort());
+    expect(projected.config.architecture.artifactSources['prf/deployables']?.version).toBe('0.4.2');
+  });
+
+  it('resolves the bounded local plan against the pinned PRF-EVM 0.4.2 candidate bundle', () => {
+    const resolved = resolveDeployment({
+      configDir: path.join(root, 'config'),
+      environment: 'local',
+      fixtureRoot: path.join(root, 'fixtures/releases/0.4.2/packages'),
+      profileDir: path.join(root, 'config/pro-rata-v2-entitlement'),
+      preferFixtures: true,
+      deploymentPlanFile: planPath,
+      approvedRootBindings: {
+        protocolGenesisRoot: '0x668bc1d132b8745a3f6db7fa0b2dad2b85a11246e00c39e7b24d266af4724775',
+        authorityStateRoot: '0x062aac742a56de1f3d51e1debc4fd8670b1dda8fc1acb68c0bbcd10ae1b8337e',
+        localAuthorityPolicyRoot: '0x0e124c35e9707f03ddb7f0b2972c22715098a23b58804175df02acdd25ded55c',
+        initialConfigurationRoot: '0x131ff6b74047de747bd9ace93413b6b793d677749095f0dadf5dcc173e120f95',
+        initialVerifierRegistryRoot: '0x2099fabf2cca563f8d183749d1a842946286e8704a96c51ec801eff4e834a240',
+        authorityTransitionValidatorAddress: '0xc78884593859e84524e41ce94cce38fbcb58c5f8',
+      },
+    });
+    expect(resolved.spec.chain.chainId).toBe(31337);
+    expect(Object.keys(resolved.spec.contracts)).toHaveLength(14);
   });
 
   it('rejects sentinel root literals before the selected plan becomes deployable', () => {
@@ -66,7 +88,7 @@ describe('bounded successor deployment plan', () => {
     expectCode(() => resolveDeployment({
       configDir,
       environment: 'local',
-      fixtureRoot: path.join(root, 'fixtures/releases/0.4.1/packages'),
+      fixtureRoot: path.join(root, 'fixtures/releases/0.4.2/packages'),
       profileDir,
       preferFixtures: true,
       deploymentPlanFile: planPath,
@@ -120,7 +142,7 @@ describe('bounded successor deployment plan', () => {
     const resolved = resolveDeployment({
       configDir,
       environment: 'local',
-      fixtureRoot: path.join(root, 'fixtures/releases/0.4.1/packages'),
+      fixtureRoot: path.join(root, 'fixtures/releases/0.4.2/packages'),
       profileDir,
       preferFixtures: true,
       deploymentPlanFile: planPath,

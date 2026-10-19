@@ -1,13 +1,15 @@
 # Pro-rata V2 source-bound entitlement local topology profile
 
 This additive profile deploys the successor 288-byte source-bound entitlement
-contracts from `@protocol-robustness/prf-evm-deployables@0.4.1`. The existing
+contracts from the local `@protocol-robustness/prf-evm-deployables@0.4.2`
+candidate bundle. The existing
 `config/pro-rata-v2-ratification` profile remains the historical 192-byte V2
 profile and is not reinterpreted. The successor scripts select the isolated
-`fixtures/releases/0.4.1/packages` bundle with the local authority-transition
+`fixtures/releases/0.4.2/packages` bundle with the local authority-transition
 validator artifact and stale-assurance recovery interfaces. This bundle was
-exported from a dirty integrated source tree and is suitable for local
-implementation tests only; it is not a clean pinned release.
+reproducibly exported from PRF-EVM Jujutsu revision
+`8ba7628bdfa46c1673aa15ba6205443ac1750ea9`; it is a local candidate, not a
+published release.
 
 ```bash
 npm run validate:successor-fork-plan
@@ -94,6 +96,11 @@ npm run validate:successor-fork-plan
 
 This checks plan structure and unit/source ownership.
 
-Integrated source base: `02dcc7a869b492e8444f25fb9169e9c8061e102a`; reproducible local release commit: `02b7ea507e84054fecb422c5a5b56b02b40d0dcb` (unsigned, clean).
-Bundle root: `0042d0fee369cd0687ef520ac5a8deb7018a88291655de52bfd24e22d02733c6` (`@protocol-robustness/prf-evm-deployables@0.4.1`).
-After `forge clean`, the repository `npm run compile` script completed using Solc 0.8.33 and the default profile with the pinned nested SP1 dependencies. Its 31-artifact export matches the retained v0.4.1 fixture on ABI, creation-bytecode and runtime-bytecode identities; artifact-file digests and the package root were refreshed from this canonical full compile. The guest ELF/VKey remain separate proof-program identities. This is reproducible local build evidence, not approval or deployment evidence.
+The local 0.4.2 bundle root is
+`1c040be8f3364d303dc66cabd0bb676994c836eb4021e9216862dc991a9c3bae`; its
+manifest SHA-256 is
+`04b5b96971cb91b59adb294c3fc06ebf5de5061fabbe6328971702ebdcae3c41`.
+Thirty-one artifact records are pinned in `fixtures/releases/0.4.2/packages`,
+including `PrfEcdsaAuthorityTransitionValidator`.
+The historical 0.4.1 bundle remains preserved for older profile and replay
+tests; it is not the bundle selected by this bounded local deployment.

@@ -2,7 +2,7 @@
  :artifactSources
  {:prf/deployables
   {:package "@protocol-robustness/prf-evm-deployables"
-   :version "0.4.1"
+   :version "0.4.2"
    :sourceRepo "protocol-robustness/prf-evm"
    :kind :npm}}
  :contracts

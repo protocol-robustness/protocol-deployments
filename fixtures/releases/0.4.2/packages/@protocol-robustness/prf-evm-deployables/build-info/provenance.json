@@ -18,9 +18,9 @@
  },
   "schemaVersion": 1,
   "source": {
-   "commit": "8ba7628bdfa46c1673aa15ba6205443ac1750ea9",
-   "commitOverride": true,
-   "commitSource": "jj",
+   "commit": "0dad4c2790a60ecca9a41c5d518f99522eab94ce",
+   "commitOverride": false,
+   "commitSource": "git",
    "dirty": false,
    "repository": "protocol-robustness/prf-evm"
  }
