@@ -271,6 +271,7 @@ export const runtimeSchema = z
     rpcUrl: z.string().optional(),
     port: z.number().int().optional(),
     stateInterval: z.number().int().positive().optional(),
+    preserveHistoricalStates: z.boolean().optional(),
     // external
     rpcUrlEnv: z.string().optional(),
     // anvil-fork

@@ -10,4 +10,5 @@
  :provider :anvil
  :port 8547
  :stateInterval 10
+ :preserveHistoricalStates true
  :signer {:type :deterministic-local}}

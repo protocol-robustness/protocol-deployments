@@ -31,10 +31,24 @@ function retainedFiles(root: string, trustedContextRoot: string, evidence: Recor
       return fail(`Retained PRF evidence input ${i} has a missing or unexpected role, path, or digest`);
     }
     const relative = path.normalize(input.path);
-    if (path.isAbsolute(relative) || relative === '.' || relative === '..' || relative.startsWith(`..${path.sep}`)) return fail('Retained PRF evidence input escapes its source root');
+    if (path.isAbsolute(relative) || relative === '.' || relative === '..') return fail('Retained PRF evidence input escapes its source root');
+    // Approval artifacts may be held outside the source checkout. Resolve
+    // retained paths against the checkout first, then accept them only when
+    // their real file is contained by the separately supplied trusted root.
     const isTrustedContext = ['trusted-context', 'trusted-transition-context', 'approval-envelope', 'preflight-request'].includes(String(input.role));
-    const base = isTrustedContext ? trustedContextRoot : root;
-    const file = path.resolve(base, relative);
+    const sourceCandidate = { base: root, file: path.resolve(root, relative), returnAbsolute: false };
+    const trustedCandidates = [
+      { base: trustedContextRoot, file: path.resolve(root, relative), returnAbsolute: true },
+      { base: trustedContextRoot, file: path.resolve(trustedContextRoot, relative), returnAbsolute: true },
+    ];
+    const candidates = isTrustedContext ? [...trustedCandidates, sourceCandidate] : [sourceCandidate, ...trustedCandidates];
+    const selected = candidates.find(({ base, file }) => {
+      const candidateRelative = path.relative(base, file);
+      return Boolean(candidateRelative) && candidateRelative !== '..' &&
+        !candidateRelative.startsWith(`..${path.sep}`) && !path.isAbsolute(candidateRelative) && fs.existsSync(file);
+    });
+    if (!selected) return fail('Retained PRF evidence input is unavailable under the source or trusted-context root');
+    const { base, file, returnAbsolute } = selected;
     const contained = path.relative(base, file);
     if (!contained || contained.startsWith(`..${path.sep}`) || contained === '..' || path.isAbsolute(contained)) return fail('Retained PRF evidence input escapes its source root');
     let stat: fs.Stats;
@@ -48,7 +62,7 @@ function retainedFiles(root: string, trustedContextRoot: string, evidence: Recor
         !stat.isFile() || createHash('sha256').update(fs.readFileSync(file)).digest('hex') !== input.sha256) {
       return fail(`Retained PRF input '${input.path}' does not match its authenticated digest`);
     }
-    files.push(isTrustedContext ? file : relative);
+    files.push(returnAbsolute ? file : relative);
   }
   return files;
 }

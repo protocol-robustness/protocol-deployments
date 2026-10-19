@@ -88,6 +88,7 @@ export class DevnetManager {
       stateFile: this.stateFile(env),
       pidFile: this.pidFile(env),
       stateInterval: runtime.stateInterval,
+      preserveHistoricalStates: runtime.preserveHistoricalStates,
       forkUrl,
       forkBlock,
     });

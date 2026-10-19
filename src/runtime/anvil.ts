@@ -11,6 +11,8 @@ export interface AnvilOptions {
   stateFile?: string;
   /** Periodic persisted-state interval in seconds. */
   stateInterval?: number;
+  /** Retain block-pinned states for historical eth_getCode/readback checks. */
+  preserveHistoricalStates?: boolean;
   /**
    * Pid file for the Anvil process serving `port`. Devnet lifecycle commands
    * run in a separate process from the one that spawned Anvil, so ownership
@@ -141,6 +143,7 @@ export class AnvilRuntime {
       args.push('--state', this.opts.stateFile);
     }
     if (this.opts.stateInterval !== undefined) args.push('--state-interval', String(this.opts.stateInterval));
+    if (this.opts.preserveHistoricalStates) args.push('--preserve-historical-states');
     args.push('--silent');
 
     const proc = spawn('anvil', args, {

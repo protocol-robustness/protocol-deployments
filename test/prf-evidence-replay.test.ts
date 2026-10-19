@@ -47,6 +47,29 @@ describe('independent retained PRF evidence replay', () => {
     } finally { fs.rmSync(f.root, { recursive: true, force: true }); fs.rmSync(f.trustedContextRoot, { recursive: true, force: true }); }
   });
 
+  it('replays approval artifacts stored under the separately supplied trusted root', () => {
+    const f = fixture();
+    try {
+      const assertion = (f.manifest.finalAssertions as unknown as Array<{ detail: string }>)[0]!;
+      const detail = JSON.parse(assertion.detail) as { inputs: Array<{ path: string }>; output: string; outputSha256: string };
+      for (let index = 0; index < 2; index += 1) {
+        const source = path.join(f.root, detail.inputs[index]!.path);
+        const target = path.join(f.trustedContextRoot, `evidence/input-${index}.edn`);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.copyFileSync(source, target);
+        fs.unlinkSync(source);
+        detail.inputs[index]!.path = path.relative(f.root, target);
+      }
+      assertion.detail = JSON.stringify(detail);
+      const count = replayRetainedPrfEvidence(f.manifest, f.root, f.trustedContextRoot, undefined, (_command, args) => {
+        expect(args[4]).toBe(path.join(f.trustedContextRoot, 'evidence/input-0.edn'));
+        expect(args[5]).toBe(path.join(f.trustedContextRoot, 'evidence/input-1.edn'));
+        return { status: 0, stdout: JSON.stringify({ valid: true, qualification: 'authenticated-content-approval' }) };
+      });
+      expect(count).toBe(1);
+    } finally { fs.rmSync(f.root, { recursive: true, force: true }); fs.rmSync(f.trustedContextRoot, { recursive: true, force: true }); }
+  });
+
   it('rejects changed files and verifier output that no longer reproduces', () => {
     const f = fixture();
     try {

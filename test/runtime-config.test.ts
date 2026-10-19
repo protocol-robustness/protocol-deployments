@@ -22,12 +22,14 @@ describe('runtime / environment separation', () => {
        :deploymentOrder []}`);
     write('runtime/local.edn', `{:schemaVersion 1 :provider :anvil
        :rpcUrl "http://127.0.0.1:8545"
+       :preserveHistoricalStates true
        :signer {:type :deterministic-local}}`);
     const env = loadEnvironment(path.join(root, 'config'), 'local');
     expect(env.chain.chainId).toBe(31337);
     expect('network' in env.chain).toBe(false);
     const rt = loadRuntime(path.join(root, 'config'), 'local');
     expect(rt.provider).toBe('anvil');
+    expect(rt.preserveHistoricalStates).toBe(true);
     expect(rt.signer.type).toBe('deterministic-local');
   });
 
