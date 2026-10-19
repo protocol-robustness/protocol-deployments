@@ -59,7 +59,7 @@ const artifactNames: Record<string, string> = {
   'prf/local-token': 'LocalSnapshotToken',
   'prf/governance-authority': 'SewGovernanceAuthorityAdapter',
 };
-const artifactDirectory = resolve(__dirname, '../fixtures/releases/0.4.1/packages/@protocol-robustness/prf-evm-deployables/artifacts');
+const artifactDirectory = resolve(__dirname, '../fixtures/releases/0.4.2/packages/@protocol-robustness/prf-evm-deployables/artifacts');
 const abiFor = (logicalId: string) => JSON.parse(readFileSync(resolve(artifactDirectory, `${artifactNames[logicalId]}.json`), 'utf8')).abi as Array<{ type: string; name?: string; inputs?: unknown[]; outputs?: unknown[]; stateMutability?: string }>;
 const functionAbi = (logicalId: string, name: string) => {
   if (logicalId === 'local/operation-scoped-entitlement-operator-v1') {
