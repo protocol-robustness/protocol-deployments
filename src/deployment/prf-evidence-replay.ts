@@ -32,7 +32,7 @@ function retainedFiles(root: string, trustedContextRoot: string, evidence: Recor
     }
     const relative = path.normalize(input.path);
     if (path.isAbsolute(relative) || relative === '.' || relative === '..' || relative.startsWith(`..${path.sep}`)) return fail('Retained PRF evidence input escapes its source root');
-    const isTrustedContext = input.role === 'trusted-context' || input.role === 'trusted-transition-context';
+    const isTrustedContext = ['trusted-context', 'trusted-transition-context', 'approval-envelope', 'preflight-request'].includes(String(input.role));
     const base = isTrustedContext ? trustedContextRoot : root;
     const file = path.resolve(base, relative);
     const contained = path.relative(base, file);

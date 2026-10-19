@@ -17,7 +17,7 @@ function fixture() {
     const file = path.join(root, relative);
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, `input-${index}`);
-    if (role === 'trusted-context') {
+    if (role === 'trusted-context' || role === 'approval-envelope') {
       const trustedFile = path.join(trustedContextRoot, relative);
       fs.mkdirSync(path.dirname(trustedFile), { recursive: true });
       fs.writeFileSync(trustedFile, `input-${index}`);
@@ -39,6 +39,7 @@ describe('independent retained PRF evidence replay', () => {
         expect(command).toBe('clojure');
         expect(args.slice(0, 4)).toEqual(['-M:test', '-m', 'scripts.deployment.configuration-review', 'verify-json']);
         expect(args[6]).toBe(path.join(f.trustedContextRoot, 'evidence/input-2.edn'));
+        expect(args[7]).toBe(path.join(f.trustedContextRoot, 'evidence/input-3.edn'));
         expect(options.cwd).toBe(f.root);
         return { status: 0, stdout: JSON.stringify({ valid: true, qualification: 'authenticated-content-approval' }) };
       });
@@ -77,8 +78,8 @@ describe('independent retained PRF evidence replay', () => {
     try {
       const requestPath = 'evidence/seal-request.edn';
       const contextPath = 'evidence/seal-context.edn';
-      fs.writeFileSync(path.join(f.root, requestPath), '{:request true}');
-      fs.writeFileSync(path.join(f.root, contextPath), '{:trusted true}');
+      fs.mkdirSync(path.dirname(path.join(f.trustedContextRoot, requestPath)), { recursive: true });
+      fs.writeFileSync(path.join(f.trustedContextRoot, requestPath), '{:request true}');
       fs.mkdirSync(path.dirname(path.join(f.trustedContextRoot, contextPath)), { recursive: true });
       fs.writeFileSync(path.join(f.trustedContextRoot, contextPath), '{:trusted true}');
       const preflightOutput = JSON.stringify({ schema: 'prf-chain-instance-seal-preflight.v2', computedRoot: '0x' + '11'.repeat(32) });

@@ -32,6 +32,21 @@ export interface PrfGenesisSealPreflightEvidence {
   outputSha256: string;
 }
 
+/** Extract the authenticated Genesis runtime identity from PRF's retained output. */
+export function genesisRuntimeCodeHashFromPreflight(evidence: { output?: unknown } | undefined): string | undefined {
+  if (typeof evidence?.output !== 'string') return undefined;
+  try {
+    const output = JSON.parse(evidence.output) as Record<string, unknown>;
+    const artifact = output.artifact as Record<string, unknown> | undefined;
+    const controlPlane = artifact?.['control-plane'] as Record<string, unknown> | undefined;
+    const value = controlPlane?.['runtime-code-keccak256'];
+    if (typeof value !== 'string' || !/^keccak256:[0-9a-fA-F]{64}$/.test(value)) return undefined;
+    return `0x${value.slice('keccak256:'.length)}`;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface PrfGenesisSealResultEvidence {
   schema: 'prf-chain-instance-seal-result.v1';
   qualification: 'seal-receipt-and-readback-verified';
@@ -106,7 +121,7 @@ export function verifyPrfGenesisSealPreflight(
     observationBlocks: parsed['observation-blocks'],
     sourceFileCount: Number(parsed['source-file-count']),
     verifierCommand: ['clojure', ...args],
-    inputs: files.map((file, index) => ({ role: roles[index]!, path: path.relative(prfRoot, file), sha256: createHash('sha256').update(fs.readFileSync(file)).digest('hex') })),
+    inputs: files.map((file, index) => ({ role: roles[index]!, path: path.basename(file), sha256: createHash('sha256').update(fs.readFileSync(file)).digest('hex') })),
     output,
     outputSha256: createHash('sha256').update(output, 'utf8').digest('hex'),
   };

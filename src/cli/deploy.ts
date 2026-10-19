@@ -44,7 +44,7 @@ import { derivePrfVerifierRegistryRoot } from '../deployment/prf-verifier-regist
 import { derivePrfSuccessorConfiguration } from '../deployment/prf-successor-configuration';
 import { verifyPrfSuccessorTransitionApproval, type PrfSuccessorApprovalInput } from '../deployment/prf-successor-approval';
 import { verifyPrfInitialInputApproval, type PrfInitialApprovalEvidence } from '../deployment/prf-initial-approval';
-import { verifyPrfGenesisSealPreflight, verifyPrfGenesisSealResult, type PrfGenesisSealPreflightEvidence } from '../deployment/prf-genesis-seal-preflight';
+import { genesisRuntimeCodeHashFromPreflight, verifyPrfGenesisSealPreflight, verifyPrfGenesisSealResult, type PrfGenesisSealPreflightEvidence } from '../deployment/prf-genesis-seal-preflight';
 import { verifyPrfAuthorityTransition, type PrfAuthorityTransitionEvidence } from '../deployment/prf-authority-transition';
 import { retainedResolvedSpecEvidence, retainedResolvedSpecSha256 } from '../deployment/live-verification-input';
 
@@ -1410,7 +1410,7 @@ async function run(
           const assertion = record.finalAssertions.find((candidate) => candidate.id === 'prf-genesis-seal-preflight' && candidate.status === 'passed');
           let evidence: Record<string, unknown> | undefined;
           try { evidence = assertion?.detail ? JSON.parse(assertion.detail) as Record<string, unknown> : undefined; } catch { /* remains pending */ }
-          const codeHash = evidence?.['artifact.control-plane.runtime-code-keccak256'];
+          const codeHash = genesisRuntimeCodeHashFromPreflight(evidence);
           if (typeof codeHash === 'string' && /^0x[0-9a-fA-F]{64}$/.test(codeHash)) outputs.genesisRuntimeCodeHash = codeHash;
         }
         const mappedOutputs = Object.keys(stage.contractOutputs ?? {});

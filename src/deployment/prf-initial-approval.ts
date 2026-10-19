@@ -131,7 +131,9 @@ export function verifyPrfInitialInputApproval(
     verifierCommand: ['clojure', ...args],
     inputs: files.map((file, index) => ({
       role: roles[index]!,
-      path: path.relative(prfRoot, file),
+      // Trusted contexts and detached approvals are retained in the separate
+      // trusted-context directory and must not escape the PRF source root.
+      path: index >= 2 ? path.basename(file) : path.relative(prfRoot, file),
       sha256: createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
     })),
     output,

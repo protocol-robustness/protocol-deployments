@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { describe, expect, it } from 'vitest';
-import { verifyPrfGenesisSealPreflight, verifyPrfGenesisSealResult } from '../src/deployment/prf-genesis-seal-preflight';
+import { genesisRuntimeCodeHashFromPreflight, verifyPrfGenesisSealPreflight, verifyPrfGenesisSealResult } from '../src/deployment/prf-genesis-seal-preflight';
 
 function inputs() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'prf-genesis-seal-'));
@@ -26,6 +26,14 @@ const call = {
 };
 
 describe('PRF genesis seal signer gate', () => {
+  it('extracts the Genesis runtime hash from the independently retained PRF artifact', () => {
+    const hash = 'a'.repeat(64);
+    expect(genesisRuntimeCodeHashFromPreflight({ output: JSON.stringify({
+      artifact: { 'control-plane': { 'runtime-code-keccak256': `keccak256:${hash}` } },
+    }) })).toBe(`0x${hash}`);
+    expect(genesisRuntimeCodeHashFromPreflight({ output: '{' })).toBeUndefined();
+  });
+
   it('runs the independent live gate and binds it to the exact planned call and initial manifest', () => {
     const { root, base } = inputs();
     try {

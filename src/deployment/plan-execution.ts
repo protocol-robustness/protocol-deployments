@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import { canonicalJson } from '../canonical-json';
 import { keccak256Hex } from '../artifacts/hash';
 import { ConfigError } from '../errors';
+import { genesisRuntimeCodeHashFromPreflight } from './prf-genesis-seal-preflight';
 import type { DeploymentManifest } from './manifest';
 import type { SuccessorDeploymentPlanV1 } from './successor-plan';
 
@@ -154,7 +155,7 @@ export function assertPlanExecutionMatchesManifest(
       }
       if (stage.id === 'deploy-genesis') {
         const preflight = assertionEvidence('prf-genesis-seal-preflight');
-        const expectedCodeHash = preflight?.['artifact.control-plane.runtime-code-keccak256'];
+        const expectedCodeHash = genesisRuntimeCodeHashFromPreflight(preflight);
         const observedCodeHash = (stageReceipt.outputs?.genesisRuntimeCodeHash as string | undefined)?.toLowerCase();
         if (typeof expectedCodeHash !== 'string' || observedCodeHash !== expectedCodeHash.toLowerCase()) {
           throw new ConfigError('PLAN_EXECUTION_STAGE_OUTPUT_MISMATCH', 'Genesis deployment runtime-code output is missing or conflicts with retained seal-preflight evidence');
