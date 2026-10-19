@@ -270,7 +270,7 @@ function assertCapitalFlowExpectations(
       !isAddress(ratificationController) || executor.controller.toLowerCase() !== ratificationController.toLowerCase() ||
       !Array.isArray(expectations.stateAssertions) ||
       canonicalJson(expectations.stateAssertions) !== canonicalJson(evidence.stateAssertions)) {
-    throw new ConfigError('CAPITAL_FLOW_EXPECTATIONS_MISMATCH', 'Producer-supplied historical state values differ from the independent expectation package bound to this manifest, instance, C1 and operation');
+    throw new ConfigError('CAPITAL_FLOW_EXPECTATIONS_MISMATCH', 'Operation, runtime identity, or historical state assertions differ from the independent expectation package bound to this manifest, instance, C1 and operation');
   }
   return {
     digest: createHash('sha256').update(canonicalJson(expectations), 'utf8').digest('hex'),
@@ -688,6 +688,7 @@ export async function replayCapitalFlowEvidence(value: unknown, transport: RpcTr
           throw new ConfigError('CAPITAL_FLOW_RUNTIME_IDENTITY_MISMATCH', 'Operation executor runtime code differs from the approved constructor-specific code identity');
         }
         const getter = async (address: string, abi: Abi, name: string) => {
+          if (!Array.isArray(abi)) throw new ConfigError('CAPITAL_FLOW_RUNTIME_IDENTITY_MISMATCH', `Pinned ABI is unavailable for ${name}`);
           const fn = abi.filter((item): item is AbiFunction => item.type === 'function' && item.name === name);
           if (fn.length !== 1) throw new ConfigError('CAPITAL_FLOW_RUNTIME_IDENTITY_MISMATCH', `Pinned ABI does not contain exactly one ${name} getter`);
           return transport.call({ to: address as `0x${string}`, data: encodeFunctionData({ abi: [fn[0]!], functionName: name } as never) }, receipt.blockNumber);
