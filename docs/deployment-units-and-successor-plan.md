@@ -125,8 +125,78 @@ source kind, and authorization target ordering. A plan-selected deployment is
 recorded as the existing immutable deployment manifest plus a
 `protocol-deployment-plan-execution/v1` receipt. The receipt binds selected
 sources and per-deploy-stage results; dependency-blocked stages cannot be
-reported as verified. `npm run verify:plan-execution` reconstructs its plan
-and manifest binding. `verify-live` checks the manifest against the chain.
+reported as verified. `verify-plan-execution` reconstructs the plan and
+manifest binding, then replays retained PRF approval and root-derivation
+commands from the input files under `--prf-root`; verifying a sealed genesis
+also rechecks its seal transaction and historical reads through `--rpc-url`.
+The caller supplies approval trust material separately through
+`--trusted-context-root`; the verifier uses it instead of trusting the copy
+inside the deployment bundle. Its directory layout mirrors the retained
+trusted-context paths and each file must match the digest in the approval.
+The plan verifier also invokes live verification against `--resolved`, the
+caller-selected pinned `--fixtures` bundle and `--rpc-url`; it does not accept
+a producer-supplied live-verification success flag. It can persist a deterministic, immutable
+`protocol-deployment-independent-verification/v3` report with `--out`; the report
+binds the plan receipt, its complete/partial status, manifest, final
+resolved-spec digest, replay count and recomputed live-verification root, and
+states the remaining trust assumptions. A verified partial prefix remains
+explicitly marked partial. The report labels itself as local verification
+evidence rather than approval. The
+optional `--capital-flow-evidence` input supplies a `protocol-capital-flow-execution/v5`
+bundle. The verifier checks the complete ordered set of six positive actions,
+including prepared-operation creation before admission,
+and nine negative cases against RPC transaction targets, selectors, receipt
+statuses and canonical block hashes. For every required state domain it checks
+historical calls immediately before and after the action, and requires isolated
+single-transaction blocks so reverted cases can be checked for unchanged state.
+It also enforces a fixed chronology: wrong-instance preparation precedes valid
+operation creation; proof failures precede admission; repeated admission follows
+the admitted receipt; wrong-operation follows assurance preparation; and repeat
+ratification/withdrawal follow their successful capital actions. Negative-case
+calldata must preserve all bindings other than the specific identity under
+test.
+The repeated-admission case is explicitly expected to succeed with the same
+calldata, preserving generic receipt identity, while its capital-bound state
+assertions remain unchanged; the other negative cases must revert.
+The stale-C0 case first admits public values that commit to a C0-prepared
+operation under the active C1 verifier, then requires assurance preparation to
+revert against the C1 operation. The bundle includes the independently derived
+C0 root and complete prepared-operation tuple; replay recomputes its root and
+checks that only the configuration root and epoch differ from the active
+operation. This tests the assurance boundary, since statement admission does
+not itself establish that an operation was prepared under the active
+configuration.
+The unauthorized-configuration case must be a well-formed direct-target
+next-epoch request and records an absent decision authorization and proof-mode
+assignment before and after its revert, so the rejection is attributable to the
+authorization gate rather than zero roots or malformed target data.
+Prepared reserve, token and allocator addresses are checked against the
+deployment manifest. Getter argument counts are fixed, and token-balance and
+consumed-claim reads are bound to the decoded withdrawal beneficiary and claim
+identity. Expected historical state values still require qualification review
+against the approved operation. Replay regression tests load the retained
+v0.4.1 artifact ABIs for action and getter selector checks, and observed action
+calldata must decode and re-encode byte-for-byte through the pinned ABI. The
+verifier also checks intervening blocks for unreported transactions, with a
+bounded gap, so external state changes cannot be omitted from the flow bundle.
+The report binds the evidence digest, transaction count and state-assertion
+count. Action targets and selectors are checked against the profile's fixed
+action map, deployment manifest and pinned resolved ABI. State read-call
+targets and selectors are checked against fixed getter mappings and pinned
+view ABIs. The evidence binds its configuration root/epoch to the verified C1
+application stage and checks those values before and after every action. State
+call arguments and expected values remain evidence inputs that require
+qualification review; the bundle does not itself establish proof validity or a
+correct expected outcome. The
+`verify:plan-report` command checks the report schema, fixed trust-assumption
+list and report digest; it does not replay deployment evidence, so consumers
+must use `verify:plan-execution` for that check. For example:
+`npm run verify:plan-execution -- --plan <plan.json> --manifest <manifest.json>
+--receipt <plan-execution.json> --prf-root <PRF checkout>
+--trusted-context-root <independent trust-context directory>
+--resolved <resolved.json> --fixtures <pinned fixture root> --rpc-url <URL>`.
+To check a retained report's integrity, run
+`npm run verify:plan-report -- --report <verification-report.json>`.
 The retained local topology deployment predates the fresh-run stage guard and
 is explicitly incomplete; it does not demonstrate staged genesis or proof
 admission.

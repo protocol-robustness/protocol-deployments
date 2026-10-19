@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ConfigError } from '../src/errors';
 import type { Hex } from 'viem';
 import {
   assertManifestVerified,
@@ -60,6 +61,23 @@ describe('registry candidate consistency gate', () => {
     expect(() => validateManifestForRegistryCandidate(manifest({
       finalAssertions: [{ id: 'bound', status: 'failed', verifiedAt: '2026-01-01T00:00:00.000Z' }],
     }))).toThrow('failed final assertions');
+  });
+
+  it('rejects duplicate final assertion identities', () => {
+    const assertion = { id: 'bound', status: 'passed' as const, verifiedAt: '2026-01-01T00:00:00.000Z' };
+    try {
+      validateManifestForRegistryCandidate(manifest({ finalAssertions: [assertion, assertion] }));
+      throw new Error('expected duplicate assertion identity rejection');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ConfigError);
+      expect((error as ConfigError).code).toBe('MANIFEST_DUPLICATE_FINAL_ASSERTIONS');
+    }
+  });
+
+  it('rejects duplicate deployed contract identities', () => {
+    const contract = manifest().contracts[0]!;
+    expect(() => validateManifestForRegistryCandidate(manifest({ contracts: [contract, contract] })))
+      .toThrow('duplicate deployed contract identities');
   });
 
   it('rejects a selected root absent from the manifest', () => {

@@ -7,6 +7,7 @@ import {
   type Hex,
   type PublicClient,
   type TransactionReceipt,
+  type Transaction,
 } from 'viem';
 import { ConfigError } from '../errors';
 
@@ -58,6 +59,11 @@ export class RpcTransport {
     return { number: block.number, hash: block.hash };
   }
 
+  async getBlockTransactionHashes(blockNumber: bigint): Promise<Hex[]> {
+    const block = await this.publicClient.getBlock({ blockNumber, includeTransactions: true });
+    return block.transactions.map((transaction) => typeof transaction === 'string' ? transaction : transaction.hash);
+  }
+
   async getCode(address: Address, blockNumber?: bigint): Promise<Hex | undefined> {
     return this.publicClient.getCode(blockNumber === undefined ? { address } : { address, blockNumber });
   }
@@ -77,6 +83,14 @@ export class RpcTransport {
   async getTransactionReceipt(hash: Hex): Promise<TransactionReceipt | null> {
     try {
       return await this.publicClient.getTransactionReceipt({ hash });
+    } catch {
+      return null;
+    }
+  }
+
+  async getTransaction(hash: Hex): Promise<Transaction | null> {
+    try {
+      return await this.publicClient.getTransaction({ hash });
     } catch {
       return null;
     }

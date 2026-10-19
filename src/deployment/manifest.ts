@@ -94,8 +94,16 @@ export function assertManifestVerified(manifest: DeploymentManifest): void {
   if (manifest.contracts.length === 0) {
     throw new ConfigError('MANIFEST_INCOMPLETE', 'Deployment manifest contains no contracts');
   }
+  const deployedContractIds = manifest.contracts.map((contract) => contract.logicalId);
+  if (new Set(deployedContractIds).size !== deployedContractIds.length) {
+    throw new ConfigError('MANIFEST_DUPLICATE_CONTRACT_ID', 'Manifest contains duplicate deployed contract identities');
+  }
   if (!manifest.chain.blockHash) {
     throw new ConfigError('MANIFEST_INCOMPLETE', 'Deployment manifest does not record the deployment block hash');
+  }
+  const assertionIds = manifest.finalAssertions.map((assertion) => assertion.id);
+  if (new Set(assertionIds).size !== assertionIds.length) {
+    throw new ConfigError('MANIFEST_DUPLICATE_FINAL_ASSERTIONS', 'Deployment manifest contains duplicate final assertion identities');
   }
   const unverified = manifest.bootstrapActions.filter((action) => action.status !== 'verified');
   if (unverified.length > 0) {

@@ -2,7 +2,7 @@
  :artifactSources
  {:prf/deployables
   {:package "@protocol-robustness/prf-evm-deployables"
-   :version "0.4.0"
+   :version "0.4.1"
    :sourceRepo "protocol-robustness/prf-evm"
    :kind :npm}}
  :contracts
@@ -11,6 +11,14 @@
    :artifactSource :prf/deployables
    :artifact "LocalSnapshotToken"
    :constructorBindings {:recipient {:deployer true}}}
+
+  :prf/authority-transition-validator
+  {:scope :prf
+   :artifactSource :prf/deployables
+   :artifact "PrfEcdsaAuthorityTransitionValidator"
+   :constructorBindings
+   {:localAuthorityPolicyRoot_ {:literal "0x5555555555555555555555555555555555555555555555555555555555555555"}
+    :transitionValidatorAddress_ {:literal "0x6666666666666666666666666666666666666666"}}}
 
   :prf/governance-authority
   {:scope :prf

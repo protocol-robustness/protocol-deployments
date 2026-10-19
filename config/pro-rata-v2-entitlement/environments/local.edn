@@ -3,6 +3,7 @@
  :chain {:logicalRole :local :chainId 31337 :kind :local}
  :deploymentOrder
  [:prf/local-token
+  :prf/authority-transition-validator
   :prf/governance-authority
   :prf/genesis
   :prf/verifier-registry
@@ -22,10 +23,16 @@
   :shortfall/pro-rata-allocator-v2]
  :localOnly true
  :bootstrapActions
- [{:id :prf/seal-genesis
+ [{:id :prf/enable-authority-transitions
+   :target :prf/governance-authority
+   :function "enableAuthorityTransitions"
+   :args [{:contractAddress :prf/genesis}
+          {:literal "0x5555555555555555555555555555555555555555555555555555555555555555"}
+          {:contractAddress :prf/authority-transition-validator}]}
+  {:id :prf/seal-genesis
    :target :prf/genesis
    :function "sealGenesis"
-   :args [{:literal "0x5555555555555555555555555555555555555555555555555555555555555555"}
+   :args [{:literal "0x0000000000000000000000000000000000000000000000000000000000000000"}
           {:runtimeCodeHash :prf/genesis}
           {:runtimeCodeHash :prf/governance-authority}]}
   {:id :shortfall-entitlement/bind-allocator-funding-authority
@@ -45,7 +52,22 @@
    :function "bindRatificationAuthority"
    :args [{:contractAddress :shortfall/entitlement-ratification-controller-v1}]}]
  :bootstrapAssertions
- [{:id :prf/genesis-sealed
+ [{:id :prf/authority-transitions-enabled
+   :target :prf/governance-authority
+   :function "authorityTransitionsEnabled"
+   :args []
+   :expected true}
+  {:id :prf/authority-transition-policy-root
+   :target :prf/governance-authority
+   :function "localAuthorityPolicyRoot"
+   :args []
+   :expected "0x5555555555555555555555555555555555555555555555555555555555555555"}
+  {:id :prf/authority-transition-validator-bound
+   :target :prf/governance-authority
+   :function "authorityTransitionValidator"
+   :args []
+   :expectedBinding {:contractAddress :prf/authority-transition-validator}}
+  {:id :prf/genesis-sealed
    :target :prf/genesis
    :function "isSealedState"
    :args []

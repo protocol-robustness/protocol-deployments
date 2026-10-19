@@ -2,6 +2,7 @@
   "schema": "protocol-deployment-plan.v1",
   "planId": "prf/controlled-shortfall-successor-fork.v1",
   "localOnly": true,
+  "successorProofMode": 1,
   "selectedUnits": [
     "prf-assurance",
     "protected-operations",
@@ -76,8 +77,26 @@
       "kind": "deploy",
       "unit": "pro-rata-successor-entitlements",
       "stage": "deploy-successor-entitlements"
+    },
+    "prf/authority-transition-validator": {
+      "kind": "deploy",
+      "unit": "prf-assurance",
+      "stage": "deploy-authority-and-verifier"
     }
   },
+  "verifierClosures": [
+    {
+      "adapterLogicalId": "prf/source-bound-entitlement-verifier-adapter-v1",
+      "verifierLogicalId": "prf/sp1-verifier-groth16",
+      "adapterStage": "deploy-authority-and-verifier",
+      "verifierStage": "deploy-authority-and-verifier",
+      "expectedProgramVKey": "0x00d90efa52d17e54670a4248f001e4da443a938f12c55d0d414c125ba68087b9",
+      "expectedProgramElfSha256": "0x636330de8e7af3485aba50bd3ca4b5e024cc4f977a2bf0f2c005f711e5ffacf8",
+      "expectedProgramId": "source-bound-entitlement-sp1-program.v1",
+      "expectedStatementSchemaVersion": "0x71fc0589dce6888fb7c2da5ddd88275753cf9f9de0aca477f307bd96de8660de",
+      "expectedPublicValuesSchema": "0x876f2aea9124d79f41dbdd389d498430987fa33bbb34408989849c478a7c2bde"
+    }
+  ],
   "authorizedConfigurationActions": [
     {
       "id": "seal-empty-verifier-registry",
@@ -98,16 +117,16 @@
       "function": "sealRegistry"
     },
     {
-      "id": "authorize-successor-configuration",
+      "id": "apply-successor-authority-transition",
       "stage": "authorize-successor-configuration",
       "target": "prf/governance-authority",
-      "function": "authoriseDecision"
+      "function": "applyAuthorityStateTransition"
     },
     {
       "id": "apply-successor-configuration",
       "stage": "apply-successor-configuration",
       "target": "prf/configuration-executor",
-      "function": "applyConfiguration"
+      "function": "applyConfigurationWithEntitlementProofMode"
     }
   ],
   "stages": [
@@ -175,13 +194,15 @@
         "registry",
         "sp1Verifier",
         "successorAdapter",
-        "verifierId"
+        "verifierId",
+        "authorityTransitionValidator"
       ],
       "contractOutputs": {
         "authorityAdapter": "prf/governance-authority",
         "registry": "prf/verifier-registry",
         "sp1Verifier": "prf/sp1-verifier-groth16",
-        "successorAdapter": "prf/source-bound-entitlement-verifier-adapter-v1"
+        "successorAdapter": "prf/source-bound-entitlement-verifier-adapter-v1",
+        "authorityTransitionValidator": "prf/authority-transition-validator"
       }
     },
     {
@@ -198,74 +219,6 @@
       },
       "produces": [
         "successorRegistryRoot"
-      ]
-    },
-    {
-      "id": "seal-empty-verifier-registry",
-      "kind": "authorize-configuration",
-      "dependsOn": [
-        "deploy-authority-and-verifier",
-        "derive-genesis-roots"
-      ],
-      "consumes": {
-        "registry": {
-          "stage": "deploy-authority-and-verifier",
-          "output": "registry"
-        },
-        "emptyRegistryRoot": {
-          "stage": "derive-genesis-roots",
-          "output": "emptyRegistryRoot"
-        }
-      },
-      "produces": [
-        "emptyRegistryReceipt"
-      ]
-    },
-    {
-      "id": "register-successor-verifier",
-      "kind": "authorize-configuration",
-      "dependsOn": [
-        "deploy-authority-and-verifier",
-        "derive-registry-roots"
-      ],
-      "consumes": {
-        "registry": {
-          "stage": "deploy-authority-and-verifier",
-          "output": "registry"
-        },
-        "adapter": {
-          "stage": "deploy-authority-and-verifier",
-          "output": "successorAdapter"
-        },
-        "successorRegistryRoot": {
-          "stage": "derive-registry-roots",
-          "output": "successorRegistryRoot"
-        }
-      },
-      "produces": [
-        "registrationReceipt"
-      ]
-    },
-    {
-      "id": "seal-successor-verifier-registry",
-      "kind": "authorize-configuration",
-      "dependsOn": [
-        "deploy-authority-and-verifier",
-        "register-successor-verifier",
-        "derive-registry-roots"
-      ],
-      "consumes": {
-        "registry": {
-          "stage": "deploy-authority-and-verifier",
-          "output": "registry"
-        },
-        "successorRegistryRoot": {
-          "stage": "derive-registry-roots",
-          "output": "successorRegistryRoot"
-        }
-      },
-      "produces": [
-        "sealedSuccessorRegistryObservation"
       ]
     },
     {
@@ -363,6 +316,28 @@
       ]
     },
     {
+      "id": "seal-empty-verifier-registry",
+      "kind": "authorize-configuration",
+      "dependsOn": [
+        "deploy-authority-and-verifier",
+        "derive-genesis-roots",
+        "seal-chain-instance-genesis"
+      ],
+      "consumes": {
+        "registry": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "registry"
+        },
+        "emptyRegistryRoot": {
+          "stage": "derive-genesis-roots",
+          "output": "emptyRegistryRoot"
+        }
+      },
+      "produces": [
+        "emptyRegistryReceipt"
+      ]
+    },
+    {
       "id": "deploy-configuration-executor",
       "kind": "deploy",
       "dependsOn": [
@@ -408,7 +383,7 @@
       "kind": "derive-canonical-roots",
       "dependsOn": [
         "deploy-configuration-executor",
-        "seal-successor-verifier-registry",
+        "seal-chain-instance-genesis",
         "derive-genesis-roots",
         "derive-initial-configuration",
         "derive-registry-roots"
@@ -435,10 +410,82 @@
       ]
     },
     {
+      "id": "verify-successor-transition-approval",
+      "kind": "verify",
+      "dependsOn": [
+        "derive-successor-configuration",
+        "derive-registry-roots",
+        "seal-chain-instance-genesis"
+      ],
+      "consumes": {
+        "derivation": {
+          "stage": "derive-successor-configuration",
+          "output": "successorConfigurationRoot"
+        },
+        "registry": {
+          "stage": "derive-registry-roots",
+          "output": "successorRegistryRoot"
+        }
+      },
+      "produces": [
+        "successorTransitionApprovalEvidence"
+      ]
+    },
+    {
+      "id": "register-successor-verifier",
+      "kind": "authorize-configuration",
+      "dependsOn": [
+        "deploy-authority-and-verifier",
+        "derive-registry-roots",
+        "verify-successor-transition-approval"
+      ],
+      "consumes": {
+        "registry": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "registry"
+        },
+        "adapter": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "successorAdapter"
+        },
+        "successorRegistryRoot": {
+          "stage": "derive-registry-roots",
+          "output": "successorRegistryRoot"
+        }
+      },
+      "produces": [
+        "registrationReceipt"
+      ]
+    },
+    {
+      "id": "seal-successor-verifier-registry",
+      "kind": "authorize-configuration",
+      "dependsOn": [
+        "deploy-authority-and-verifier",
+        "register-successor-verifier",
+        "derive-registry-roots",
+        "verify-successor-transition-approval"
+      ],
+      "consumes": {
+        "registry": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "registry"
+        },
+        "successorRegistryRoot": {
+          "stage": "derive-registry-roots",
+          "output": "successorRegistryRoot"
+        }
+      },
+      "produces": [
+        "sealedSuccessorRegistryObservation"
+      ]
+    },
+    {
       "id": "authorize-successor-configuration",
       "kind": "authorize-configuration",
       "dependsOn": [
         "derive-successor-configuration",
+        "verify-successor-transition-approval",
         "deploy-authority-and-verifier"
       ],
       "consumes": {
@@ -452,7 +499,8 @@
         }
       },
       "produces": [
-        "authorizationReceipt"
+        "authorityTransitionReceipt",
+        "successorAuthorityStateRoot"
       ]
     },
     {
@@ -461,7 +509,9 @@
       "dependsOn": [
         "authorize-successor-configuration",
         "deploy-configuration-executor",
-        "derive-successor-configuration"
+        "derive-successor-configuration",
+        "seal-successor-verifier-registry",
+        "deploy-authority-and-verifier"
       ],
       "consumes": {
         "configurationExecutor": {
@@ -483,11 +533,16 @@
         "targetRoot": {
           "stage": "derive-successor-configuration",
           "output": "targetRoot"
+        },
+        "authorityAdapter": {
+          "stage": "deploy-authority-and-verifier",
+          "output": "authorityAdapter"
         }
       },
       "produces": [
         "activeConfigurationRoot",
         "activeConfigurationEpoch",
+        "activeEntitlementProofMode",
         "configurationTransitionReceipt"
       ]
     },
@@ -574,8 +629,7 @@
       },
       "produces": [
         "assurance",
-        "ratificationController",
-        "boundRoles"
+        "ratificationController"
       ],
       "contractOutputs": {
         "assurance": "shortfall/source-bound-entitlement-assurance-v1",

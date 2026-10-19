@@ -78,6 +78,15 @@ not part of the deployment ledger).
 
 ### Qualified successor local topology
 
-`pnpm resolve:pro-rata-v2-entitlement-local` and `pnpm deploy:pro-rata-v2-entitlement-local` select the isolated `fixtures/releases/0.4.0/packages` artifact bundle. The profile binds successor VKey `0x00d90efa52d17e54670a4248f001e4da443a938f12c55d0d414c125ba68087b9` and ELF SHA-256 `0x636330de8e7af3485aba50bd3ca4b5e024cc4f977a2bf0f2c005f711e5ffacf8`, with the current stale-assurance recovery interfaces. Older profiles and the original fixture directory retain their release pins. Generic deployment commands can select another fixture directory using `--fixtures <dir>`.
+`pnpm resolve:pro-rata-v2-entitlement-local` and `pnpm deploy:pro-rata-v2-entitlement-local` select the isolated local `fixtures/releases/0.4.1/packages` artifact bundle, which is exported from the dirty integrated tree and is not a clean pinned release. The profile binds successor VKey `0x00d90efa52d17e54670a4248f001e4da443a938f12c55d0d414c125ba68087b9` and ELF SHA-256 `0x636330de8e7af3485aba50bd3ca4b5e024cc4f977a2bf0f2c005f711e5ffacf8`, with the current stale-assurance recovery interfaces. Older profiles and the original fixture directory retain their release pins. Generic deployment commands can select another fixture directory using `--fixtures <dir>`.
+
+The bounded plan requires a source-bound PRF initial-input manifest, candidate
+package set, detached approval envelope, and separate trusted context. Both
+resolution and deployment verify that approval and use its authenticated roots
+to replace constructor placeholders. Deployment additionally requires a seal
+preflight request and trusted context; the signer derives the genesis root
+from current chain observations and verifies the mined seal readbacks. These
+gates do not make the currently unimplemented canonical stage executors
+deployable, and no local approval or deployment is included here.
 
 This is a local topology profile. Its placeholder registry/configuration roots do not establish governed successor admission. The deployment-derived real-proof Gate E path in `prf-evm` remains the qualification path for verification, admission, ratification, funding, activation, withdrawal and refund. No package publication or Base Sepolia deployment is implied by this local bundle.

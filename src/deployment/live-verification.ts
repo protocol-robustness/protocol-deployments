@@ -74,6 +74,7 @@ export async function verifyLiveDeployment(
   spec: ResolvedSpec,
   bundle: BundleConsumer,
   requestedBlock?: bigint,
+  externallyVerifiedAssertions?: LiveAssertionResult[],
 ): Promise<LiveVerificationV1>;
 export async function verifyLiveDeployment(
   manifest: DeploymentManifestV2,
@@ -81,6 +82,7 @@ export async function verifyLiveDeployment(
   spec: ResolvedSpec,
   bundle: BundleConsumer,
   requestedBlock?: bigint,
+  externallyVerifiedAssertions?: LiveAssertionResult[],
 ): Promise<LiveVerificationV2>;
 export async function verifyLiveDeployment(
   manifest: DeploymentManifest,
@@ -88,6 +90,7 @@ export async function verifyLiveDeployment(
   spec: ResolvedSpec,
   bundle: BundleConsumer,
   requestedBlock?: bigint,
+  externallyVerifiedAssertions: LiveAssertionResult[] = [],
 ): Promise<LiveVerificationV1 | LiveVerificationV2> {
   assertManifestVerified(manifest);
   const manifestRoot = computeManifestRoot(manifest);
@@ -192,7 +195,7 @@ export async function verifyLiveDeployment(
     deployer: manifest.deployer,
     transport,
   };
-  const assertions: LiveAssertionResult[] = [];
+  const assertions: LiveAssertionResult[] = [...externallyVerifiedAssertions];
   for (const assertion of spec.deployment.bootstrapAssertions ?? []) {
     const target = addresses[assertion.target];
     if (!target) {

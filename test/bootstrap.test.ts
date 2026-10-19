@@ -91,6 +91,56 @@ describe('bootstrap actions', () => {
     expect(transitions).toEqual(['submitted', 'confirmed']);
   });
 
+  it('runs a signer preflight after calldata resolution and before signing or submission', async () => {
+    const transport = new FakeTransport();
+    const order: string[] = [];
+    const signer = {
+      ...fakeSigner(DEPLOYER),
+      signTransaction: async () => { order.push('sign'); return ('0x' + 'ab'.repeat(64)) as `0x${string}`; },
+    };
+    const result = await executeBootstrapAction({
+      ...baseInput(transport), signer,
+      beforeSubmit: (call) => {
+        order.push('preflight');
+        expect(call.from).toBe(DEPLOYER);
+        expect(call.target).toBe(ADMIN);
+        expect(call.function).toBe('setAdmin');
+        expect(call.args).toEqual([ADMIN]);
+        return { evidence: { qualification: 'preflight-verified' } };
+      },
+    });
+    expect(order).toEqual(['preflight', 'sign']);
+    expect(result.preSubmitEvidence).toEqual({ qualification: 'preflight-verified' });
+  });
+
+  it('does not sign when the signer preflight rejects', async () => {
+    let signed = false;
+    const input = {
+      ...baseInput(new FakeTransport()),
+      signer: { ...fakeSigner(DEPLOYER), signTransaction: async () => { signed = true; return ('0x' + 'ab'.repeat(64)) as `0x${string}`; } },
+      beforeSubmit: () => { throw new ConfigError('SEAL_PREFLIGHT_REJECTED', 'rejected'); },
+    };
+    await expectCode(() => executeBootstrapAction(input), 'SEAL_PREFLIGHT_REJECTED');
+    expect(signed).toBe(false);
+  });
+
+  it('signs only the arguments returned by the verified preflight', async () => {
+    const derivedAdmin = '0x00000000000000000000000000000000000000bb' as const;
+    let signedData: string | undefined;
+    const signer = {
+      ...fakeSigner(DEPLOYER),
+      signTransaction: async (tx: { data?: string }) => {
+        signedData = tx.data;
+        return ('0x' + 'ab'.repeat(64)) as `0x${string}`;
+      },
+    };
+    await executeBootstrapAction({
+      ...baseInput(new FakeTransport()), signer,
+      beforeSubmit: () => ({ args: [derivedAdmin], evidence: { derived: true } }),
+    });
+    expect(signedData?.toLowerCase().endsWith(derivedAdmin.slice(2))).toBe(true);
+  });
+
   it('refuses parameter bindings in bootstrap scope', async () => {
     const input = { ...baseInput(new FakeTransport()), args: [{ kind: 'parameter', parameter: 'rate' } satisfies ResolvedBinding] };
     await expectCode(() => executeBootstrapAction(input), 'BOOTSTRAP_PARAMETER_UNSUPPORTED');

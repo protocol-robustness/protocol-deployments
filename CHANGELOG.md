@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Plan-execution verification now binds chain and selected-unit context to the manifest and plan, rejects unfinished or unsupported completion statuses, replays PRF approvals and deterministic root derivations from digest-checked retained inputs under an independently supplied trust-context root, and recomputes live runtime/assertion verification against the supplied resolved spec and pinned bundle. Genesis seal-result replay requires RPC and historical readbacks. C0-to-C1 derivation requests now include the expected C0 root.
 - Plan-selected deployments reject repeated-byte sentinel values in constructor root bindings before producing a deployable configuration; canonical root derivation and semantic approval remain separate requirements.
 - Stage-output verification now authenticates contract facts against their producing stage and live deployment evidence. Auxiliary values are retained only when declared and unconsumed, under the receipt commitment; they cannot be used as downstream authority without a stage-specific verifier.
 - Stage-output consumption now requires `--source-revision` to equal the executing checkout's Git HEAD and refuses a dirty checkout; a caller-supplied revision string alone is no longer accepted as source identity.
@@ -14,7 +15,7 @@
 
 - Stage-output consumers now require predecessor receipts to have passed independent verification in the current resolution chain; receipt shape and a matching root alone are insufficient.
 
-- Plan-selected deployments can consume cross-plan contract outputs pinned by producer plan, execution, manifest, live-verification, output, and contract identities using `--cross-plan-stage-output-evidence <dir>`. Producer evidence is independently checked before resolution and the consumer rechecks the producer transaction, block, historical runtime, and current runtime. Cross-plan evidence is recorded separately from the existing same-plan v1 receipt commitment.
+- Plan-selected deployments can consume cross-plan contract outputs pinned by producer plan, execution, manifest, live-verification, output, and contract identities using `--cross-plan-stage-output-evidence <dir>`. Producer evidence is independently checked before resolution and the consumer rechecks the producer transaction, block, historical runtime, and current runtime. A producer that itself pins upstream cross-plan outputs carries that evidence recursively; every upstream producer must satisfy the same checks and share the consumer's chain. Cross-plan evidence is recorded separately from the existing same-plan v1 receipt commitment.
 
 - Plan-selected deployment can consume a `stage-output` contract from `--stage-output-receipts <dir>`. Before any deployment transaction, the CLI verifies the receipt chain against the selected plan, environment, chain, source revision and bundle roots, then checks the producing transaction, block hash, historical runtime and current runtime against the selected pinned artifact. `--source-revision <id>` is required for this path. Stage-output addresses are recorded as consumed external observations and their receipt/output roots are bound into plan-execution evidence. This does not implement canonical-root/configuration stages or admitted-release resolution.
 

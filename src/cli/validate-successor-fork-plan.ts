@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { loadConfig } from '../config/load';
-import { readDeploymentUnitCatalog, readSuccessorDeploymentPlan, unsupportedDeploymentPrerequisite, validateArchitectureUnitOwnership, validatePlanAgainstUnits } from '../deployment/successor-plan';
+import { executableDeploymentPrefix, readDeploymentUnitCatalog, readSuccessorDeploymentPlan, unsupportedDeploymentPrerequisite, validateArchitectureUnitOwnership, validatePlanAgainstUnits } from '../deployment/successor-plan';
 
 const root = process.cwd();
 const planPath = path.resolve(root, process.argv[2] ?? 'config/pro-rata-v2-entitlement/successor-fork.plan.v1.json');
@@ -13,9 +13,14 @@ const successor = loadConfig({ configDir: path.join(root, 'config'), profileDir:
 validateArchitectureUnitOwnership(Object.keys(generic.architecture.contracts), units);
 validateArchitectureUnitOwnership(Object.keys(successor.architecture.contracts), units);
 const deploymentBlocker = unsupportedDeploymentPrerequisite(plan);
+const executablePrefix = executableDeploymentPrefix(plan);
 console.log(JSON.stringify({
   status: 'structurally-valid',
-  execution: deploymentBlocker ? { freshDeployment: 'blocked', contract: deploymentBlocker.contract, firstUnimplementedPrerequisite: deploymentBlocker.stage } : { freshDeployment: 'available' },
+  execution: {
+    freshDeployment: deploymentBlocker ? 'verified-prefix-available' : 'available',
+    executablePrefixContracts: [...executablePrefix.contractIds],
+    firstUnimplementedPrerequisite: deploymentBlocker?.stage,
+  },
   planId: plan.planId,
   localOnly: plan.localOnly,
   selectedUnits: plan.selectedUnits,

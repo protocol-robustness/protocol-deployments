@@ -1,8 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { createHash } from 'crypto';
 import { describe, expect, it } from 'vitest';
 import { loadConfig, loadEnvironment } from '../src/config/load';
-import { assertNoPlaceholderRootBindings, assertPlanDeployable, projectConfigurationForPlan, readDeploymentUnitCatalog, readSuccessorDeploymentPlan, unsupportedDeploymentPrerequisite, validateArchitectureUnitOwnership, validatePlanAgainstUnits, validateSuccessorDeploymentPlan } from '../src/deployment/successor-plan';
+import { assertNoPlaceholderRootBindings, assertPlanDeployable, bindStatementAdmissionSnapshot, executableDeploymentPrefix, projectConfigurationForPlan, readDeploymentUnitCatalog, readSuccessorDeploymentPlan, unsupportedDeploymentPrerequisite, validateArchitectureUnitOwnership, validatePlanAgainstUnits, validateSuccessorDeploymentPlan } from '../src/deployment/successor-plan';
 import { assertPlanExecutionMatchesManifest, deploymentPlanHash, planExecutionRoot } from '../src/deployment/plan-execution';
 import { computeManifestRoot, type DeploymentManifestV1, type DeploymentManifestV2 } from '../src/deployment/manifest';
 import { resolveDeployment } from '../src/resolve-deployment';
@@ -26,6 +27,16 @@ describe('bounded successor deployment plan', () => {
     expect(() => validatePlanAgainstUnits(plan, units)).not.toThrow();
   });
 
+  it('requires verifier runtime closure to bind the selected adapter and verifier stages in order', () => {
+    expect(plan.verifierClosures).toHaveLength(1);
+    const substitutedStage = structuredClone(plan);
+    substitutedStage.verifierClosures[0]!.verifierStage = 'deploy-successor-entitlements';
+    expectCode(() => validateSuccessorDeploymentPlan(substitutedStage), 'DEPLOYMENT_PLAN_VERIFIER_CLOSURE');
+    const substitutedContract = structuredClone(plan);
+    substitutedContract.verifierClosures[0]!.verifierLogicalId = 'shortfall/pro-rata-allocator-v2';
+    expectCode(() => validateSuccessorDeploymentPlan(substitutedContract), 'DEPLOYMENT_PLAN_VERIFIER_CLOSURE');
+  });
+
   it('projects the real local profile to exactly the plan-selected deployment graph', () => {
     const configDir = path.join(root, 'config');
     const profileDir = path.join(root, 'config/pro-rata-v2-entitlement');
@@ -35,7 +46,7 @@ describe('bounded successor deployment plan', () => {
       plan,
     );
     expect(projected.deployedLogicalIds).toEqual([
-      'prf/local-token', 'prf/governance-authority', 'prf/verifier-registry',
+      'prf/local-token', 'prf/authority-transition-validator', 'prf/governance-authority', 'prf/verifier-registry',
       'prf/sp1-verifier-groth16', 'prf/source-bound-entitlement-verifier-adapter-v1',
       'prf/genesis', 'prf/configuration-executor', 'prf/statement-admission',
       'shortfall/prepared-operation-controller-v2', 'shortfall/pro-rata-allocator-v2',
@@ -55,16 +66,87 @@ describe('bounded successor deployment plan', () => {
     expectCode(() => resolveDeployment({
       configDir,
       environment: 'local',
-      fixtureRoot: path.join(root, 'fixtures/releases/0.4.0/packages'),
+      fixtureRoot: path.join(root, 'fixtures/releases/0.4.1/packages'),
       profileDir,
       preferFixtures: true,
       deploymentPlanFile: planPath,
     }), 'PLAN_PLACEHOLDER_ROOT_BINDING');
   });
 
-  it('identifies the first unimplemented stage required before a fresh plan deployment can proceed', () => {
-    expect(unsupportedDeploymentPrerequisite(plan)).toEqual({ contract: 'prf/governance-authority', stage: 'derive-genesis-roots' });
+  it('identifies the first unimplemented successor governance stage after the empty-root deployment prefix', () => {
+    expect(unsupportedDeploymentPrerequisite(plan)).toEqual({ contract: 'prf/statement-admission', stage: 'authorize-successor-configuration' });
     expectCode(() => assertPlanDeployable(plan), 'PLAN_STAGE_EXECUTOR_UNAVAILABLE');
+  });
+
+  it('exposes the approval-gated prefix through successor registry sealing', () => {
+    const prefix = executableDeploymentPrefix(plan);
+    expect(prefix.contractIds).toEqual(new Set([
+      'prf/local-token', 'prf/authority-transition-validator', 'prf/governance-authority', 'prf/verifier-registry',
+      'prf/sp1-verifier-groth16', 'prf/source-bound-entitlement-verifier-adapter-v1', 'prf/genesis', 'prf/configuration-executor',
+    ]));
+    expect(prefix.stageIds).toContain('derive-genesis-roots');
+    expect(prefix.stageIds).toContain('derive-initial-configuration');
+    expect(prefix.stageIds).toContain('deploy-genesis');
+    expect(prefix.stageIds).toContain('derive-chain-instance-root');
+    expect(prefix.stageIds).toContain('seal-chain-instance-genesis');
+    expect(prefix.stageIds).toContain('derive-registry-roots');
+    expect(prefix.stageIds).toContain('seal-empty-verifier-registry');
+    expect(prefix.stageIds).toContain('deploy-configuration-executor');
+    expect(prefix.stageIds).toContain('derive-successor-configuration');
+    expect(prefix.stageIds).toContain('verify-successor-transition-approval');
+    expect(prefix.stageIds).toContain('register-successor-verifier');
+    expect(prefix.stageIds).toContain('seal-successor-verifier-registry');
+    expect(prefix.stageIds).not.toContain('authorize-successor-configuration');
+    expect(prefix.contractIds).not.toContain('prf/statement-admission');
+  });
+
+  it('enables authority and C1 execution only when the signed transition request is available', () => {
+    const prefix = executableDeploymentPrefix(plan, { authorityTransitionInput: true });
+    expect(prefix.stageIds).toContain('authorize-successor-configuration');
+    expect(prefix.stageIds).toContain('apply-successor-configuration');
+    expect(prefix.stageIds).toContain('deploy-statement-admission');
+    expect(prefix.stageIds).toContain('deploy-protected-operations');
+    expect(prefix.stageIds).toContain('deploy-successor-entitlements');
+    expect(prefix.contractIds).toContain('prf/statement-admission');
+    expect(prefix.blockedStageIds).toContain('proof-admission-and-operation');
+    expect(unsupportedDeploymentPrerequisite(plan)).toEqual({ contract: 'prf/statement-admission', stage: 'authorize-successor-configuration' });
+  });
+
+  it('binds statement admission to the applied C1 snapshot after its stage dependency', () => {
+    const configDir = path.join(root, 'config');
+    const profileDir = path.join(root, 'config/pro-rata-v2-entitlement');
+    const rootValue = (name: string): string => `0x${createHash('sha256').update(name).digest('hex')}`;
+    const validatorAddress = `0x${createHash('sha256').update('validator-address').digest('hex').slice(0, 40)}`;
+    const resolved = resolveDeployment({
+      configDir,
+      environment: 'local',
+      fixtureRoot: path.join(root, 'fixtures/releases/0.4.1/packages'),
+      profileDir,
+      preferFixtures: true,
+      deploymentPlanFile: planPath,
+      approvedRootBindings: {
+        protocolGenesisRoot: rootValue('genesis'),
+        authorityStateRoot: rootValue('authority'),
+        localAuthorityPolicyRoot: rootValue('policy'),
+        initialConfigurationRoot: rootValue('configuration'),
+        initialVerifierRegistryRoot: rootValue('registry'),
+        authorityTransitionValidatorAddress: validatorAddress,
+      },
+    });
+    const c1 = rootValue('successor-configuration');
+    const c1Spec = bindStatementAdmissionSnapshot(resolved.spec, plan, c1, 1);
+    expect(c1Spec.contracts['prf/statement-admission']!.constructorBindings).toMatchObject({
+      expectedConfigurationRoot_: { kind: 'literal', value: c1 },
+      expectedConfigurationEpoch_: { kind: 'literal', value: 1 },
+    });
+    expect(resolved.spec.contracts['prf/statement-admission']!.constructorBindings?.expectedConfigurationRoot_)
+      .toEqual({ kind: 'literal', value: rootValue('configuration') });
+
+    const malformed = structuredClone(plan);
+    malformed.stages.find((stage) => stage.id === 'deploy-statement-admission')!.consumes.activeConfigurationEpoch = {
+      stage: 'derive-successor-configuration', output: 'configurationEpoch',
+    };
+    expectCode(() => bindStatementAdmissionSnapshot(resolved.spec, malformed, c1, 1), 'PLAN_ADMISSION_SNAPSHOT_BINDING_INVALID');
   });
 
   it('rejects cyclic stage dependencies before topological-order validation', () => {
@@ -137,7 +219,7 @@ describe('bounded successor deployment plan', () => {
 
   it('keeps structural validation separate from deployment execution availability', () => {
     expect(() => validateSuccessorDeploymentPlan(plan)).not.toThrow();
-    expect(unsupportedDeploymentPrerequisite(plan)).toEqual({ contract: 'prf/governance-authority', stage: 'derive-genesis-roots' });
+    expect(unsupportedDeploymentPrerequisite(plan)).toEqual({ contract: 'prf/statement-admission', stage: 'authorize-successor-configuration' });
     expectCode(() => assertPlanDeployable(plan), 'PLAN_STAGE_EXECUTOR_UNAVAILABLE');
   });
 
@@ -262,6 +344,7 @@ describe('bounded successor deployment plan', () => {
     const stageStatuses = new Map<string, string>();
     const body = {
       type: 'protocol-deployment-plan-execution/v1',
+      executionStatus: 'partial',
       planId: plan.planId,
       planHash: deploymentPlanHash(plan),
       environment: 'test', chainId: 31337, localOnly: true,
@@ -282,7 +365,8 @@ describe('bounded successor deployment plan', () => {
           id: stage.id, kind: stage.kind, status,
           outputs: Object.fromEntries(members.map(([logicalId]) => {
             const fact = manifest.contracts.find((contract) => contract.logicalId === logicalId)!;
-            return [logicalId, { address: fact.address, transactionHash: fact.deploymentTx, blockNumber: fact.blockNumber, runtimeBytecodeSha256: fact.artifact.runtimeBytecodeSha256 }];
+            const outputName = Object.entries(stage.contractOutputs ?? {}).find(([, mappedId]) => mappedId === logicalId)?.[0] ?? logicalId;
+            return [outputName, { address: fact.address, transactionHash: fact.deploymentTx, blockNumber: fact.blockNumber, runtimeBytecodeSha256: fact.artifact.runtimeBytecodeSha256 }];
           })),
         };
       }),
@@ -296,6 +380,189 @@ describe('bounded successor deployment plan', () => {
     expectCode(() => assertPlanExecutionMatchesManifest(dependencyViolation, plan, manifest), 'PLAN_EXECUTION_STAGE_DEPENDENCY_MISMATCH');
     const substituted = { ...manifest, contracts: manifest.contracts.slice(1) };
     expectCode(() => assertPlanExecutionMatchesManifest(receipt, plan, substituted), 'PLAN_EXECUTION_MANIFEST_MISMATCH');
+    const reseal = (value: Record<string, unknown>) => {
+      const { planExecutionRoot: _old, ...valueBody } = value;
+      value.planExecutionRoot = planExecutionRoot(valueBody);
+      return value;
+    };
+    const wrongChain = reseal({ ...structuredClone(receipt), chainId: 1 });
+    expectCode(() => assertPlanExecutionMatchesManifest(wrongChain, plan, manifest), 'PLAN_EXECUTION_CONTEXT_MISMATCH');
+    const unknownStageStatus = structuredClone(receipt) as Record<string, unknown>;
+    (unknownStageStatus.stages as Array<{ status: string }>)[0]!.status = 'succeeded';
+    expectCode(() => assertPlanExecutionMatchesManifest(reseal(unknownStageStatus), plan, manifest), 'PLAN_EXECUTION_STATUS_INVALID');
+    const notApplicableDeploymentStage = structuredClone(receipt) as Record<string, unknown>;
+    const nonExternalStage = plan.stages.findIndex((stage) => stage.kind !== 'external-preflight');
+    (notApplicableDeploymentStage.stages as Array<{ status: string }>)[nonExternalStage]!.status = 'not-applicable';
+    expectCode(() => assertPlanExecutionMatchesManifest(reseal(notApplicableDeploymentStage), plan, manifest), 'PLAN_EXECUTION_STATUS_INVALID');
+    const incompleteComplete = reseal({ ...structuredClone(receipt), executionStatus: 'complete' });
+    expectCode(() => assertPlanExecutionMatchesManifest(incompleteComplete, plan, manifest), 'PLAN_EXECUTION_STATUS_INVALID');
+  });
+
+  it('independently checks the retained successor derivation output and sole C0 to C1 change', () => {
+    const fixture = structuredClone(plan);
+    fixture.contracts = {};
+    fixture.stages = [{ id: 'derive-successor-configuration', kind: 'derive-canonical-roots', dependsOn: [], consumes: {},
+      produces: ['decisionRoot', 'successorConfigurationRoot', 'configurationEpoch', 'targetRoot'] }];
+    fixture.verifierClosures = [];
+    const c0 = `sha256:${'1'.repeat(64)}`;
+    const c1 = `sha256:${'2'.repeat(64)}`;
+    const registry = `sha256:${'3'.repeat(64)}`;
+    const decision = `sha256:${'4'.repeat(64)}`;
+    const instance = `sha256:${'5'.repeat(64)}`;
+    const derivation = {
+      schema: 'prf-successor-configuration-derivation.v1',
+      qualification: 'derived-only-not-approved',
+      'protocol-genesis-root': `sha256:${'6'.repeat(64)}`,
+      'chain-instance-genesis': { instance: 'test' },
+      'chain-instance-genesis-root': instance,
+      'configuration/C0': { 'configuration/schema': 'chain-configuration.v1' },
+      'configuration/C0-root': c0,
+      'configuration/C1-root': c1,
+      'changed-fields': ['verifier-registry/root'],
+      'successor-verifier-registry-root': registry,
+      'successor-proof-mode': 1,
+      'decision-root': decision,
+      'configuration-transition': {
+        epoch: 1, 'configuration/parent-root': c0, 'configuration/new-root': c1,
+        'verifier-registry/root': registry, target: { 'target/root': instance },
+      },
+    };
+    const output = JSON.stringify(derivation);
+    const request = {
+      'initial-configuration': derivation['configuration/C0'],
+      'protocol-genesis-root': derivation['protocol-genesis-root'],
+      'chain-instance-genesis': derivation['chain-instance-genesis'],
+      'expected-chain-instance-genesis-root': derivation['chain-instance-genesis-root'],
+      'expected-initial-configuration-root': derivation['configuration/C0-root'],
+      'successor-verifier-registry-root': derivation['successor-verifier-registry-root'],
+      'successor-proof-mode': derivation['successor-proof-mode'],
+      epoch: 1,
+    };
+    const requestSha256 = createHash('sha256').update(JSON.stringify(request)).digest('hex');
+    const evidence = {
+      schema: 'prf-successor-configuration-evidence.v1',
+      qualification: 'successor-configuration-independently-derived-not-approved',
+      request, requestSha256, outputSha256: createHash('sha256').update(output).digest('hex'), output, derivation,
+    };
+    const manifest: DeploymentManifestV1 = {
+      type: 'protocol-deployment-manifest/v1', architectureSpecHash: '0x01', executionSpecHash: '0x02', deploymentId: 'test-run',
+      chain: { id: 31337, blockNumber: '1', blockHash: `0x${'11'.repeat(32)}` as `0x${string}` },
+      deployer: `0x${'22'.repeat(20)}` as `0x${string}`, contracts: [], bootstrapActions: [],
+      finalAssertions: [{ id: 'prf-successor-configuration-derivation', status: 'passed', verifiedAt: '2026-01-01T00:00:00.000Z', detail: JSON.stringify(evidence) }],
+    };
+    const stageEvidence = { type: 'prf-successor-configuration-derivation', requestSha256: evidence.requestSha256,
+      verifierOutputSha256: evidence.outputSha256, qualification: evidence.qualification };
+    const stageOutputs = { decisionRoot: decision, successorConfigurationRoot: c1, configurationEpoch: 1, targetRoot: instance };
+    const body = {
+      type: 'protocol-deployment-plan-execution/v1', executionStatus: 'complete', planId: fixture.planId,
+      planHash: deploymentPlanHash(fixture), environment: 'local', chainId: 31337, localOnly: true,
+      selectedUnits: fixture.selectedUnits, excludedUnits: fixture.excludedUnits, selectedContracts: [],
+      manifestRoot: computeManifestRoot(manifest), stageOutputBindings: [],
+      stages: [{ id: 'derive-successor-configuration', kind: 'derive-canonical-roots', status: 'verified', outputs: stageOutputs, evidence: stageEvidence }],
+    };
+    const receipt = { ...body, planExecutionRoot: planExecutionRoot(body) };
+    expect(() => assertPlanExecutionMatchesManifest(receipt, fixture, manifest)).not.toThrow();
+    const substituted = structuredClone(receipt);
+    substituted.stages[0]!.outputs.successorConfigurationRoot = `sha256:${'9'.repeat(64)}`;
+    const { planExecutionRoot: _oldRoot, ...substitutedBody } = substituted;
+    substituted.planExecutionRoot = planExecutionRoot(substitutedBody);
+    expectCode(() => assertPlanExecutionMatchesManifest(substituted, fixture, manifest), 'PLAN_EXECUTION_SUCCESSOR_DERIVATION_MISMATCH');
+  });
+
+  it('independently checks C1 application against its approved derivation, registry seal and consumed decision', () => {
+    const fixture = structuredClone(plan);
+    fixture.contracts = {};
+    fixture.stages = [{ id: 'apply-successor-configuration', kind: 'authorize-configuration', dependsOn: [], consumes: {},
+      produces: ['activeConfigurationRoot', 'activeConfigurationEpoch', 'activeEntitlementProofMode', 'configurationTransitionReceipt'] }];
+    fixture.verifierClosures = [];
+    const decisionRoot = `0x${'1'.repeat(64)}`;
+    const configurationRoot = `0x${'2'.repeat(64)}`;
+    const verifierRegistryRoot = `0x${'3'.repeat(64)}`;
+    const manifestRoot = `sha256:${'4'.repeat(64)}`;
+    const transactionHash = `0x${'5'.repeat(64)}`;
+    const blockNumber = '42';
+    const transitionApproval = { manifestRoot };
+    const evidence = {
+      decisionRoot, configurationRoot, verifierRegistryRoot, epoch: 1, entitlementProofMode: fixture.successorProofMode,
+      consumed: true, transactionHash, blockNumber, transitionApproval: JSON.stringify(transitionApproval),
+    };
+    const manifest: DeploymentManifestV1 = {
+      type: 'protocol-deployment-manifest/v1', architectureSpecHash: '0x01', executionSpecHash: '0x02', deploymentId: 'test-run',
+      chain: { id: 31337, blockNumber: '50', blockHash: `0x${'11'.repeat(32)}` as `0x${string}` },
+      deployer: `0x${'22'.repeat(20)}` as `0x${string}`, contracts: [],
+      bootstrapActions: [{ id: 'prf/apply-successor-configuration', status: 'verified', transactionHash: transactionHash as `0x${string}`, blockNumber }],
+      finalAssertions: [
+        { id: 'prf-successor-configuration-application', status: 'passed', verifiedAt: '2026-01-01T00:00:00.000Z', detail: JSON.stringify(evidence) },
+        { id: 'prf-successor-configuration-derivation', status: 'passed', verifiedAt: '2026-01-01T00:00:00.000Z', detail: JSON.stringify({ derivation: {
+          'configuration/C1-root': `sha256:${configurationRoot.slice(2)}`,
+          'successor-verifier-registry-root': `sha256:${verifierRegistryRoot.slice(2)}`,
+          'decision-root': `sha256:${decisionRoot.slice(2)}`,
+        } }) },
+        { id: 'prf-successor-transition-approval', status: 'passed', verifiedAt: '2026-01-01T00:00:00.000Z', detail: JSON.stringify({ manifestRoot }) },
+        { id: 'prf-successor-verifier-registry-seal', status: 'passed', verifiedAt: '2026-01-01T00:00:00.000Z', detail: JSON.stringify({
+          registryRoot: verifierRegistryRoot, approvalManifestRoot: manifestRoot,
+        }) },
+      ],
+    };
+    const stageEvidence = { type: 'prf-successor-configuration-application', decisionRoot, configurationRoot,
+      verifierRegistryRoot, epoch: 1, entitlementProofMode: fixture.successorProofMode, consumed: true };
+    const body = {
+      type: 'protocol-deployment-plan-execution/v1', executionStatus: 'complete', planId: fixture.planId,
+      planHash: deploymentPlanHash(fixture), environment: 'local', chainId: 31337, localOnly: true,
+      selectedUnits: fixture.selectedUnits, excludedUnits: fixture.excludedUnits, selectedContracts: [],
+      manifestRoot: computeManifestRoot(manifest), stageOutputBindings: [],
+      stages: [{ id: 'apply-successor-configuration', kind: 'authorize-configuration', status: 'verified',
+        outputs: { configurationTransitionReceipt: { transactionHash, blockNumber }, activeConfigurationRoot: configurationRoot,
+          activeConfigurationEpoch: 1, activeEntitlementProofMode: fixture.successorProofMode }, evidence: stageEvidence }],
+    };
+    const receipt = { ...body, planExecutionRoot: planExecutionRoot(body) };
+    expect(() => assertPlanExecutionMatchesManifest(receipt, fixture, manifest)).not.toThrow();
+    const substituted = structuredClone(receipt);
+    substituted.stages[0]!.outputs.activeConfigurationRoot = `0x${'9'.repeat(64)}`;
+    const { planExecutionRoot: _oldRoot, ...substitutedBody } = substituted;
+    substituted.planExecutionRoot = planExecutionRoot(substitutedBody);
+    expectCode(() => assertPlanExecutionMatchesManifest(substituted, fixture, manifest), 'PLAN_EXECUTION_SUCCESSOR_CONFIGURATION_MISMATCH');
+  });
+
+  it('requires partial registry derivation receipts to bind PRF output, Solidity equality and the manifest assertion', () => {
+    const fixture = structuredClone(plan);
+    fixture.contracts = {};
+    fixture.stages = [{ id: 'derive-registry-roots', kind: 'derive-canonical-roots', dependsOn: [], consumes: {}, produces: ['successorRegistryRoot'] }];
+    fixture.verifierClosures = [];
+    const entry = {
+      id: `0x${'01'.repeat(32)}`, adapter: `0x${'02'.repeat(20)}`, programVKey: `0x${'03'.repeat(32)}`,
+      programElfSha256: `0x${'04'.repeat(32)}`, programId: 'program.v1', statementSchemaVersionHash: `0x${'05'.repeat(32)}`,
+      publicValuesSchema: `0x${'06'.repeat(32)}`, active: true,
+    };
+    const root = `0x${'07'.repeat(32)}`;
+    const output = JSON.stringify({ schema: 'prf-verifier-registry-derivation-result.v1', root, entries: [entry] });
+    const requestSha256 = createHash('sha256').update(JSON.stringify({ schema: 'prf-verifier-registry-derivation-request.v1', entries: [entry] })).digest('hex');
+    const outputSha256 = createHash('sha256').update(output, 'utf8').digest('hex');
+    const evidence = {
+      schema: 'prf-verifier-registry-derivation-evidence.v1', qualification: 'canonical-root-derived-and-solidity-equivalent',
+      root, entry, observationBlock: { number: '123', hash: `0x${'08'.repeat(32)}` }, solidityRoot: root,
+      requestSha256, outputSha256, output, verifierCommand: ['clojure'],
+    };
+    const manifest: DeploymentManifestV1 = {
+      type: 'protocol-deployment-manifest/v1', architectureSpecHash: '0x01', executionSpecHash: '0x02', deploymentId: 'partial-run',
+      chain: { id: 31337, blockNumber: '123', blockHash: `0x${'08'.repeat(32)}` }, deployer: `0x${'09'.repeat(20)}`,
+      contracts: [], bootstrapActions: [],
+      finalAssertions: [{ id: 'prf-successor-registry-derivation', status: 'passed', verifiedAt: '2026-01-01T00:00:00.000Z', detail: JSON.stringify(evidence) }],
+    };
+    const body = {
+      type: 'protocol-deployment-plan-execution/v1', executionStatus: 'partial', planId: fixture.planId,
+      planHash: deploymentPlanHash(fixture), environment: 'test', chainId: 31337, localOnly: true,
+      selectedUnits: fixture.selectedUnits, excludedUnits: fixture.excludedUnits, selectedContracts: [],
+      manifestRoot: computeManifestRoot(manifest),
+      stages: [{ id: 'derive-registry-roots', kind: 'derive-canonical-roots', status: 'verified', outputs: { successorRegistryRoot: root }, evidence }],
+    };
+    const receipt = { ...body, planExecutionRoot: planExecutionRoot(body) };
+    expect(() => assertPlanExecutionMatchesManifest(receipt, fixture, manifest)).not.toThrow();
+    const substituted = structuredClone(receipt);
+    substituted.stages[0]!.outputs.successorRegistryRoot = `0x${'0a'.repeat(32)}`;
+    const { planExecutionRoot: _root, ...substitutedBody } = substituted;
+    substituted.planExecutionRoot = planExecutionRoot(substitutedBody);
+    expectCode(() => assertPlanExecutionMatchesManifest(substituted, fixture, manifest), 'PLAN_EXECUTION_REGISTRY_DERIVATION_MISMATCH');
   });
 
   it('binds stage-output receipt roots and addresses into plan-execution evidence', () => {
@@ -326,7 +593,7 @@ describe('bounded successor deployment plan', () => {
     };
     const statuses = new Map<string, string>();
     const body = {
-      type: 'protocol-deployment-plan-execution/v1', planId: fixture.planId, planHash: deploymentPlanHash(fixture),
+      type: 'protocol-deployment-plan-execution/v1', executionStatus: 'partial', planId: fixture.planId, planHash: deploymentPlanHash(fixture),
       environment: 'local', chainId: 31337, localOnly: true, selectedUnits: fixture.selectedUnits, excludedUnits: fixture.excludedUnits,
       selectedContracts: Object.entries(fixture.contracts).map(([logicalId, source]) => ({ logicalId, ...source })),
       manifestRoot: computeManifestRoot(manifest),
@@ -337,7 +604,7 @@ describe('bounded successor deployment plan', () => {
         const status = isLocalTokenStage ? 'verified' : stage.kind === 'external-preflight' ? 'not-applicable' : 'not-executed';
         statuses.set(stage.id, status);
         return isLocalTokenStage
-          ? { id: stage.id, kind: stage.kind, status, outputs: { 'prf/local-token': { address: localContract.address, transactionHash: localContract.deploymentTx, blockNumber: '1', runtimeBytecodeSha256: localContract.artifact.runtimeBytecodeSha256 } } }
+          ? { id: stage.id, kind: stage.kind, status, outputs: { localToken: { address: localContract.address, transactionHash: localContract.deploymentTx, blockNumber: '1', runtimeBytecodeSha256: localContract.artifact.runtimeBytecodeSha256 } } }
           : { id: stage.id, kind: stage.kind, status: prerequisitesSatisfied ? status : 'blocked' };
       }),
     };

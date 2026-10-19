@@ -176,6 +176,16 @@ describe('live verification of a sealed manifest', () => {
     );
   });
 
+  it('includes assertions independently replayed by a plan-specific verifier', async () => {
+    const recorded = { id: 'verifier-runtime-closure:adapter', status: 'passed' as const, verifiedAt: '2026-01-01T00:00:00.000Z' };
+    const replayed = { id: recorded.id, target: '0x1111111111111111111111111111111111111111', function: 'effectiveVerifierRuntimeClosure',
+      expected: '{"effectiveVerifier":"pinned"}', observed: '{"effectiveVerifier":"0x2222222222222222222222222222222222222222"}', result: 'passed' as const };
+    const verified = await verifyLiveDeployment(
+      manifest({ finalAssertions: [recorded] }), healthyTransport(), spec, bundle(), undefined, [replayed],
+    );
+    expect(verified.assertions).toContainEqual(replayed);
+  });
+
   it('re-evaluates declared assertions and fails on a mismatched value', async () => {
     const assertions = [{
       id: 'decimals-bound',

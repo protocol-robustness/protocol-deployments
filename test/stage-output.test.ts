@@ -7,7 +7,7 @@ import { createStageOutputReceipt, readStageOutputReceipt, readStageOutputReceip
 import { resolveDeployment } from '../src/resolve-deployment';
 
 const plan = readSuccessorDeploymentPlan('config/pro-rata-v2-entitlement/successor-fork.plan.v1.json');
-const artifactIdentities = { 'prf-evm-deployables/0.4.0': `0x${'a1'.repeat(32)}` };
+const artifactIdentities = { 'prf-evm-deployables/0.4.1': `0x${'a1'.repeat(32)}` };
 const base = {
   plan,
   environment: 'local-fixture',
@@ -25,7 +25,7 @@ function deploymentFact(logicalId: string, address: string) {
     blockHash: `0x${'88'.repeat(32)}`,
     runtimeBytecodeSha256: '99'.repeat(32),
     artifact: {
-      source: 'prf/deployables', package: '@protocol-robustness/prf-evm-deployables', version: '0.4.0',
+      source: 'prf/deployables', package: '@protocol-robustness/prf-evm-deployables', version: '0.4.1',
       artifactName: 'SP1VerifierGroth16', abiSha256: 'aa'.repeat(32),
       creationBytecodeSha256: 'bb'.repeat(32), runtimeBytecodeSha256: '99'.repeat(32),
     },
@@ -87,7 +87,7 @@ describe('stage-output receipts', () => {
       ...base, stageId: 'deploy-authority-and-verifier',
       predecessorInputs: { ...childInputs, protocolGenesisRoot: { ...childInputs.protocolGenesisRoot, outputName: 'authorityStateRoot' } },
       outputs: {
-        authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5,
+        authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5, authorityTransitionValidator: 6,
       },
     })).toThrow(expect.objectContaining({ code: 'STAGE_OUTPUT_PARENT_BINDING' }));
     const parentMissing = {
@@ -100,7 +100,7 @@ describe('stage-output receipts', () => {
         protocolGenesisRoot: { ...childInputs.protocolGenesisRoot, receipt: parentMissing },
         authorityStateRoot: childInputs.authorityStateRoot,
       },
-      outputs: { authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5 },
+      outputs: { authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5, authorityTransitionValidator: 6 },
     })).toThrow(expect.objectContaining({ code: 'STAGE_OUTPUT_PARENT_MISSING' }));
     expect(() => createStageOutputReceipt({
       ...base, stageId: 'deploy-authority-and-verifier',
@@ -108,7 +108,7 @@ describe('stage-output receipts', () => {
         protocolGenesisRoot: { ...childInputs.protocolGenesisRoot, receipt: { ...parent, planHash: `0x${'99'.repeat(32)}` } },
         authorityStateRoot: childInputs.authorityStateRoot,
       },
-      outputs: { authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5 },
+      outputs: { authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5, authorityTransitionValidator: 6 },
     })).toThrow(expect.objectContaining({ code: 'STAGE_OUTPUT_PARENT_PLAN' }));
   });
 
@@ -127,6 +127,7 @@ describe('stage-output receipts', () => {
         sp1Verifier: { address: `0x${'57'.repeat(20)}`, runtimeCodeHash: `0x${'68'.repeat(32)}` },
         successorAdapter: { address: `0x${'58'.repeat(20)}`, runtimeCodeHash: `0x${'69'.repeat(32)}` },
         verifierId: `0x${'70'.repeat(32)}`,
+        authorityTransitionValidator: { address: `0x${'59'.repeat(20)}`, runtimeCodeHash: `0x${'6a'.repeat(32)}` },
       },
       observations: [{ kind: 'deployment-receipt', tx: `0x${'77'.repeat(32)}` }],
     });
@@ -159,6 +160,7 @@ describe('stage-output receipts', () => {
         sp1Verifier: { address: `0x${'57'.repeat(20)}`, runtimeCodeHash: `0x${'68'.repeat(32)}` },
         successorAdapter: { address: `0x${'58'.repeat(20)}`, runtimeCodeHash: `0x${'69'.repeat(32)}` },
         verifierId: `0x${'70'.repeat(32)}`,
+        authorityTransitionValidator: { address: `0x${'59'.repeat(20)}`, runtimeCodeHash: `0x${'6a'.repeat(32)}` },
       },
     });
     const verified = await verifyStageOutputReceiptGraph({
@@ -208,6 +210,7 @@ describe('stage-output receipts', () => {
         sp1Verifier: 'unconsumed',
         successorAdapter: deploymentFact('prf/source-bound-entitlement-verifier-adapter-v1', `0x${'58'.repeat(20)}`),
         verifierId: 'unconsumed',
+        authorityTransitionValidator: 'unconsumed',
       },
     });
     expect(stageOutputValuesForPlan(sourcePlan, { [child.stageId]: child })).toEqual({
@@ -227,6 +230,7 @@ describe('stage-output receipts', () => {
         authorityAdapter: 'unconsumed', registry: 'unconsumed', sp1Verifier: 'unconsumed',
         successorAdapter: { logicalId: 'prf/other-contract', address: `0x${'58'.repeat(20)}` },
         verifierId: 'unconsumed',
+        authorityTransitionValidator: 'unconsumed',
       },
     });
     expect(() => stageOutputValuesForPlan(sourcePlan, { [malformedFact.stageId]: malformedFact }))
@@ -255,6 +259,7 @@ describe('stage-output receipts', () => {
         successorAdapter: 'unused',
         sp1Verifier: deploymentFact('prf/sp1-verifier-groth16', `0x${'58'.repeat(20)}`),
         verifierId: 'unused',
+        authorityTransitionValidator: 'unused',
       },
     });
     const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'prf-plan-stage-output-'));
@@ -267,7 +272,7 @@ describe('stage-output receipts', () => {
       const resolved = resolveDeployment({
         configDir: path.join(root, 'config'),
         environment: 'local',
-        fixtureRoot: path.join(root, 'fixtures/releases/0.4.0/packages'),
+        fixtureRoot: path.join(root, 'fixtures/releases/0.4.1/packages'),
         profileDir: path.join(root, 'config/pro-rata-v2-entitlement'),
         preferFixtures: true,
         deploymentPlanFile: planFile,
@@ -290,7 +295,7 @@ describe('stage-output receipts', () => {
         authorityStateRoot: { stageId: parent.stageId, outputName: 'authorityStateRoot', receipt: parent },
       },
       outputs: {
-        authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5,
+        authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5, authorityTransitionValidator: 6,
       },
     });
     await expect(verifyStageOutputReceiptGraph({
@@ -310,7 +315,7 @@ describe('stage-output receipts', () => {
         authorityStateRoot: { stageId: parent.stageId, outputName: 'authorityStateRoot', receipt: parent },
       },
       outputs: {
-        authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5,
+        authorityAdapter: 1, registry: 2, sp1Verifier: 3, successorAdapter: 4, verifierId: 5, authorityTransitionValidator: 6,
       },
     });
     await expect(verifyStageOutputReceipt({
@@ -337,6 +342,7 @@ describe('stage-output receipts', () => {
         sp1Verifier: { address: `0x${'57'.repeat(20)}`, runtimeCodeHash: `0x${'68'.repeat(32)}` },
         successorAdapter: { address: `0x${'58'.repeat(20)}`, runtimeCodeHash: `0x${'69'.repeat(32)}` },
         verifierId: `0x${'70'.repeat(32)}`,
+        authorityTransitionValidator: { address: `0x${'59'.repeat(20)}`, runtimeCodeHash: `0x${'6a'.repeat(32)}` },
       },
     });
     const verifiedParent = await verifyStageOutputReceipt({
