@@ -154,9 +154,7 @@ export function verifyCrossPlanStageOutput(input: {
   if (manifestRoot !== source.producer.manifestRoot) throw new ConfigError('CROSS_PLAN_MANIFEST_MISMATCH', 'Producer manifest root differs from consumer pin');
   const execution = evidence.producerExecution as Record<string, unknown>;
   assertPlanExecutionMatchesManifest(execution, producerPlan, manifest);
-  if (execution.chainId !== manifest.chain.id || execution.localOnly !== producerPlan.localOnly) {
-    throw new ConfigError('CROSS_PLAN_EXECUTION_CONTEXT_MISMATCH', 'Producer execution chain or local-only context differs from its plan and manifest');
-  }
+  // assertPlanExecutionMatchesManifest already enforces these context bindings.
   const executionRoot = String(execution.planExecutionRoot);
   if (executionRoot !== source.producer.executionRoot || executionRoot !== planExecutionRoot(Object.fromEntries(Object.entries(execution).filter(([key]) => key !== 'planExecutionRoot')))) {
     throw new ConfigError('CROSS_PLAN_EXECUTION_MISMATCH', 'Producer execution receipt differs from consumer pin or has an invalid root');
@@ -165,7 +163,10 @@ export function verifyCrossPlanStageOutput(input: {
   const stageReceipt = stages.find((stage) => stage.id === evidence.stageId);
   if (stageReceipt?.status !== 'verified') throw new ConfigError('CROSS_PLAN_PRODUCER_STAGE_INCOMPLETE', `Producer stage '${evidence.stageId}' is not verified`);
   const deployed = manifest.contracts.find((contract) => contract.logicalId === evidence.logicalId);
-  const stageOutput = stageReceipt.outputs?.[evidence.logicalId];
+  const outputName = Object.entries(producerPlan.stages.find((stage) => stage.id === evidence.stageId)?.contractOutputs ?? {})
+    .find(([, logicalId]) => logicalId === evidence.logicalId)?.[0] ?? evidence.logicalId;
+  if (outputName !== evidence.outputName) throw new ConfigError('CROSS_PLAN_OUTPUT_SUBSTITUTION', 'Producer stage output name differs from its declared contract output');
+  const stageOutput = stageReceipt.outputs?.[outputName];
   if (!deployed || !stageOutput || stageOutput.address?.toLowerCase() !== deployed.address.toLowerCase() ||
       stageOutput.transactionHash?.toLowerCase() !== deployed.deploymentTx.toLowerCase() || stageOutput.blockNumber !== deployed.blockNumber ||
       stageOutput.runtimeBytecodeSha256 !== deployed.artifact.runtimeBytecodeSha256) {

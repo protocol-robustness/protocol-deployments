@@ -3,40 +3,192 @@
   "units": {
     "sew-protocol": {
       "contracts": {
-        "shared/governance-token": { "kind": "artifact-build", "dependencies": ["artifact-build"] },
-        "shared/timelock": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor"] },
-        "shared/governor": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor"] },
-        "sew/escrow-vault": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor", "runtime-operational"] },
-        "sew/decentralized-resolution-module": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor", "configuration-authorization", "runtime-operational"] }
+        "shared/governance-token": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build"
+          ]
+        },
+        "shared/timelock": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor"
+          ]
+        },
+        "shared/governor": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor"
+          ]
+        },
+        "sew/escrow-vault": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor",
+            "runtime-operational"
+          ]
+        },
+        "sew/decentralized-resolution-module": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor",
+            "configuration-authorization",
+            "runtime-operational"
+          ]
+        }
       }
     },
     "prf-assurance": {
       "contracts": {
-        "prf/verifier-registry": { "kind": "artifact-build", "dependencies": ["artifact-build", "configuration-authorization"] },
-        "prf/allocation-verifier": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor"] },
-        "prf/statement-admission": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor", "configuration-authorization", "runtime-operational"] },
-        "prf/governance-authority": { "kind": "artifact-build", "dependencies": ["artifact-build", "configuration-authorization"] },
-        "prf/genesis": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor", "configuration-authorization"] },
-        "prf/sp1-verifier-groth16": { "kind": "artifact-build", "dependencies": ["artifact-build"] },
-        "prf/source-bound-entitlement-verifier-adapter-v1": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor"] },
-        "prf/configuration-executor": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor", "configuration-authorization", "runtime-operational"] },
-        "fixture/local-threshold-safe": { "kind": "local-fixture", "dependencies": ["local-fixture"] }
+        "prf/verifier-registry": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "configuration-authorization"
+          ]
+        },
+        "prf/allocation-verifier": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor"
+          ]
+        },
+        "prf/statement-admission": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor",
+            "configuration-authorization",
+            "runtime-operational"
+          ]
+        },
+        "prf/governance-authority": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "configuration-authorization"
+          ]
+        },
+        "prf/genesis": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor",
+            "configuration-authorization"
+          ]
+        },
+        "prf/sp1-verifier-groth16": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build"
+          ]
+        },
+        "prf/source-bound-entitlement-verifier-adapter-v1": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor"
+          ]
+        },
+        "prf/configuration-executor": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor",
+            "configuration-authorization",
+            "runtime-operational"
+          ]
+        },
+        "fixture/local-threshold-safe": {
+          "kind": "local-fixture",
+          "dependencies": [
+            "local-fixture"
+          ]
+        },
+        "prf/authority-transition-validator": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor"
+          ]
+        }
       }
     },
     "protected-operations": {
       "contracts": {
-        "prf/local-token": { "kind": "local-fixture", "dependencies": ["artifact-build", "local-fixture"] },
-        "shortfall/prepared-operation-controller-v2": { "kind": "artifact-build", "dependencies": ["artifact-build", "runtime-operational"] },
-        "shortfall/pro-rata-allocator-v2": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor", "configuration-authorization", "runtime-operational"] },
-        "shortfall/shortfall-reserve-v2": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor", "external-contract", "runtime-operational"] },
-        "external/base-sepolia-usdc": { "kind": "external-contract", "dependencies": ["external-contract", "runtime-operational"] }
+        "prf/local-token": {
+          "kind": "local-fixture",
+          "dependencies": [
+            "artifact-build",
+            "local-fixture"
+          ]
+        },
+        "shortfall/prepared-operation-controller-v2": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "runtime-operational"
+          ]
+        },
+        "shortfall/pro-rata-allocator-v2": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor",
+            "configuration-authorization",
+            "runtime-operational"
+          ]
+        },
+        "shortfall/shortfall-reserve-v2": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor",
+            "external-contract",
+            "runtime-operational"
+          ]
+        },
+        "external/base-sepolia-usdc": {
+          "kind": "external-contract",
+          "dependencies": [
+            "external-contract",
+            "runtime-operational"
+          ]
+        }
       }
     },
     "pro-rata-successor-entitlements": {
       "contracts": {
-        "shortfall/source-bound-entitlement-assurance-v1": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor", "runtime-operational"] },
-        "shortfall/entitlement-ratification-controller-v1": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor", "configuration-authorization", "runtime-operational"] },
-        "shortfall/committed-immutable-entitlement-representation-v1": { "kind": "artifact-build", "dependencies": ["artifact-build", "constructor", "runtime-operational"] }
+        "shortfall/source-bound-entitlement-assurance-v1": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor",
+            "runtime-operational"
+          ]
+        },
+        "shortfall/entitlement-ratification-controller-v1": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor",
+            "configuration-authorization",
+            "runtime-operational"
+          ]
+        },
+        "shortfall/committed-immutable-entitlement-representation-v1": {
+          "kind": "artifact-build",
+          "dependencies": [
+            "artifact-build",
+            "constructor",
+            "runtime-operational"
+          ]
+        }
       }
     }
   }

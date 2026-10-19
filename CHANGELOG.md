@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Plan-execution verification now binds chain and selected-unit context to the manifest and plan, rejects unfinished or unsupported completion statuses, replays PRF approvals and deterministic root derivations from digest-checked retained inputs under an independently supplied trust-context root, and recomputes live runtime/assertion verification against the supplied resolved spec and pinned bundle. Genesis seal-result replay requires RPC and historical readbacks. C0-to-C1 derivation requests now include the expected C0 root.
 - Plan-selected deployments reject repeated-byte sentinel values in constructor root bindings before producing a deployable configuration; canonical root derivation and semantic approval remain separate requirements.
 - Stage-output verification now authenticates contract facts against their producing stage and live deployment evidence. Auxiliary values are retained only when declared and unconsumed, under the receipt commitment; they cannot be used as downstream authority without a stage-specific verifier.
 - Stage-output consumption now requires `--source-revision` to equal the executing checkout's Git HEAD and refuses a dirty checkout; a caller-supplied revision string alone is no longer accepted as source identity.

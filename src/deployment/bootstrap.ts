@@ -26,12 +26,14 @@ function abiFunction(contract: ResolvedContract, name: string) {
   return entry as Abi[number];
 }
 
-/** Execute one declared initialization/bootstrap call; never used for later governance changes. */
+/** Execute one declared, preflight-guarded signed call with durable transition evidence. */
 export async function executeBootstrapAction(input: {
   contract: ResolvedContract;
   address: Address;
   function: string;
-  args: ResolvedBinding[];
+  args?: ResolvedBinding[];
+  /** Already checked structured calldata such as Solidity tuples. */
+  rawArgs?: unknown[];
   addresses: Record<string, Address>;
   externalAddresses?: Record<string, Address>;
   transport: RpcTransport;
@@ -40,13 +42,22 @@ export async function executeBootstrapAction(input: {
   fees?: TxFees;
   /** Override the receipt wait timeout in milliseconds. */
   receiptTimeoutMs?: number;
+  /** Safety gate run after call encoding and before signer interaction. */
+  beforeSubmit?: (call: { from: Address; target: Address; function: string; args: unknown[]; data: Hex }) => Promise<{ args?: unknown[]; evidence?: unknown } | void> | { args?: unknown[]; evidence?: unknown } | void;
   onTransition?: (transition: { status: 'submitted' | 'confirmed'; transactionHash: Hex; blockNumber?: bigint }) => Promise<void> | void;
-}): Promise<{ transactionHash: Hex; blockNumber: bigint }> {
+}): Promise<{ transactionHash: Hex; blockNumber: bigint; preSubmitEvidence?: unknown }> {
   const deployer = await input.signer.getAddress();
   const scope = bindingScope({ addresses: input.addresses, externalAddresses: input.externalAddresses, transport: input.transport, deployer });
   const abi = [abiFunction(input.contract, input.function)] as unknown as Abi;
-  const args = await Promise.all(input.args.map((arg) => resolveBindingValueAsync(arg, scope)));
-  const data = encodeFunctionData({ abi, functionName: input.function, args });
+  if (input.args && input.rawArgs) throw new ConfigError('BOOTSTRAP_ARGUMENT_SOURCE_INVALID', 'Bootstrap action cannot mix resolved bindings and raw arguments');
+  const args = input.rawArgs ?? await Promise.all((input.args ?? []).map((arg) => resolveBindingValueAsync(arg, scope)));
+  let data = encodeFunctionData({ abi, functionName: input.function, args });
+  const preparedCall = await input.beforeSubmit?.({ from: deployer, target: input.address, function: input.function, args, data });
+  if (preparedCall?.args) {
+    if (preparedCall.args.length !== args.length) throw new ConfigError('BOOTSTRAP_PREFLIGHT_ARGUMENT_MISMATCH', 'Preflight returned a different number of bootstrap arguments');
+    data = encodeFunctionData({ abi, functionName: input.function, args: preparedCall.args as typeof args });
+  }
+  const preSubmitEvidence = preparedCall?.evidence;
   const chainId = await input.transport.getChainId();
   const nonce = await input.transport.getTransactionCount(deployer);
   const gas = (await input.transport.estimateGas({ from: deployer, to: input.address, data })) + 30000n;
@@ -61,7 +72,7 @@ export async function executeBootstrapAction(input: {
     if (receipt) {
       if (receipt.status !== 'success') throw new ConfigError('BOOTSTRAP_REVERTED', `Bootstrap action '${input.function}' reverted`);
       await input.onTransition?.({ status: 'confirmed', transactionHash, blockNumber: receipt.blockNumber });
-      return { transactionHash, blockNumber: receipt.blockNumber };
+      return { transactionHash, blockNumber: receipt.blockNumber, preSubmitEvidence };
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }

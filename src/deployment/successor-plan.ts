@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ConfigError } from '../errors';
 import type { LoadedConfig } from '../config/load';
 import type { RawEnvironment } from '../config/raw-types';
+import type { ResolvedSpec } from '../canonical';
 import { deploymentPlanHash } from './plan-execution';
 
 const valueRefSchema = z.object({ stage: z.string().min(1), output: z.string().min(1) }).strict();
@@ -23,6 +24,17 @@ const stageSchema = z.object({
   consumes: z.record(z.string(), valueRefSchema).default({}),
   produces: z.array(z.string()),
   contractOutputs: z.record(z.string(), z.string().min(1)).optional(),
+}).strict();
+const verifierClosureSchema = z.object({
+  adapterLogicalId: z.string().min(1),
+  verifierLogicalId: z.string().min(1),
+  adapterStage: z.string().min(1),
+  verifierStage: z.string().min(1),
+  expectedProgramVKey: z.string().regex(/^0x[0-9a-f]{64}$/),
+  expectedProgramElfSha256: z.string().regex(/^0x[0-9a-f]{64}$/),
+  expectedProgramId: z.string().min(1),
+  expectedStatementSchemaVersion: z.string().regex(/^0x[0-9a-f]{64}$/),
+  expectedPublicValuesSchema: z.string().regex(/^0x[0-9a-f]{64}$/),
 }).strict();
 
 const contractSourceSchema = z.discriminatedUnion('kind', [
@@ -53,9 +65,11 @@ export const successorDeploymentPlanSchema = z.object({
   schema: z.literal('protocol-deployment-plan.v1'),
   planId: z.literal('prf/controlled-shortfall-successor-fork.v1'),
   localOnly: z.boolean(),
+  successorProofMode: z.union([z.literal(0), z.literal(1)]),
   selectedUnits: z.array(z.enum(['sew-protocol', 'prf-assurance', 'protected-operations', 'pro-rata-successor-entitlements'])),
   excludedUnits: z.array(z.enum(['sew-protocol', 'prf-assurance', 'protected-operations', 'pro-rata-successor-entitlements'])),
   contracts: z.record(z.string(), contractSourceSchema),
+  verifierClosures: z.array(verifierClosureSchema).default([]),
   authorizedConfigurationActions: z.array(z.object({
     id: z.string().min(1), stage: z.string().min(1), target: z.string().min(1), function: z.string().min(1),
   }).strict()),
@@ -63,6 +77,9 @@ export const successorDeploymentPlanSchema = z.object({
 }).strict();
 
 export type SuccessorDeploymentPlanV1 = z.infer<typeof successorDeploymentPlanSchema>;
+export interface SuccessorPlanExecutionCapabilities {
+  authorityTransitionInput?: boolean;
+}
 
 export function readSuccessorDeploymentPlan(file: string): SuccessorDeploymentPlanV1 {
   let raw: unknown;
@@ -144,6 +161,22 @@ export function validateSuccessorDeploymentPlan(plan: SuccessorDeploymentPlanV1)
   const contractIds = Object.keys(plan.contracts);
   if (contractIds.length === 0) throw new ConfigError('DEPLOYMENT_PLAN_EMPTY', 'Successor plan selects no contracts or external dependencies');
   assertAcyclicStageGraph(plan.stages);
+  const stagePositions = new Map(plan.stages.map((stage, index) => [stage.id, index]));
+  for (const closure of plan.verifierClosures) {
+    const adapter = plan.contracts[closure.adapterLogicalId];
+    const verifier = plan.contracts[closure.verifierLogicalId];
+    // Partial consumer projections may retain the policy while selecting only
+    // one side. The execution gate below still requires both authenticated facts.
+    if (!adapter || !verifier) continue;
+    if ((adapter.kind !== 'deploy' && adapter.kind !== 'stage-output') ||
+        (verifier.kind !== 'deploy' && verifier.kind !== 'stage-output')) continue;
+    if (
+        adapter.stage !== closure.adapterStage || verifier.stage !== closure.verifierStage ||
+        !stagePositions.has(closure.adapterStage) || !stagePositions.has(closure.verifierStage) ||
+        stagePositions.get(closure.verifierStage)! > stagePositions.get(closure.adapterStage)!) {
+      throw new ConfigError('DEPLOYMENT_PLAN_VERIFIER_CLOSURE', `Verifier closure '${closure.adapterLogicalId}' must bind selected deployed adapter and verifier contracts in deployment order`);
+    }
+  }
   const seenStages = new Map<string, (typeof plan.stages)[number]>();
   const stageOutputs = new Map<string, Set<string>>();
   for (const stage of plan.stages) {
@@ -190,6 +223,16 @@ export function validateSuccessorDeploymentPlan(plan: SuccessorDeploymentPlanV1)
         const stage = seenStages.get(source.stage);
         if (!stage?.dependsOn.length) throw new ConfigError('DEPLOYMENT_PLAN_STAGE_DEPENDENCY', `'${logicalId}' stage output must come from an explicitly declared earlier stage`);
         if (!stage?.produces.includes(source.output)) throw new ConfigError('DEPLOYMENT_PLAN_STAGE_OUTPUT', `'${logicalId}' references an unavailable stage output`);
+      }
+    }
+  }
+  for (const stage of plan.stages.filter((candidate) => candidate.kind === 'deploy')) {
+    const deployedMembers = Object.entries(plan.contracts).filter(([, source]) =>
+      (source.kind === 'deploy' || source.kind === 'local-fixture') && source.stage === stage.id);
+    for (const [logicalId] of deployedMembers) {
+      const outputName = Object.entries(stage.contractOutputs ?? {}).find(([, mappedId]) => mappedId === logicalId)?.[0];
+      if (!outputName || !stage.produces.includes(outputName)) {
+        throw new ConfigError('DEPLOYMENT_PLAN_CONTRACT_OUTPUT', `Deploy stage '${stage.id}' must expose '${logicalId}' through a declared contract output`);
       }
     }
   }
@@ -319,36 +362,134 @@ function assertAcyclicStageGraph(stages: SuccessorDeploymentPlanV1['stages']): v
   for (const stage of stages) visit(stage.id);
 }
 
-/** Deployment CLI v1 can execute deployment/external-observation prerequisites only. */
-export function unsupportedDeploymentPrerequisite(plan: SuccessorDeploymentPlanV1): { contract: string; stage: string } | undefined {
+/** Return the first prerequisite that this CLI cannot execute with retained evidence. */
+export function unsupportedDeploymentPrerequisite(plan: SuccessorDeploymentPlanV1, capabilities: SuccessorPlanExecutionCapabilities = {}): { contract: string; stage: string } | undefined {
   const stages = new Map(plan.stages.map((stage) => [stage.id, stage]));
-  const visit = (id: string, seen: Set<string>): string | undefined => {
-    if (seen.has(id)) return undefined;
+  const stageOrder = new Map(plan.stages.map((stage, index) => [stage.id, index]));
+  const unavailable: Array<{ contract: string; stage: string }> = [];
+  const visit = (contract: string, id: string, seen: Set<string>): void => {
+    if (seen.has(id)) return;
     seen.add(id);
     const stage = stages.get(id);
-    if (!stage) return id;
-    if (stage.kind !== 'deploy' && stage.kind !== 'external-preflight') return id;
-    for (const parent of stage.dependsOn) {
-      const unresolved = visit(parent, seen);
-      if (unresolved) return unresolved;
+    if (!stage) { unavailable.push({ contract, stage: id }); return; }
+    if (stage.kind !== 'deploy' && stage.kind !== 'external-preflight' &&
+        !(stage.kind === 'derive-canonical-roots' && ['derive-genesis-roots', 'derive-initial-configuration', 'derive-chain-instance-root', 'derive-registry-roots', 'derive-successor-configuration'].includes(stage.id)) &&
+        !(stage.kind === 'seal-genesis' && stage.id === 'seal-chain-instance-genesis') &&
+        !(stage.kind === 'authorize-configuration' && ['seal-empty-verifier-registry', 'register-successor-verifier', 'seal-successor-verifier-registry'].includes(stage.id)) &&
+        !(stage.kind === 'authorize-configuration' && capabilities.authorityTransitionInput === true && ['authorize-successor-configuration', 'apply-successor-configuration'].includes(stage.id)) &&
+        !(stage.kind === 'verify' && stage.id === 'verify-successor-transition-approval')) {
+      unavailable.push({ contract, stage: id });
     }
-    return undefined;
+    for (const parent of stage.dependsOn) {
+      visit(contract, parent, seen);
+    }
   };
   for (const [logicalId, source] of Object.entries(plan.contracts)) {
     if ((source.kind !== 'deploy' && source.kind !== 'local-fixture') || !('stage' in source)) continue;
     for (const prerequisite of stages.get(source.stage)?.dependsOn ?? []) {
-      const unresolved = visit(prerequisite, new Set([source.stage]));
-      if (unresolved) return { contract: logicalId, stage: unresolved };
+      visit(logicalId, prerequisite, new Set([source.stage]));
     }
   }
-  return undefined;
+  return unavailable.sort((a, b) => (stageOrder.get(a.stage) ?? Number.MAX_SAFE_INTEGER) - (stageOrder.get(b.stage) ?? Number.MAX_SAFE_INTEGER))[0];
 }
 
-export function assertPlanDeployable(plan: SuccessorDeploymentPlanV1): void {
-  const unavailable = unsupportedDeploymentPrerequisite(plan);
+export function assertPlanDeployable(plan: SuccessorDeploymentPlanV1, capabilities: SuccessorPlanExecutionCapabilities = {}): void {
+  const unavailable = unsupportedDeploymentPrerequisite(plan, capabilities);
   if (unavailable) {
     throw new ConfigError('PLAN_STAGE_EXECUTOR_UNAVAILABLE', `Cannot start plan deployment: '${unavailable.contract}' depends on unimplemented stage '${unavailable.stage}'`);
   }
+}
+
+/** Bind admission to the configuration snapshot that was actually applied.
+ * This is intentionally a post-C1 operation: the C1 root depends on deployed
+ * verifier identity and cannot be known while the pre-transition graph resolves. */
+export function bindStatementAdmissionSnapshot(
+  spec: ResolvedSpec,
+  plan: SuccessorDeploymentPlanV1,
+  configurationRoot: string,
+  epoch: number,
+): ResolvedSpec {
+  if (!/^0x[0-9a-fA-F]{64}$/.test(configurationRoot) || /^0x0{64}$/i.test(configurationRoot) ||
+      !Number.isSafeInteger(epoch) || epoch < 1) {
+    throw new ConfigError('PLAN_ADMISSION_SNAPSHOT_INVALID', 'Admission snapshot requires a nonzero bytes32 configuration root and positive safe epoch');
+  }
+  const admissionStage = plan.stages.find((stage) => stage.id === 'deploy-statement-admission' && stage.kind === 'deploy');
+  const stageSource = plan.contracts['prf/statement-admission'];
+  const rootInput = admissionStage?.consumes.activeConfigurationRoot;
+  const epochInput = admissionStage?.consumes.activeConfigurationEpoch;
+  if (!admissionStage || stageSource?.kind !== 'deploy' || stageSource.stage !== admissionStage.id ||
+      rootInput?.stage !== 'apply-successor-configuration' || rootInput.output !== 'activeConfigurationRoot' ||
+      epochInput?.stage !== 'apply-successor-configuration' || epochInput.output !== 'activeConfigurationEpoch') {
+    throw new ConfigError('PLAN_ADMISSION_SNAPSHOT_BINDING_INVALID', 'Admission deployment must consume the verified active C1 root and epoch');
+  }
+  const contract = spec.contracts['prf/statement-admission'];
+  const rootBinding = contract?.constructorBindings?.expectedConfigurationRoot_;
+  const epochBinding = contract?.constructorBindings?.expectedConfigurationEpoch_;
+  if (!contract || rootBinding?.kind !== 'literal' || epochBinding?.kind !== 'literal') {
+    throw new ConfigError('PLAN_ADMISSION_SNAPSHOT_BINDING_INVALID', 'Admission constructor must expose literal configuration-root and epoch bindings for post-C1 replacement');
+  }
+  return {
+    ...spec,
+    contracts: {
+      ...spec.contracts,
+      'prf/statement-admission': {
+        ...contract,
+        constructorBindings: {
+          ...contract.constructorBindings,
+          expectedConfigurationRoot_: { kind: 'literal', value: configurationRoot },
+          expectedConfigurationEpoch_: { kind: 'literal', value: epoch },
+        },
+      },
+    },
+  };
+}
+
+/**
+ * Return the independently executable deployment prefix for the bounded plan.
+ * The initial-root stages are executable only because the deployment CLI
+ * verifies the detached PRF approval before resolving or signing anything.
+ * Later canonical derivations and governance/proof stages remain blocked until
+ * they have their own evidence-producing executors.
+ */
+export function executableDeploymentPrefix(plan: SuccessorDeploymentPlanV1, capabilities: SuccessorPlanExecutionCapabilities = {}): {
+  stageIds: Set<string>;
+  contractIds: Set<string>;
+  blockedStageIds: string[];
+} {
+  const supportedApprovalDerivations = new Set(['derive-genesis-roots', 'derive-initial-configuration']);
+  const executable = new Set<string>();
+  const blocked = new Set<string>();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const stage of plan.stages) {
+      if (executable.has(stage.id) || blocked.has(stage.id)) continue;
+      if (stage.dependsOn.some((dependency) => blocked.has(dependency))) {
+        blocked.add(stage.id);
+        changed = true;
+        continue;
+      }
+      if (!stage.dependsOn.every((dependency) => executable.has(dependency))) continue;
+      const supported = stage.kind === 'deploy' || stage.kind === 'external-preflight' ||
+        (stage.kind === 'derive-canonical-roots' && (supportedApprovalDerivations.has(stage.id) || ['derive-chain-instance-root', 'derive-registry-roots', 'derive-successor-configuration'].includes(stage.id))) ||
+        (stage.kind === 'seal-genesis' && stage.id === 'seal-chain-instance-genesis') ||
+        (stage.kind === 'authorize-configuration' && ['seal-empty-verifier-registry', 'register-successor-verifier', 'seal-successor-verifier-registry'].includes(stage.id)) ||
+        (stage.kind === 'authorize-configuration' && capabilities.authorityTransitionInput === true && ['authorize-successor-configuration', 'apply-successor-configuration'].includes(stage.id)) ||
+        (stage.kind === 'verify' && stage.id === 'verify-successor-transition-approval');
+      if (supported) {
+        executable.add(stage.id);
+        changed = true;
+      } else {
+        blocked.add(stage.id);
+        changed = true;
+      }
+    }
+  }
+  const contractIds = new Set(Object.entries(plan.contracts).flatMap(([logicalId, source]) =>
+    (source.kind === 'deploy' || source.kind === 'local-fixture') && 'stage' in source && executable.has(source.stage)
+      ? [logicalId]
+      : []));
+  return { stageIds: executable, contractIds, blockedStageIds: plan.stages.filter((stage) => blocked.has(stage.id)).map((stage) => stage.id) };
 }
 
 /**

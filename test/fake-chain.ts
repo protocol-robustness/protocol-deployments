@@ -1,4 +1,4 @@
-import type { Address, Hex } from 'viem';
+import type { Address, Hex, Transaction } from 'viem';
 import type { TransactionReceipt } from 'viem';
 import { RpcTransport, type CallRequest, type TxFees } from '../src/runtime/transport';
 import type { UnsignedTransaction } from '../src/runtime/signer';
@@ -15,6 +15,11 @@ export interface FakeChainOptions {
   callResult?: Hex;
   /** `eth_getTransactionReceipt` response; `null` simulates a pending tx. */
   receipt?: TransactionReceipt | null;
+  transaction?: Transaction | null;
+  receiptFor?: (hash: Hex) => TransactionReceipt | null;
+  transactionFor?: (hash: Hex) => Transaction | null;
+  blockTransactionHashesFor?: (blockNumber: bigint) => Hex[];
+  callFor?: (request: CallRequest, blockNumber?: bigint) => Hex;
   estimateGas?: bigint;
   /** EIP-1559 fees returned by `estimateFeesPerGas`. */
   fees?: TxFees;
@@ -46,6 +51,10 @@ export class FakeTransport extends RpcTransport {
     return { number: blockNumber, hash: hash ?? (('0x' + 'f'.repeat(64)) as Hex) };
   }
 
+  override async getBlockTransactionHashes(blockNumber: bigint): Promise<Hex[]> {
+    return this.opts.blockTransactionHashesFor?.(blockNumber) ?? [];
+  }
+
   override async getCode(address: Address, blockNumber?: bigint): Promise<Hex | undefined> {
     if (this.opts.code) return this.opts.code(address, blockNumber);
     return ('0x' + '60'.repeat(64)) as Hex;
@@ -71,12 +80,19 @@ export class FakeTransport extends RpcTransport {
     return ('0x' + '1'.repeat(64)) as Hex;
   }
 
-  override async getTransactionReceipt(_hash: Hex): Promise<TransactionReceipt | null> {
+  override async getTransactionReceipt(hash: Hex): Promise<TransactionReceipt | null> {
+    if (this.opts.receiptFor) return this.opts.receiptFor(hash);
     if (this.opts.receipt !== undefined) return this.opts.receipt;
     return { status: 'success', blockNumber: 5n } as unknown as TransactionReceipt;
   }
 
+  override async getTransaction(hash: Hex): Promise<Transaction | null> {
+    if (this.opts.transactionFor) return this.opts.transactionFor(hash);
+    return this.opts.transaction ?? null;
+  }
+
   override async call(_req: CallRequest, _blockNumber?: bigint): Promise<Hex> {
+    if (this.opts.callFor) return this.opts.callFor(_req, _blockNumber);
     return this.opts.callResult ?? '0x';
   }
 }

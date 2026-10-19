@@ -68,10 +68,10 @@ function evidenceFixture(overrides: { stageStatus?: string; chainId?: number } =
   const stages = producerPlan.stages.map((stage) => ({
     id: stage.id, kind: stage.kind,
     status: stage.id === 'deploy-local-token' ? (overrides.stageStatus ?? 'verified') : 'not-executed',
-    ...(stage.id === 'deploy-local-token' ? { outputs: { 'prf/local-token': { address, transactionHash: tx, blockNumber: '7', runtimeBytecodeSha256: artifact.runtimeBytecodeSha256 } } } : {}),
+    ...(stage.id === 'deploy-local-token' ? { outputs: { localToken: { address, transactionHash: tx, blockNumber: '7', runtimeBytecodeSha256: artifact.runtimeBytecodeSha256 } } } : {}),
   }));
   const executionBody = {
-    type: 'protocol-deployment-plan-execution/v1', planId: producerPlan.planId, planHash: deploymentPlanHash(producerPlan),
+    type: 'protocol-deployment-plan-execution/v1', executionStatus: 'partial', planId: producerPlan.planId, planHash: deploymentPlanHash(producerPlan),
     environment: 'local', chainId: manifest.chain.id, localOnly: true,
     selectedUnits: producerPlan.selectedUnits, excludedUnits: producerPlan.excludedUnits,
     selectedContracts: Object.entries(producerPlan.contracts).map(([logicalId, source]) => ({ logicalId, ...source })),
@@ -154,7 +154,7 @@ describe('cross-plan stage-output evidence', () => {
     const wrongChainEvidence = { ...wrongChainBody, evidenceRoot: crossPlanStageOutputEvidenceRoot(wrongChainBody) };
     const wrongChainConsumer = structuredClone(f.consumerPlan);
     (wrongChainConsumer.contracts['prf/local-token'] as Extract<typeof wrongChainConsumer.contracts[string], { kind: 'stage-output' }>).producer!.evidenceRoot = wrongChainEvidence.evidenceRoot;
-    expect(() => verifyCrossPlanStageOutput({ consumerPlan: wrongChainConsumer, logicalId: 'prf/local-token', evidence: wrongChainEvidence })).toThrow(expect.objectContaining({ code: 'CROSS_PLAN_EXECUTION_CONTEXT_MISMATCH' }));
+    expect(() => verifyCrossPlanStageOutput({ consumerPlan: wrongChainConsumer, logicalId: 'prf/local-token', evidence: wrongChainEvidence })).toThrow(expect.objectContaining({ code: 'PLAN_EXECUTION_CONTEXT_MISMATCH' }));
     const incomplete = evidenceFixture({ stageStatus: 'pending' });
     expect(() => verifyCrossPlanStageOutput({ consumerPlan: incomplete.consumerPlan, logicalId: 'prf/local-token', evidence: incomplete.evidence })).toThrow(expect.objectContaining({ code: 'CROSS_PLAN_PRODUCER_STAGE_INCOMPLETE' }));
     expect(() => verifyCrossPlanStageOutput({ consumerPlan: f.consumerPlan, logicalId: 'prf/local-token', evidence: undefined })).toThrow(expect.objectContaining({ code: 'CROSS_PLAN_STAGE_OUTPUT_EVIDENCE_INVALID' }));
@@ -178,7 +178,7 @@ describe('cross-plan stage-output evidence', () => {
     const producerPin = (consumerWithNewPin.contracts['prf/local-token'] as Extract<typeof consumerWithNewPin.contracts[string], { kind: 'stage-output' }>).producer!;
     producerPin.planHash = deploymentPlanHash(noMap);
     producerPin.evidenceRoot = resealedMap.evidenceRoot;
-    expect(() => verifyCrossPlanStageOutput({ consumerPlan: consumerWithNewPin, logicalId: 'prf/local-token', evidence: resealedMap })).toThrow(expect.objectContaining({ code: 'CROSS_PLAN_STAGE_OUTPUT_UNDECLARED' }));
+    expect(() => verifyCrossPlanStageOutput({ consumerPlan: consumerWithNewPin, logicalId: 'prf/local-token', evidence: resealedMap })).toThrow(expect.objectContaining({ code: 'DEPLOYMENT_PLAN_CONTRACT_OUTPUT' }));
   });
 });
 
@@ -251,11 +251,11 @@ function buildProducer(opts: {
     id: stage.id, kind: stage.kind,
     status: stage.id === 'deploy-local-token' ? (opts.stageStatus ?? 'verified') : 'not-executed',
     ...(stage.id === 'deploy-local-token' ? {
-      outputs: { [opts.deployValue.logicalId]: { address: opts.deployValue.address, transactionHash: opts.deployValue.transactionHash, blockNumber: opts.deployValue.blockNumber, runtimeBytecodeSha256: artifact.runtimeBytecodeSha256 } },
+      outputs: { [Object.entries(stage.contractOutputs ?? {}).find(([, logicalId]) => logicalId === opts.deployValue.logicalId)?.[0] ?? opts.deployValue.logicalId]: { address: opts.deployValue.address, transactionHash: opts.deployValue.transactionHash, blockNumber: opts.deployValue.blockNumber, runtimeBytecodeSha256: artifact.runtimeBytecodeSha256 } },
     } : {}),
   }));
   const executionBody = {
-    type: 'protocol-deployment-plan-execution/v1', planId: plan.planId, planHash: deploymentPlanHash(plan),
+    type: 'protocol-deployment-plan-execution/v1', executionStatus: 'partial', planId: plan.planId, planHash: deploymentPlanHash(plan),
     environment: 'local', chainId, localOnly: plan.localOnly,
     selectedUnits: plan.selectedUnits, excludedUnits: plan.excludedUnits,
     selectedContracts: Object.entries(plan.contracts).map(([logicalId, source]) => ({ logicalId, ...source })),

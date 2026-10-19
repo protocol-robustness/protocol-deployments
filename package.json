@@ -26,11 +26,12 @@
     "deploy:base-sepolia": "ts-node src/cli/deploy.ts base-sepolia --legacy-flat",
     "deploy:base-sepolia:resume": "ts-node src/cli/deploy.ts base-sepolia --resume --legacy-flat",
     "verify:live": "ts-node src/cli/verify-live.ts",
-    "resolve:pro-rata-v2-entitlement-local": "ts-node src/cli/resolve.ts --env local --profile config/pro-rata-v2-entitlement --out deployments/pro-rata-v2-entitlement-local.resolved.json --fixtures fixtures/releases/0.4.0/packages --plan config/pro-rata-v2-entitlement/successor-fork.plan.v1.json",
-    "deploy:pro-rata-v2-entitlement-local": "ts-node src/cli/deploy.ts local --profile config/pro-rata-v2-entitlement --deployment-key pro-rata-v2-entitlement-local --fixtures fixtures/releases/0.4.0/packages --plan config/pro-rata-v2-entitlement/successor-fork.plan.v1.json",
+    "resolve:pro-rata-v2-entitlement-local": "ts-node src/cli/resolve.ts --env local --profile config/pro-rata-v2-entitlement --out deployments/pro-rata-v2-entitlement-local.resolved.json --fixtures fixtures/releases/0.4.1/packages --plan config/pro-rata-v2-entitlement/successor-fork.plan.v1.json",
+    "deploy:pro-rata-v2-entitlement-local": "ts-node src/cli/deploy.ts local --profile config/pro-rata-v2-entitlement --deployment-key pro-rata-v2-entitlement-local --fixtures fixtures/releases/0.4.1/packages --plan config/pro-rata-v2-entitlement/successor-fork.plan.v1.json",
     "validate:base-sepolia-entitlement-profile": "ts-node src/cli/validate-base-sepolia-entitlement-profile.ts",
     "validate:successor-fork-plan": "ts-node src/cli/validate-successor-fork-plan.ts",
-    "verify:plan-execution": "ts-node src/cli/verify-plan-execution.ts"
+    "verify:plan-execution": "ts-node src/cli/verify-plan-execution.ts",
+    "verify:plan-report": "ts-node src/cli/verify-plan-report.ts"
   },
   "engines": {
     "node": ">=20"

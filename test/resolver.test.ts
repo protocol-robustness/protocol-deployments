@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { bundle, resolveEdn } from './helpers';
-import { resolveDeployment } from '../src/resolve-deployment';
+import { bindApprovedCanonicalRoots, resolveDeployment } from '../src/resolve-deployment';
 import { CONFIG_DIR, FIXTURE_ROOT } from './helpers';
 import * as path from 'path';
 import { materializeExecutionSpec } from '../src/deployment/execution-spec';
@@ -35,12 +35,12 @@ describe('resolver happy path', () => {
     expect(rate.mutability).toBe('governed');
   });
 
-  it('blocks the unqualified Base Sepolia topology before it can become a deployment plan', () => {
+  it('blocks Base Sepolia deployment with an implicit deployer authority', () => {
     try {
       resolveDeployment({ configDir: CONFIG_DIR, environment: 'base-sepolia', fixtureRoot: FIXTURE_ROOT });
     } catch (error) {
-      expect((error as { code?: string }).code).toBe('PUBLIC_PLACEHOLDER_BINDING');
-      expect((error as Error).message).toMatch(/zero bytes32 placeholder/);
+      expect((error as { code?: string }).code).toBe('PUBLIC_DEPLOYER_ROLE_BINDING');
+      expect((error as Error).message).toMatch(/must name an explicit role holder/);
       return;
     }
     throw new Error('expected Base Sepolia placeholder rejection');
@@ -84,6 +84,49 @@ describe('resolver happy path', () => {
 
     const materialized = materializeExecutionSpec(out.spec, out.specHash, '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
     expect(materialized.executionSpecHash).toMatch(/^0x[0-9a-f]{64}$/);
+  });
+
+  it('replaces bounded-plan root sentinels only with roots passed from authenticated approval', () => {
+    const out = resolveDeployment({
+      configDir: CONFIG_DIR,
+      environment: 'local',
+      profileDir: path.join(CONFIG_DIR, 'pro-rata-v2-entitlement'),
+      fixtureRoot: path.join(FIXTURE_ROOT, '..', 'releases', '0.4.1', 'packages'),
+      deploymentPlanFile: path.join(CONFIG_DIR, 'pro-rata-v2-entitlement', 'successor-fork.plan.v1.json'),
+      approvedRootBindings: {
+        protocolGenesisRoot: `0x${'a'.repeat(64)}`,
+        authorityStateRoot: `0x${'b'.repeat(64)}`,
+        localAuthorityPolicyRoot: `0x${'5'.repeat(64)}`,
+        initialConfigurationRoot: `0x${'c'.repeat(64)}`,
+        initialVerifierRegistryRoot: `0x${'d'.repeat(64)}`,
+        authorityTransitionValidatorAddress: `0x${'6'.repeat(40)}`,
+      },
+    });
+    expect(out.spec.contracts['prf/governance-authority']!.constructorBindings?.protocolGenesisRoot_).toEqual({ kind: 'literal', value: `0x${'a'.repeat(64)}` });
+    expect(out.spec.contracts['prf/governance-authority']!.constructorBindings?.initialAuthorityStateRoot_).toEqual({ kind: 'literal', value: `0x${'b'.repeat(64)}` });
+    expect(out.spec.contracts['prf/genesis']!.constructorBindings?.initialConfigurationRoot_).toEqual({ kind: 'literal', value: `0x${'c'.repeat(64)}` });
+    expect(out.spec.contracts['prf/configuration-executor']!.constructorBindings?.initialVerifierRegistryRoot_).toEqual({ kind: 'literal', value: `0x${'d'.repeat(64)}` });
+    expect(out.spec.contracts['prf/authority-transition-validator']!.constructorBindings?.localAuthorityPolicyRoot_).toEqual({ kind: 'literal', value: `0x${'5'.repeat(64)}` });
+    expect(out.spec.contracts['prf/authority-transition-validator']!.constructorBindings?.transitionValidatorAddress_).toEqual({ kind: 'literal', value: `0x${'6'.repeat(40)}` });
+    const bootstrapActions = out.spec.deployment.bootstrapActions!;
+    expect(bootstrapActions.find((action) => action.id === 'prf/enable-authority-transitions')!.args[1]).toEqual({ kind: 'literal', value: `0x${'5'.repeat(64)}` });
+    expect(bootstrapActions.findIndex((action) => action.id === 'prf/enable-authority-transitions'))
+      .toBeLessThan(bootstrapActions.findIndex((action) => action.id === 'prf/seal-genesis'));
+    expect(out.spec.deployment.bootstrapAssertions!.find((assertion) => assertion.id === 'prf/authority-transition-policy-root')!.expected).toBe(`0x${'5'.repeat(64)}`);
+  });
+
+  it('rejects a configured validator signer that conflicts with authenticated policy-v3 approval', () => {
+    const config = loadConfig({ configDir: CONFIG_DIR, profileDir: path.join(CONFIG_DIR, 'pro-rata-v2-entitlement') });
+    const validator = config.architecture.contracts['prf/authority-transition-validator']!;
+    validator.constructorBindings!.transitionValidatorAddress_ = { literal: '0x1234567890123456789012345678901234567890' };
+    expect(() => bindApprovedCanonicalRoots(config, {
+      protocolGenesisRoot: `0x${'a'.repeat(64)}`,
+      authorityStateRoot: `0x${'b'.repeat(64)}`,
+      localAuthorityPolicyRoot: `0x${'5'.repeat(64)}`,
+      initialConfigurationRoot: `0x${'c'.repeat(64)}`,
+      initialVerifierRegistryRoot: `0x${'d'.repeat(64)}`,
+      authorityTransitionValidatorAddress: `0x${'6'.repeat(40)}`,
+    })).toThrowError(expect.objectContaining({ code: 'APPROVED_ROOT_BINDING_MISMATCH' }));
   });
 
   it('spec hash is deterministic across runs', () => {
@@ -136,11 +179,11 @@ describe('resolver happy path', () => {
 
 describe('qualified successor artifact isolation', () => {
   const profileDir = path.join(CONFIG_DIR, 'pro-rata-v2-entitlement');
-  const fixtureRoot = path.resolve('fixtures/releases/0.4.0/packages');
+  const fixtureRoot = path.resolve('fixtures/releases/0.4.1/packages');
 
-  it('resolves the successor from clean pinned 0.4.0 artifacts', () => {
+  it('resolves the local successor with the policy-v3 follow-up artifacts', () => {
     const { spec } = resolveDeployment({ configDir: CONFIG_DIR, environment: 'local', profileDir, fixtureRoot,
-      preferFixtures: true, requirePinnedProvenance: true });
+      preferFixtures: true });
     const adapter = spec.contracts['prf/source-bound-entitlement-verifier-adapter-v1']!;
     expect(adapter.constructorBindings?.vkey_).toEqual({ kind: 'literal', value: '0x00d90efa52d17e54670a4248f001e4da443a938f12c55d0d414c125ba68087b9' });
     expect(adapter.constructorBindings?.elfSha256_).toEqual({ kind: 'literal', value: '0x636330de8e7af3485aba50bd3ca4b5e024cc4f977a2bf0f2c005f711e5ffacf8' });

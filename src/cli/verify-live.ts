@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { createTransport } from '../runtime/transport';
 import { verifyLiveDeployment } from '../deployment/live-verification';
 import { BundleConsumer, FixtureBundleLocator } from '../artifacts/bundle';
-import type { ResolvedSpec } from '../canonical';
 import type { DeploymentManifest } from '../deployment/manifest';
+import { assertResolvedSpecMatchesManifest, readResolvedVerificationInput } from '../deployment/live-verification-input';
 import { ConfigError } from '../errors';
 import { loadDefaultEnvFile } from '../config/env-file';
 
@@ -78,33 +78,6 @@ const manifestSchema = z.union([
   manifestCoreSchema.extend({ type: z.literal('protocol-deployment-manifest/v2'), externalContracts: z.array(externalContractSchema).min(1) }),
 ]);
 
-/**
- * The resolved spec is machine-produced but file-supplied; validate its shape
- * enough that a truncated or unrelated file cannot reach the assertion loop.
- * The full type is restored afterwards because zod cannot express the closed
- * recursive binding unions the resolver emits.
- */
-const resolvedFileSchema = z.object({
-  specHash: z.string().min(1),
-  environment: z.string().min(1),
-  spec: z.object({
-    specVersion: z.number(),
-    environment: z.string().min(1),
-    chain: z.object({ chainId: z.number().int().positive() }).passthrough(),
-    contracts: z.record(z.string(), z.unknown()),
-    deployment: z.object({
-      steps: z.array(z.object({ logicalId: z.string().min(1) }).passthrough()).min(1),
-      bootstrapAssertions: z.array(z.object({
-        id: z.string().min(1),
-        target: z.string().min(1),
-        function: z.string().min(1),
-        args: z.array(z.unknown()),
-        expected: z.unknown(),
-      }).passthrough()).optional(),
-    }).passthrough(),
-  }).passthrough(),
-}).passthrough();
-
 function readJson<T>(schema: z.ZodType<T>, file: string, label: string): T {
   let raw: unknown;
   try {
@@ -127,7 +100,9 @@ async function main(): Promise<void> {
   if (!manifestPath || !resolvedPath || !rpcUrl) usage();
 
   const manifest = readJson(manifestSchema, manifestPath, 'deployment manifest') as unknown as DeploymentManifest;
-  const resolved = readJson(resolvedFileSchema, resolvedPath, 'resolved spec').spec as unknown as ResolvedSpec;
+  const resolvedInput = readResolvedVerificationInput(resolvedPath);
+  const resolved = resolvedInput.spec;
+  assertResolvedSpecMatchesManifest(manifest, resolvedInput);
 
   const fixtureRoot = arg('fixtures') ?? path.resolve(process.cwd(), 'fixtures', 'packages');
   const bundle = new BundleConsumer(new FixtureBundleLocator(fixtureRoot));

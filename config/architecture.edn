@@ -128,7 +128,13 @@
     { :genesis_ {:deployer true}
       :configurationExecutor_ {:deployer true}
       :verifierRegistry_ {:contractAddress :prf/verifier-registry}
-      :expectedConfigurationRoot_ {:literal "0x0000000000000000000000000000000000000000000000000000000000000000"}
+      ;; Derived from the Base Sepolia (84532) initial-configuration candidate:
+      ;;   agent-c: PRF_DEPLOY_CHAIN_ID=84532 clojure -M -m scripts.deployment.genesis-roots \
+      ;;             initial-configuration etc/deployments/prf-base-sepolia/initial-configuration-package.edn
+      ;; "derived-only-not-approved" — re-derive after the owner-approved canonical inputs (P, A0, C0)
+      ;; are supplied. Note this local topology binds :genesis_/:configurationExecutor_ to the deployer EOA;
+      ;; a qualified successor deploy must deploy the chain-instance genesis + configuration executor.
+      :expectedConfigurationRoot_ {:literal "0xecf384cbb32b68256f5de949e7e3bacc1f0e485f5e590cc8adcc5890388aa353"}
       :expectedConfigurationEpoch_ {:literal 0}}}
 
    :sew/escrow-vault
