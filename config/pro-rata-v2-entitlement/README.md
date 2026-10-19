@@ -22,8 +22,10 @@ the configuration executor. PRF independently derives C1 and records it in the
 partial receipt. A resumed run can verify a separate transition approval using
 `--successor-transition-manifest`, `--successor-verifier-registry`,
 `--successor-transition-trusted-context`, and `--successor-transition-approval`.
-The executor still stops before successor registry mutations and configuration
-application. This partial prefix does not qualify proof admission or capital
+With approved transition inputs, the resumed executor continues through
+successor registry mutations and configuration application, then deploys the
+successor admission and entitlement contracts and runs their configured
+authority bindings. This does not qualify proof admission or capital
 operations.
 
 When the separate successor-transition approval and PRF-verified signed
@@ -32,12 +34,13 @@ it registers and seals the approved successor verifier, atomically applies the
 authority-state transition, then applies C1 through the configuration
 executor. Each send is guarded by exact approved arguments and followed by
 receipt and state readbacks; the plan receipt exposes both transition stages
-only when those checks pass. Supply the request with
+only when those checks pass. The resumed run can then deploy the downstream
+contracts and execute their configured one-time controller bindings. Supply the request with
 `--authority-transition-request` and its independent trust context with
 `--authority-transition-trusted-context`, alongside the four successor
-transition review files above. These paths have offline test coverage but no
-owner-approved request or live deployment has been supplied, so W5 remains
-unqualified.
+transition review files above. Proof admission, protected-operation execution,
+entitlement claims and independent reconciliation still require their own
+evidence-producing executors and remain unqualified.
 
 The profile binds the successor adapter to the committed real Groth16 fixture
 identity (VKey and ELF SHA-256), wires the allocator's live proof-mode source
@@ -54,8 +57,8 @@ registry root from the deployed adapter and requires PRF/Solidity root equality,
 then independently derives C1 from approved C0 and the sealed instance. With
 the separate approvals and transition request, the executor can perform the
 successor registry selection and configuration transition. Admission and
-production configuration remain unqualified until a fresh approved deployment
-and the composed proof/capital flow have been observed.
+production configuration remain unqualified until the composed proof/capital
+flow has been observed.
 
 Gate E remains the deployment-derived proof integration path: it creates and
 seals the registry snapshot and configuration binding from the actual deployed
@@ -76,10 +79,12 @@ runtime bytecode.
 The plan validator reports the first missing prerequisite and executable
 deployment prefix. Fresh `deploy.ts --plan` runs retain evidence through
 genesis sealing and registry-root derivation. With authenticated transition
-inputs, resume can continue through successor registry governance and C1
-application; downstream proof and capital stages remain unsupported. A prior
-topology deployment remains deployment-topology evidence only; no approved
-fresh deployment or proof-admission run is claimed.
+inputs, resume continues through successor registry governance, C1 application,
+downstream contract deployment and configured bootstrap bindings. Proof
+admission, capital execution and independent reconciliation remain unsupported
+by the deployment executor. The local run is deployment and configuration-
+transition evidence only; it does not claim a proof-admission or capital-flow
+run.
 
 Plan validation command:
 

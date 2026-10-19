@@ -945,8 +945,8 @@ async function run(
     const derivedConfiguration = successorConfig?.detail ? JSON.parse(successorConfig.detail) as { derivation?: Record<string, unknown> } : undefined;
     const derivedTransition = derivedConfiguration?.derivation?.['configuration-transition'] as Record<string, unknown> | undefined;
     if (!approvalEvidence.manifestRoot || !approvalEvidence.scope || !derivedRegistry.root || !derivedRegistry.entry ||
-        !derivedTransition || approvalEvidence.scope['configuration/new-root'] !== derivedTransition['configuration/C1-root'] ||
-        approvalEvidence.scope['configuration/parent-root'] !== derivedTransition['configuration/C0-root']) {
+        !derivedTransition || approvalEvidence.scope['configuration/new-root'] !== derivedTransition['configuration/new-root'] ||
+        approvalEvidence.scope['configuration/parent-root'] !== derivedTransition['configuration/parent-root']) {
       throw new ConfigError('PRF_SUCCESSOR_REGISTRY_APPROVAL_SCOPE_MISMATCH', 'Transition approval does not bind the retained C0-to-C1 derivation and successor registry');
     }
     const entry = derivedRegistry.entry as { id: Hex; adapter: Address; programVKey: Hex; programElfSha256: Hex; programId: string;
@@ -1158,7 +1158,7 @@ async function run(
       const transitionActionIndex = transitionIndex >= 0 ? transitionIndex : record.bootstrapActions.push({ id: transitionId, status: 'planned' }) - 1;
       saveRecord(recordPath, record);
       const transitioned = await executeBootstrapAction({
-        contract: authorityContract, address: authorityAddress, function: transitionAction.function, args: [],
+        contract: authorityContract, address: authorityAddress, function: transitionAction.function,
         rawArgs: [initialAuthorityRoot, successorRoot, 0, 1,
           authorityEvidence.decisionPreimagesRoot, mutations, authorityEvidence.attestation],
         addresses: resolvedAddresses, externalAddresses, transport: bound.transport, signer: bound.signer, fees, receiptTimeoutMs,
@@ -1260,7 +1260,7 @@ async function run(
       const index = indexExisting >= 0 ? indexExisting : record.bootstrapActions.push({ id: applicationId, status: 'planned' }) - 1;
       saveRecord(recordPath, record);
       const applied = await executeBootstrapAction({
-        contract: executorContract, address: executorAddress, function: action.function, args: [],
+        contract: executorContract, address: executorAddress, function: action.function,
         rawArgs: [decision, c1, registryRoot, 1, 0, instanceRoot, [], plan.successorProofMode],
         addresses: resolvedAddresses, externalAddresses, transport: bound.transport, signer: bound.signer, fees, receiptTimeoutMs,
         beforeSubmit: (call) => {
@@ -1311,12 +1311,43 @@ async function run(
     executionSpecHash = materializeExecutionSpec(resolved.spec, resolved.specHash, deployer, externalAddresses).executionSpecHash;
     record.executionSpecHash = executionSpecHash;
     saveRecord(recordPath, record);
-    const postC1Targets = new Set(postC1DeploymentSteps.map((step) => step.logicalId));
-    const unsupportedLateBootstrap = (resolved.spec.deployment.bootstrapActions ?? []).find((action) => postC1Targets.has(action.target));
-    if (unsupportedLateBootstrap) {
-      throw new ConfigError('PLAN_POST_C1_BOOTSTRAP_UNSUPPORTED', `Post-C1 target '${unsupportedLateBootstrap.target}' has bootstrap action '${unsupportedLateBootstrap.id}' without a staged executor`);
-    }
     for (const step of postC1DeploymentSteps) await deployStep(step);
+    const postC1Targets = new Set(postC1DeploymentSteps.map((step) => step.logicalId));
+    for (const action of (resolved.spec.deployment.bootstrapActions ?? []).filter((candidate) =>
+      postC1Targets.has(candidate.target) && !executedBootstrapActions.has(candidate.id) &&
+      resolvedAddresses[candidate.target] && candidate.args.every((arg) => bootstrapBindingAvailable(arg, resolvedAddresses)))) {
+      const existingIndex = record.bootstrapActions.findIndex((candidate) => candidate.id === action.id);
+      const actionIndex = existingIndex >= 0 ? existingIndex : record.bootstrapActions.push({ id: action.id, status: 'planned' }) - 1;
+      record.bootstrapActions[actionIndex] = { id: action.id, status: 'planned' };
+      saveRecord(recordPath, record);
+      try {
+        const result = await executeBootstrapAction({
+          ...action,
+          contract: resolved.spec.contracts[action.target]!,
+          address: resolvedAddresses[action.target]!,
+          addresses: resolvedAddresses,
+          externalAddresses,
+          transport: bound.transport,
+          signer: bound.signer,
+          fees,
+          receiptTimeoutMs,
+          onTransition: async (transition) => {
+            record.bootstrapActions[actionIndex] = { id: action.id, status: transition.status,
+              transactionHash: transition.transactionHash, blockNumber: transition.blockNumber?.toString() };
+            saveRecord(recordPath, record);
+          },
+        });
+        record.bootstrapActions[actionIndex] = { id: action.id, status: 'verified', transactionHash: result.transactionHash,
+          blockNumber: result.blockNumber.toString(), verification: 'receipt-success' };
+        executedBootstrapActions.add(action.id);
+        saveRecord(recordPath, record);
+      } catch (error) {
+        record.bootstrapActions[actionIndex] = { id: action.id, status: 'failed',
+          verification: error instanceof Error ? error.message : String(error) };
+        saveRecord(recordPath, record);
+        throw error;
+      }
+    }
   }
   for (const assertion of (resolved.spec.deployment.bootstrapAssertions ?? []).filter((candidate) => resolvedAddresses[candidate.target])) {
     try {

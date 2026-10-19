@@ -33,7 +33,7 @@ describe('PRF successor transition approval gate', () => {
     });
     expect(evidence.scope).toEqual(scope);
     expect(evidence.manifestRoot).toBe(`sha256:${'e'.repeat(64)}`);
-    expect(evidence.inputs.map((entry) => entry.role)).toEqual(['manifest', 'verifier-registry', 'trusted-context', 'approval-envelope']);
+    expect(evidence.inputs.map((entry) => entry.role)).toEqual(['transition-manifest', 'verifier-registry', 'trusted-context', 'approval-envelope']);
   });
 
   it('rejects a valid approval for a different instance or transition', () => {

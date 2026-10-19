@@ -110,7 +110,6 @@ const UNTESTED: Record<string, string> = {
   PRF_SUCCESSOR_CONFIGURATION_CALL_MISMATCH: 'pre-submit configuration call differs from the independently derived approved transition',
   PRF_SUCCESSOR_CONFIGURATION_READBACK_FAILED: 'post-transaction configuration root, epoch or decision-consumption readback disagrees',
   PRF_POST_C1_DEPLOYMENT_GATE_REQUIRED: 'admission and protected contracts cannot deploy before verified C1 application evidence',
-  PLAN_POST_C1_BOOTSTRAP_UNSUPPORTED: 'post-C1 plan stage contains a bootstrap action without supported snapshot binding semantics',
   BOOTSTRAP_ARGUMENT_SOURCE_INVALID: 'bootstrap argument references an undeclared or malformed stage output source',
   CROSS_PLAN_STAGE_OUTPUT_UNDECLARED: 'producer plan fails to declare the contract output used by a cross-plan pin',
   PLAN_EXECUTION_SUCCESSOR_APPROVAL_MISMATCH: 'verified transition-approval stage conflicts with the retained PRF verifier output or scoped derivation',

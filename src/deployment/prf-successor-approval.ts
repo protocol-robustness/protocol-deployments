@@ -92,7 +92,7 @@ export function verifyPrfSuccessorTransitionApproval(
     schema: 'prf-successor-transition-approval-verification.v1',
     verifierCommand: ['clojure', ...args],
     inputs: files.map((file, index) => ({
-      role: ['manifest', 'verifier-registry', 'trusted-context', 'approval-envelope'][index]!,
+      role: ['transition-manifest', 'verifier-registry', 'trusted-context', 'approval-envelope'][index]!,
       path: path.relative(prfRoot, file),
       sha256: createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
     })),
