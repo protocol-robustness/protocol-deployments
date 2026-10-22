@@ -59,6 +59,16 @@ Before the first real testnet deploy these must be supplied (tracked in
 ownership/role wiring for the testnet governance model, and tagged
 `dirty=false` artifact packages.
 
+## PRO-95 Base Sepolia demonstration
+
+The approved Circle Base Sepolia test-USDC PRO-95 scenario has a separate intake profile at
+[`config/pro-95-base-sepolia-demo`](config/pro-95-base-sepolia-demo/README.md).
+It is explicitly blocked: the exact V3 artifact package and deployment plan
+are not available, and no deployment or broadcast is enabled. Validate its
+scope and arithmetic with `npm run validate:pro-95-base-sepolia-demo`. This
+profile reuses the same USDC address recorded in the V2 profile but not its
+V2 contracts, authority assumptions, evidence or deployment plan.
+
 ## Status
 
 Schemas, resolver, and deterministic spec hashing are complete and tested.

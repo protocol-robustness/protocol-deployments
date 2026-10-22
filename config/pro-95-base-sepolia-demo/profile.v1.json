@@ -1,0 +1,177 @@
+{
+  "schema": "protocol-deployments.pro-95-demo-profile.v1",
+  "profileId": "prf/pro-95/base-sepolia-demonstration",
+  "classification": "demonstration-only-not-pre-mainnet-release",
+  "purpose": "Bounded Base Sepolia USDC demonstration of source-bound partial-fill settlement and its qualification limits.",
+  "network": {
+    "name": "Base Sepolia",
+    "chainId": 84532,
+    "kind": "testnet"
+  },
+  "readiness": {
+    "status": "blocked",
+    "deploymentEnabled": false,
+    "operationEnabled": false,
+    "broadcastAllowed": false,
+    "qualification": "not-run-public-chain-not-qualified"
+  },
+  "sourceEvidence": {
+    "prfEvmRevision": "fa91f060f8b286cedabaa0c758c90fbddb2fe6cd",
+    "localQualification": "PartialFillV3Controlled.t.sol; local Foundry chain id 31337",
+    "localQualificationIsBaseEvidence": false
+  },
+  "canonicalRoots": {
+    "protocolGenesisRoot": "sha256:668bc1d132b8745a3f6db7fa0b2dad2b85a11246e00c39e7b24d266af4724775",
+    "initialConfigurationRoot": "sha256:f36913f0fb319e80aee3a1b795bd31a94486d08d51aa27df825277050e4768cb",
+    "authorityStateRoot": "sha256:36a912294511057638de9d8a155f0a659413a3e242ca6bc76c877d5e3d6eb1a2",
+    "derivation": "PRF canonical genesis_roots tool; candidate roots only",
+    "chainInstanceGenesisRoot": null
+  },
+  "asset": {
+    "kind": "circle-issued-base-sepolia-testnet-usdc",
+    "name": "USDC",
+    "symbol": "USDC",
+    "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "chainId": 84532,
+    "decimals": 6,
+    "mintingByDemo": false,
+    "mainnetRedeemable": false,
+    "classification": "Circle Base Sepolia testnet units; not mainnet USDC, not redeemable, and not real-value liquidity",
+    "source": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+    "sourceParityEvidence": "config/pro-rata-v2-entitlement/circle-base-sepolia-usdc-source-parity.v1.json",
+    "historicalObservation": {
+      "blockNumber": 48021662,
+      "blockHash": "0xd75dd70e46902903f9c1ff7247ed11b17471413ba9895ff70cfa6ee64ba19c02",
+      "proxyRuntimeCodeKeccak256": "0xedc5281a85c0efecd49999a1ef668390c59b88702f2d4a07029d7f5d63059d6c",
+      "implementation": "0xd74cc5d436923b8ba2c179b4bCA2841D8A52C5B5",
+      "implementationRuntimeCodeKeccak256": "0x1254951e5483b882fd5def9452f58fe786eb3380c0bf9bb2744fa21a0a97a16c",
+      "qualification": "historical, partial runtime/source comparison only; re-read proxy pointer and code at the chosen run block"
+    },
+    "aaveBaseSepoliaReference": {
+      "pool": "0x8bAB6d1b75f19e9eD9fCe8b9BD338844fF79aE27",
+      "sewProtocolSources": [
+        "test/foundry/modules/AaveYieldModuleForkTest.sol",
+        "scripts/testnet/phase4-yield-test-usdc.ts"
+      ],
+      "scope": "same USDC address is referenced by the Aave testnet integration; this PRO-95 workflow does not supply to or integrate Aave"
+    }
+  },
+  "controlledScenario": {
+    "unit": "USDC base units (6 decimals)",
+    "requests": {
+      "alice": 50000000,
+      "bob": 30000000,
+      "carol": 20000000
+    },
+    "totalRequested": 100000000,
+    "deposit": 80000000,
+    "restrictedRefundableReserve": 10000000,
+    "availableForAllocation": 70000000,
+    "fundedAllocations": {
+      "alice": 35000000,
+      "bob": 21000000,
+      "carol": 14000000
+    },
+    "totalFunded": 70000000,
+    "totalUnmetRequests": 30000000,
+    "unmetRequestsAreRecognizedLiabilities": false,
+    "claimantWithdrawals": {
+      "alice": 35000000,
+      "bob": 21000000,
+      "carol": 14000000
+    },
+    "separateRestrictedRefund": {
+      "beneficiary": "carol",
+      "amount": 10000000
+    },
+    "expectedFundedClaimantLiabilityAfterWithdrawals": 0,
+    "displayAmountsUSDC": {
+      "requests": {
+        "alice": "50",
+        "bob": "30",
+        "carol": "20"
+      },
+      "totalRequested": "100",
+      "deposit": "80",
+      "restrictedRefundableReserve": "10",
+      "availableForAllocation": "70",
+      "fundedAllocations": {
+        "alice": "35",
+        "bob": "21",
+        "carol": "14"
+      },
+      "totalUnmetRequests": "30",
+      "separateRestrictedRefund": "10"
+    }
+  },
+  "recipients": {
+    "alice": "0x8bdd01c7dead0abe3e855b458b820d9d727bccbf",
+    "bob": "0x867caab852f942ff80b6409109f1db76d4ecb36b",
+    "carol": "0xa57f019d83d1fbbc48500047ba27d21523fe55a8",
+    "classification": "owner-approved-pseudonymous-test-only; addresses do not authenticate claimant identity"
+  },
+  "proof": {
+    "system": "SP1 Groth16",
+    "programId": "source-bound-entitlement-controlled-sp1-program.v1",
+    "vkey": "0x00691e1cff8e4252731c8fe2bc326e8725ed5f9b92a298cc30a2c5fc40962dd1",
+    "elfSha256": "0x705efd1c5b997ae1f2c19eddcf6bb66a147e94b6b3b036393d6dab041c00542d",
+    "publicValuesSchema": "prf/source-bound-entitlement-public-values.v1",
+    "publicValuesLengthBytes": 288,
+    "baseBoundProofStatus": "not-generated"
+  },
+  "trustBoundary": {
+    "intendedEvidenceClass": "receipt-inclusion-verified-under-external-header-pin",
+    "finalityClaim": "none",
+    "sourceAuthentication": "not-performed-for-modelled-inputs",
+    "independentHeaderReview": "pending",
+    "sameBlockConcurrencyClaim": false
+  },
+  "deploymentPackage": {
+    "status": "not-available-for-exact-v3-composition",
+    "pinnedArtifactBundle": null,
+    "deploymentPlan": null,
+    "missingExactArtifacts": [
+      "OnchainShortfallReserveV3",
+      "V3-compatible authority adapter and operator wiring"
+    ],
+    "note": "Do not substitute the existing 0.4.2 V2 plan or its previous Circle USDC profile: the token identity matches, but that profile has different contracts, evidence, authority and operation bindings than this approved V3 demonstration."
+  },
+  "unresolvedDependencies": [
+    "clean committed artifact bundle containing the exact V3 reserve, authority adapter and operator composition, pinned in this repository",
+    "deployment-repository plan and runner for staged genesis, configuration, operation preparation, proof admission, funding, activation, claims and separate refund",
+    "reconfirm the Circle USDC proxy implementation pointer, code identity, decimals and transfer behavior at the chosen run block; historical parity data is not a current observation",
+    "Base-bound witness and proof generated from exact deployed addresses and observed reserve/operation state",
+    "dry-run transaction plan with nonce/address prediction and per-transaction gas estimates",
+    "owner-approved maximum transaction count and numeric ETH spend cap",
+    "funded test-only deployer after spend cap approval",
+    "independent selection/review of Base header sources and freshness/reorg policy",
+    "independent package-digest review"
+  ],
+  "transactionPolicy": {
+    "transactionCountMaximum": null,
+    "ethSpendCapWei": null,
+    "signing": "not-authorized-by-this-profile",
+    "broadcast": "not-authorized-by-this-profile"
+  },
+  "limitations": [
+    "public-testnet demonstration only; not a pre-mainnet release",
+    "no contracts deployed and no transactions signed or broadcast",
+    "not an operating stablecoin, redemption, reserve-backing, compliance or settlement service",
+    "no public-chain consensus finality claim",
+    "no independently authenticated external source data",
+    "local Foundry evidence does not establish Base Sepolia execution"
+  ],
+  "authority": {
+    "model": "single-test-only-deployer-funder-configuration-authority-and-relayer",
+    "deployer": "0xdd82cceb1d515f2e4fb0432fb5d53138813945d4",
+    "roles": [
+      "deployer",
+      "USDC payer/funder",
+      "configuration-authority",
+      "withdrawal-relayer"
+    ],
+    "recipientGasFunding": "not-planned; withdrawals are relayed",
+    "ethBalanceAtRecordedObservationWei": "0",
+    "keyStorage": "encrypted test-only keystore outside this repository; no private key material is recorded here"
+  }
+}
