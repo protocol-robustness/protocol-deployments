@@ -1,0 +1,25 @@
+{
+  "schema": "protocol-deployment-independent-verification/v3",
+  "status": "verified",
+  "scope": "local-anvil-only",
+  "qualification": "verification-evidence-only-not-approval",
+  "trustAssumptions": [
+    "The caller supplies the trusted-context root independently and verifies that its approval keys and source pins are controlled by the intended local authority.",
+    "The selected RPC endpoint reports authentic chain identity, historical block hashes, transaction receipts, and contract state for the local Anvil instance.",
+    "The pinned PRF checkout, deployment source bundle, compiler artifacts, and fixture bundle are the reviewed inputs selected by the qualification authority.",
+    "The human approval decision and custody of the configured approval keys are trusted; cryptographic verification proves key use and scope, not the legitimacy of that decision.",
+    "Capital-flow getter targets and arguments are checked against the pinned topology and transaction bindings; producer-supplied expected historical values still require qualification review against the approved operation.",
+    "Proof-system soundness and external toolchain supply-chain integrity remain assumptions outside this deployment-evidence verifier."
+  ],
+  "planId": "prf/controlled-shortfall-successor-fork.v1",
+  "executionStatus": "partial",
+  "planExecutionRoot": "0x20234a8f341f82e40c750f3dc55d8d9146718171fd4d50eab53518dd5af117c4",
+  "manifestRoot": "0x9e41374c74e541b8d2a32536ad1f2f0768aa8116659096a9f810516ec74d171c",
+  "resolvedSpecSha256": "2a9a92e0ecdee6f31f7f9517d3073f7efee10bd47bc1344f010fcda0dec8c6e5",
+  "replayedPrfAssertions": 6,
+  "liveVerificationRoot": "0x8067ec8171255a776a7908a89ee2dff742fea404b2252facc64c4f7bf16f51ed",
+  "capitalFlowEvidenceRoot": null,
+  "replayedCapitalFlowTransactions": 0,
+  "replayedCapitalFlowStateAssertions": 0,
+  "reportRoot": "5fdc9108e06fcd56aaf9a74eff5a071d93ffa9f7d5b4368026dcbd61bc06bc6b"
+}
