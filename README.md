@@ -11,7 +11,7 @@ See [docs/architecture.md](docs/architecture.md) for the full design and
 ## Quick start
 
 ```bash
-npm install
+npm ci
 npm test                 # vitest: happy-path + adversarial validation
 npm run typecheck        # tsc --noEmit
 
@@ -61,7 +61,8 @@ ownership/role wiring for the testnet governance model, and tagged
 
 ## PRO-95 Base Sepolia demonstration
 
-The approved Circle Base Sepolia test-USDC PRO-95 scenario has a separate intake profile at
+The approved Circle Base Sepolia test-USDC PRO-95 scenario has a separate
+intake profile at
 [`config/pro-95-base-sepolia-demo`](config/pro-95-base-sepolia-demo/README.md).
 It is explicitly blocked: the exact V3 artifact package and deployment plan
 are not available, and no deployment or broadcast is enabled. Validate its
@@ -85,10 +86,19 @@ Deliberately out of scope for now: CREATE2 (until a factory protocol exists)
 and protocol governance actions (bootstrap-only; later governance changes are
 not part of the deployment ledger).
 
+## Qualified successor local topology
 
-### Qualified successor local topology
-
-`pnpm resolve:pro-rata-v2-entitlement-local` and `pnpm deploy:pro-rata-v2-entitlement-local` select the isolated local `fixtures/releases/0.4.1/packages` artifact bundle, which is exported from the dirty integrated tree and is not a clean pinned release. The profile binds successor VKey `0x00d90efa52d17e54670a4248f001e4da443a938f12c55d0d414c125ba68087b9` and ELF SHA-256 `0x636330de8e7af3485aba50bd3ca4b5e024cc4f977a2bf0f2c005f711e5ffacf8`, with the current stale-assurance recovery interfaces. Older profiles and the original fixture directory retain their release pins. Generic deployment commands can select another fixture directory using `--fixtures <dir>`.
+`npm run resolve:pro-rata-v2-entitlement-local` and
+`npm run deploy:pro-rata-v2-entitlement-local` select the isolated local
+`fixtures/releases/0.4.2/packages` artifact bundle. It was exported from a local
+integrated revision and is a review fixture, not a clean tagged release. The
+profile binds successor VKey
+`0x00d90efa52d17e54670a4248f001e4da443a938f12c55d0d414c125ba68087b9` and ELF
+SHA-256
+`0x636330de8e7af3485aba50bd3ca4b5e024cc4f977a2bf0f2c005f711e5ffacf8`, using
+the current stale-assurance recovery interfaces. Older profiles and the
+original fixture directory retain their release pins. Generic deployment
+commands can select another fixture directory with `--fixtures <dir>`.
 
 The bounded plan requires a source-bound PRF initial-input manifest, candidate
 package set, detached approval envelope, and separate trusted context. Both
@@ -99,4 +109,13 @@ from current chain observations and verifies the mined seal readbacks. These
 gates do not make the currently unimplemented canonical stage executors
 deployable, and no local approval or deployment is included here.
 
-This is a local topology profile. Its placeholder registry/configuration roots do not establish governed successor admission. The deployment-derived real-proof Gate E path in `prf-evm` remains the qualification path for verification, admission, ratification, funding, activation, withdrawal and refund. No package publication or Base Sepolia deployment is implied by this local bundle.
+This is a local topology profile. Its placeholder registry/configuration roots
+do not establish governed successor admission. The deployment-derived real-proof
+Gate E path in `prf-evm` remains the qualification path for verification,
+admission, ratification, funding, activation, withdrawal and refund. No package
+publication or Base Sepolia deployment is implied by this local bundle.
+
+## License
+
+This repository is licensed under the Apache License, Version 2.0; see
+[`LICENSE`](LICENSE).
