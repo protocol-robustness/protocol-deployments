@@ -681,7 +681,7 @@ function resolveDeploymentOrder(
       expected: assertion.expectedBinding
         ? resolveBinding(assertion.expectedBinding, assertion.target, {}, contractIds, environment.externalAddresses)
         : paramValueToJson(assertion.expected!),
-    })), 
+    })),
     registryRoots: environment.registryRoots,
     localOnly: environment.localOnly,
   };
