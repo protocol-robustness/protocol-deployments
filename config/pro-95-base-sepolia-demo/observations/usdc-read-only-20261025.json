@@ -1,0 +1,88 @@
+{
+  "schema": "protocol-deployments.pro-95-usdc-read-only-observation.v1",
+  "classification": "unqualified-read-only-observation",
+  "capturedAt": "2026-10-25T14:55:33.316Z",
+  "network": {
+    "name": "Base Sepolia",
+    "chainId": 84532
+  },
+  "providerHeads": [
+    {
+      "provider": "base-public-rpc",
+      "endpoint": "https://sepolia.base.org",
+      "chainId": 84532,
+      "head": "50091317"
+    },
+    {
+      "provider": "publicnode",
+      "endpoint": "https://base-sepolia-rpc.publicnode.com",
+      "chainId": 84532,
+      "head": "50091317"
+    }
+  ],
+  "blockSelection": "minimum observed provider head minus four; a query convenience, not a finality or freshness policy",
+  "observationBlock": "50091313",
+  "observationsAgree": true,
+  "observations": [
+    {
+      "provider": "base-public-rpc",
+      "block": {
+        "number": "50091313",
+        "hash": "0x6f025c552b5df58108ae1bd753a511d3f87c0804005abcf948a2e0541816334c",
+        "parentHash": "0xf0b5182aa862b85c491c244d525d8fea96c8b20f960d96c387b791aea39e168f",
+        "timestamp": "1792940131"
+      },
+      "token": {
+        "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        "proxyCodeBytes": 1798,
+        "proxyCodeKeccak256": "0xedc5281a85c0efecd49999a1ef668390c59b88702f2d4a07029d7f5d63059d6c",
+        "implementation": "0xd74cc5d436923b8ba2c179b4bca2841d8a52c5b5",
+        "implementationCodeBytes": 23464,
+        "implementationCodeKeccak256": "0x1254951e5483b882fd5def9452f58fe786eb3380c0bf9bb2744fa21a0a97a16c",
+        "name": "USDC",
+        "symbol": "USDC",
+        "decimals": 6,
+        "paused": false
+      },
+      "payer": {
+        "address": "0xdd82cceb1d515f2e4fb0432fb5d53138813945d4",
+        "usdcBalanceBaseUnits": "0",
+        "ethBalanceWei": "0"
+      }
+    },
+    {
+      "provider": "publicnode",
+      "block": {
+        "number": "50091313",
+        "hash": "0x6f025c552b5df58108ae1bd753a511d3f87c0804005abcf948a2e0541816334c",
+        "parentHash": "0xf0b5182aa862b85c491c244d525d8fea96c8b20f960d96c387b791aea39e168f",
+        "timestamp": "1792940131"
+      },
+      "token": {
+        "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        "proxyCodeBytes": 1798,
+        "proxyCodeKeccak256": "0xedc5281a85c0efecd49999a1ef668390c59b88702f2d4a07029d7f5d63059d6c",
+        "implementation": "0xd74cc5d436923b8ba2c179b4bca2841d8a52c5b5",
+        "implementationCodeBytes": 23464,
+        "implementationCodeKeccak256": "0x1254951e5483b882fd5def9452f58fe786eb3380c0bf9bb2744fa21a0a97a16c",
+        "name": "USDC",
+        "symbol": "USDC",
+        "decimals": 6,
+        "paused": false
+      },
+      "payer": {
+        "address": "0xdd82cceb1d515f2e4fb0432fb5d53138813945d4",
+        "usdcBalanceBaseUnits": "0",
+        "ethBalanceWei": "0"
+      }
+    }
+  ],
+  "limitations": [
+    "Matching provider observations do not establish provider independence or an independently selected trust anchor.",
+    "No Base or Ethereum consensus finality is established.",
+    "Issuer source authentication and source-to-runtime equivalence are not established by this observation.",
+    "ERC-20 transfer behavior has not been tested.",
+    "Balances are observations at this block only and do not establish funding availability for a later run.",
+    "This artifact does not approve a deployment, transaction plan, signing, broadcast, or use of funds."
+  ]
+}

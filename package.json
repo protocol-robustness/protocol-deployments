@@ -32,7 +32,8 @@
     "validate:successor-fork-plan": "ts-node src/cli/validate-successor-fork-plan.ts",
     "verify:plan-execution": "ts-node src/cli/verify-plan-execution.ts",
     "verify:plan-report": "ts-node src/cli/verify-plan-report.ts",
-    "validate:pro-95-base-sepolia-demo": "ts-node src/cli/validate-pro-95-base-sepolia-demo.ts"
+    "validate:pro-95-base-sepolia-demo": "ts-node src/cli/validate-pro-95-base-sepolia-demo.ts",
+    "observe:pro-95-base-sepolia-usdc": "ts-node src/cli/observe-pro-95-usdc.ts"
   },
   "engines": {
     "node": ">=20"

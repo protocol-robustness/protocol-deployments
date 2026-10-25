@@ -37,6 +37,24 @@ deployment, operation and broadcast disabled. No gas cap or funding amount is
 set. Base finality is not claimed; the intended future evidence class is
 receipt inclusion under an independently reviewed external header pin.
 
+## Current read-only token observation
+
+[`observations/usdc-read-only-20261025.json`](./observations/usdc-read-only-20261025.json)
+records matching reads from the Base public RPC and PublicNode at one common
+block. It records the token proxy and implementation code hashes, pointer,
+metadata, pause state, and the approved test payer's block-scoped balances.
+This is an unqualified observation: matching responses do not establish
+provider independence, issuer source authentication, transfer behavior,
+finality, future funding, or approval to deploy or transact. Reproduce a fresh
+observation with:
+
+```bash
+npm run observe:pro-95-base-sepolia-usdc -- /tmp/pro-95-usdc-observation.json
+```
+
+The command is read-only, fails if the two providers disagree, and refuses to
+overwrite an existing output file. It does not sign or broadcast transactions.
+
 ## Files
 
 - [`profile.v1.json`](./profile.v1.json) — scenario, source identity, exact
