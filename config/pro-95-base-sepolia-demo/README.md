@@ -47,12 +47,17 @@ deployment, USDC funding, configuration authority and relayed withdrawals. Its o
 ## Why this profile is blocked
 
 The retained V3 qualification is a local Foundry execution on chain ID 31337.
-The deployment repository’s pinned 0.4.2 bundle does not contain the exact V3
-reserve and demo token/operator composition. The V3 local proof is bound to
-local addresses and cannot be reused on Base Sepolia. A separate clean,
-committed artifact bundle, staged deployment plan, Base-bound witness/proof,
-and dry-run are required. Do not replace these with the existing USDC/V2
-profile or with a mock verifier.
+The retained 0.4.2 bundle does not contain the V3 reserve. A 0.4.3 candidate
+bundle now includes that artifact and is retained under
+[`fixtures/releases/0.4.3`](../../fixtures/releases/0.4.3/README.md). It was
+exported from a local JJ revision using `GIT_SHA`; its manifest records
+`commitSource: env` and `commitOverride: true`, so non-local deployment policy
+rejects it. Publish and independently review the source revision, then rebuild
+from a clean Git checkout before treating the bundle as pinned. The V3 local
+proof is bound to local addresses and cannot be reused on Base Sepolia. A
+reviewed staged deployment plan, Base-bound witness/proof, and dry-run are
+still required. Do not replace these with the existing USDC/V2 profile or a
+mock verifier.
 
 The profile has no deployment plan or transaction budget. It explicitly keeps
 deployment, operation and broadcast disabled. No gas cap or funding amount is
@@ -81,6 +86,8 @@ overwrite an existing output file. It does not sign or broadcast transactions.
 
 - [`profile.v1.json`](./profile.v1.json) — scenario, source identity, exact
   candidate roots, boundaries and readiness blockers.
+- The 0.4.3 V3 artifact bundle — locally built candidate; source provenance
+  remains unpinned and Base deployment remains blocked.
 - [`README.md`](./README.md) — orientation and demo-only qualification scope.
 
 The source-of-truth owner decisions, canonical root derivation outputs, and

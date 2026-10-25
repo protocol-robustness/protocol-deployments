@@ -127,17 +127,28 @@
     "sameBlockConcurrencyClaim": false
   },
   "deploymentPackage": {
-    "status": "not-available-for-exact-v3-composition",
-    "pinnedArtifactBundle": null,
+    "status": "local-v3-candidate-not-pinned-or-base-qualified",
+    "pinnedArtifactBundle": {
+      "packageName": "@protocol-robustness/prf-evm-deployables",
+      "version": "0.4.3",
+      "bundleRoot": "d416816527400fcc7bc7455a1486c1bc20cb94ed556473d0c695a83ea09e2dba",
+      "sourceRevision": "f23fcfc2d0f58e2be5732c0c37ddb179c323d513",
+      "sourceCommitSource": "env",
+      "sourceCommitOverride": true,
+      "sourcePublished": false,
+      "artifactCount": 32,
+      "fixturePath": "fixtures/releases/0.4.3/packages/@protocol-robustness/prf-evm-deployables"
+    },
     "deploymentPlan": null,
-    "missingExactArtifacts": [
-      "OnchainShortfallReserveV3",
-      "V3-compatible authority adapter and operator wiring"
+    "packageLimitations": [
+      "source revision is local and not published as a clean Git release; non-local deployment policy rejects this env-overridden bundle",
+      "no reviewed Base-specific staged deployment and operation plan or runner",
+      "no Base-bound witness or proof"
     ],
-    "note": "Do not substitute the existing 0.4.2 V2 plan or its previous Circle USDC profile: the token identity matches, but that profile has different contracts, evidence, authority and operation bindings than this approved V3 demonstration."
+    "note": "This 0.4.3 package contains the V3 reserve artifact but is a local review fixture only. Do not treat it as a pinned non-local release or substitute the existing 0.4.2 V2 plan/profile: that profile has different contracts, evidence, authority and operation bindings."
   },
   "unresolvedDependencies": [
-    "clean committed artifact bundle containing the exact V3 reserve, authority adapter and operator composition, pinned in this repository",
+    "publish and independently review the V3 source revision, then rebuild a clean Git-provenance 0.4.3 artifact bundle without a GIT_SHA override",
     "deployment-repository plan and runner for staged genesis, configuration, operation preparation, proof admission, funding, activation, claims and separate refund",
     "reconfirm the Circle USDC proxy implementation pointer, code identity, decimals and transfer behavior at the chosen run block; historical parity data is not a current observation",
     "Base-bound witness and proof generated from exact deployed addresses and observed reserve/operation state",

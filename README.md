@@ -64,11 +64,15 @@ ownership/role wiring for the testnet governance model, and tagged
 The approved Circle Base Sepolia test-USDC PRO-95 scenario has a separate
 intake profile at
 [`config/pro-95-base-sepolia-demo`](config/pro-95-base-sepolia-demo/README.md).
-It is explicitly blocked: the exact V3 artifact package and deployment plan
-are not available, and no deployment or broadcast is enabled. Validate its
-scope and arithmetic with `npm run validate:pro-95-base-sepolia-demo`. This
-profile reuses the same USDC address recorded in the V2 profile but not its
-V2 contracts, authority assumptions, evidence or deployment plan.
+It is explicitly blocked: a local 0.4.3 artifact candidate now includes the V3
+reserve, but its source revision is unpublished and the manifest uses an
+environment override, so non-local deployment policy rejects it. A clean
+source-pinned bundle, Base-specific deployment plan, Base-bound proof, and
+transaction/finality review are still required; no deployment or broadcast is
+enabled. Validate scope and arithmetic with
+`npm run validate:pro-95-base-sepolia-demo`. This profile reuses the same USDC
+address recorded in the V2 profile but not its V2 contracts, authority
+assumptions, evidence or deployment plan.
 
 ## Status
 

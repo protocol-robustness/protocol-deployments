@@ -1,0 +1,1149 @@
+{
+  "abi": [
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "protocolGenesisRoot_",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "address",
+      "name": "governor_",
+      "type": "address"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "initialAuthorityStateRoot_",
+      "type": "bytes32"
+    }
+   ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+   {
+    "inputs": [],
+    "name": "TARGET_DIRECT",
+    "outputs": [
+     {
+      "internalType": "uint8",
+      "name": "",
+      "type": "uint8"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "TARGET_SET",
+    "outputs": [
+     {
+      "internalType": "uint8",
+      "name": "",
+      "type": "uint8"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "expectedPreviousRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "successorRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint64",
+      "name": "previousRevision",
+      "type": "uint64"
+    },
+     {
+      "internalType": "uint64",
+      "name": "successorRevision",
+      "type": "uint64"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "decisionPreimagesRoot",
+      "type": "bytes32"
+    },
+     {
+      "components": [
+       {
+        "internalType": "uint8",
+        "name": "kind",
+        "type": "uint8"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "decisionRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "uint8",
+        "name": "targetMode",
+        "type": "uint8"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "targetRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "parentConfigurationRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "newConfigurationRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "parentVerifierRegistryRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "newVerifierRegistryRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "uint64",
+        "name": "epoch",
+        "type": "uint64"
+      },
+       {
+        "internalType": "uint8",
+        "name": "proofMode",
+        "type": "uint8"
+      }
+     ],
+      "internalType": "struct IPrfAuthorityTransitionAdmin.AuthorityMutation[]",
+      "name": "mutations",
+      "type": "tuple[]"
+    },
+     {
+      "internalType": "bytes",
+      "name": "attestation",
+      "type": "bytes"
+    }
+   ],
+    "name": "applyAuthorityStateTransition",
+    "outputs": [
+     {
+      "internalType": "bytes32",
+      "name": "executionCommitment",
+      "type": "bytes32"
+    }
+   ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint8",
+      "name": "targetMode",
+      "type": "uint8"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "targetRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "parentConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "newConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "parentVerifierRegistryRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "newVerifierRegistryRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint64",
+      "name": "epoch",
+      "type": "uint64"
+    }
+   ],
+    "name": "authoriseDecision",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint8",
+      "name": "proofMode",
+      "type": "uint8"
+    }
+   ],
+    "name": "authoriseDecisionProofMode",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "authorityInstanceGenesis",
+    "outputs": [
+     {
+      "internalType": "contract IPrfChainInstanceGenesis",
+      "name": "",
+      "type": "address"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "components": [
+       {
+        "internalType": "uint8",
+        "name": "kind",
+        "type": "uint8"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "decisionRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "uint8",
+        "name": "targetMode",
+        "type": "uint8"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "targetRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "parentConfigurationRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "newConfigurationRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "parentVerifierRegistryRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "newVerifierRegistryRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "uint64",
+        "name": "epoch",
+        "type": "uint64"
+      },
+       {
+        "internalType": "uint8",
+        "name": "proofMode",
+        "type": "uint8"
+      }
+     ],
+      "internalType": "struct IPrfAuthorityTransitionAdmin.AuthorityMutation[]",
+      "name": "mutations",
+      "type": "tuple[]"
+    }
+   ],
+    "name": "authorityMutationRoot",
+    "outputs": [
+     {
+      "internalType": "bytes32",
+      "name": "root",
+      "type": "bytes32"
+    }
+   ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "authorityRevision",
+    "outputs": [
+     {
+      "internalType": "uint64",
+      "name": "",
+      "type": "uint64"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "authorityStateRoot",
+    "outputs": [
+     {
+      "internalType": "bytes32",
+      "name": "",
+      "type": "bytes32"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "address",
+      "name": "adapter",
+      "type": "address"
+    },
+     {
+      "internalType": "uint256",
+      "name": "chainId",
+      "type": "uint256"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "instanceRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "expectedPreviousRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "successorRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "policyRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint64",
+      "name": "previousRevision",
+      "type": "uint64"
+    },
+     {
+      "internalType": "uint64",
+      "name": "successorRevision",
+      "type": "uint64"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "mutationRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "decisionPreimagesRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "authorityTransitionExecutionCommitment",
+    "outputs": [
+     {
+      "internalType": "bytes32",
+      "name": "",
+      "type": "bytes32"
+    }
+   ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "authorityTransitionValidator",
+    "outputs": [
+     {
+      "internalType": "contract IPrfAuthorityTransitionValidator",
+      "name": "",
+      "type": "address"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "authorityTransitionsEnabled",
+    "outputs": [
+     {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "contract IPrfChainInstanceGenesis",
+      "name": "genesis_",
+      "type": "address"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "localAuthorityPolicyRoot_",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "contract IPrfAuthorityTransitionValidator",
+      "name": "validator_",
+      "type": "address"
+    }
+   ],
+    "name": "enableAuthorityTransitions",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "getDecisionAuthorization",
+    "outputs": [
+     {
+      "components": [
+       {
+        "internalType": "uint8",
+        "name": "targetMode",
+        "type": "uint8"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "targetRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "parentConfigurationRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "newConfigurationRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "parentVerifierRegistryRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "bytes32",
+        "name": "newVerifierRegistryRoot",
+        "type": "bytes32"
+      },
+       {
+        "internalType": "uint64",
+        "name": "epoch",
+        "type": "uint64"
+      },
+       {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+       {
+        "internalType": "bool",
+        "name": "revoked",
+        "type": "bool"
+      }
+     ],
+      "internalType": "struct ISewGovernanceAuthority.DecisionAuthorization",
+      "name": "",
+      "type": "tuple"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "governor",
+    "outputs": [
+     {
+      "internalType": "address",
+      "name": "",
+      "type": "address"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "hasDecisionProofMode",
+    "outputs": [
+     {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint8",
+      "name": "targetMode",
+      "type": "uint8"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "targetRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "parentConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "newConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "parentVerifierRegistryRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "newVerifierRegistryRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint64",
+      "name": "epoch",
+      "type": "uint64"
+    }
+   ],
+    "name": "isAuthorisedDecision",
+    "outputs": [
+     {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint8",
+      "name": "targetMode",
+      "type": "uint8"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "targetRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "parentConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "newConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "parentVerifierRegistryRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "newVerifierRegistryRoot",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "uint64",
+      "name": "epoch",
+      "type": "uint64"
+    },
+     {
+      "internalType": "uint8",
+      "name": "proofMode",
+      "type": "uint8"
+    }
+   ],
+    "name": "isAuthorisedDecisionProofMode",
+    "outputs": [
+     {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "hash",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes",
+      "name": "signature",
+      "type": "bytes"
+    }
+   ],
+    "name": "isValidSignature",
+    "outputs": [
+     {
+      "internalType": "bytes4",
+      "name": "",
+      "type": "bytes4"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "legacyAuthorityMutationOccurred",
+    "outputs": [
+     {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "localAuthorityPolicyRoot",
+    "outputs": [
+     {
+      "internalType": "bytes32",
+      "name": "",
+      "type": "bytes32"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [],
+    "name": "protocolGenesisRoot",
+    "outputs": [
+     {
+      "internalType": "bytes32",
+      "name": "",
+      "type": "bytes32"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "revokeDecision",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes4",
+      "name": "interfaceId",
+      "type": "bytes4"
+    }
+   ],
+    "name": "supportsInterface",
+    "outputs": [
+     {
+      "internalType": "bool",
+      "name": "",
+      "type": "bool"
+    }
+   ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "newAuthorityStateRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "updateAuthorityStateRoot",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+   {
+    "anonymous": false,
+    "inputs": [
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "oldAuthorityStateRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "newAuthorityStateRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "AuthorityStateRootUpdated",
+    "type": "event"
+  },
+   {
+    "anonymous": false,
+    "inputs": [
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "executionCommitment",
+      "type": "bytes32"
+    },
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "previousRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "successorRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": false,
+      "internalType": "uint64",
+      "name": "previousRevision",
+      "type": "uint64"
+    },
+     {
+      "indexed": false,
+      "internalType": "uint64",
+      "name": "successorRevision",
+      "type": "uint64"
+    },
+     {
+      "indexed": false,
+      "internalType": "bytes32",
+      "name": "mutationRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": false,
+      "internalType": "bytes32",
+      "name": "decisionPreimagesRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "AuthorityStateTransitionApplied",
+    "type": "event"
+  },
+   {
+    "anonymous": false,
+    "inputs": [
+     {
+      "indexed": true,
+      "internalType": "address",
+      "name": "genesis",
+      "type": "address"
+    },
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "policyRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": true,
+      "internalType": "address",
+      "name": "validator",
+      "type": "address"
+    }
+   ],
+    "name": "AuthorityTransitionsEnabled",
+    "type": "event"
+  },
+   {
+    "anonymous": false,
+    "inputs": [
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": true,
+      "internalType": "uint8",
+      "name": "targetMode",
+      "type": "uint8"
+    },
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "targetRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": false,
+      "internalType": "bytes32",
+      "name": "parentConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": false,
+      "internalType": "bytes32",
+      "name": "newConfigurationRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": false,
+      "internalType": "bytes32",
+      "name": "parentVerifierRegistryRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": false,
+      "internalType": "bytes32",
+      "name": "newVerifierRegistryRoot",
+      "type": "bytes32"
+    },
+     {
+      "indexed": false,
+      "internalType": "uint64",
+      "name": "epoch",
+      "type": "uint64"
+    }
+   ],
+    "name": "DecisionAuthorised",
+    "type": "event"
+  },
+   {
+    "anonymous": false,
+    "inputs": [
+     {
+      "indexed": true,
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "DecisionRevoked",
+    "type": "event"
+  },
+   {
+    "inputs": [],
+    "name": "AuthorityTransitionAlreadyEnabled",
+    "type": "error"
+  },
+   {
+    "inputs": [],
+    "name": "AuthorityTransitionInstanceNotSealed",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "expected",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "actual",
+      "type": "bytes32"
+    }
+   ],
+    "name": "AuthorityTransitionPolicyMismatch",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "expected",
+      "type": "bytes32"
+    },
+     {
+      "internalType": "bytes32",
+      "name": "actual",
+      "type": "bytes32"
+    }
+   ],
+    "name": "AuthorityTransitionPredecessorMismatch",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "uint64",
+      "name": "expected",
+      "type": "uint64"
+    },
+     {
+      "internalType": "uint64",
+      "name": "actual",
+      "type": "uint64"
+    }
+   ],
+    "name": "AuthorityTransitionRevisionMismatch",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "DecisionAlreadyExists",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "DecisionAlreadyRevoked",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "bytes32",
+      "name": "decisionRoot",
+      "type": "bytes32"
+    }
+   ],
+    "name": "DecisionDoesNotExist",
+    "type": "error"
+  },
+   {
+    "inputs": [],
+    "name": "EpochMustBePositive",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "uint8",
+      "name": "kind",
+      "type": "uint8"
+    }
+   ],
+    "name": "InvalidAuthorityMutation",
+    "type": "error"
+  },
+   {
+    "inputs": [],
+    "name": "InvalidAuthorityTransitionAttestation",
+    "type": "error"
+  },
+   {
+    "inputs": [],
+    "name": "InvalidAuthorityTransitionBinding",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "uint8",
+      "name": "proofMode",
+      "type": "uint8"
+    }
+   ],
+    "name": "InvalidProofMode",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "uint8",
+      "name": "targetMode",
+      "type": "uint8"
+    }
+   ],
+    "name": "InvalidTargetMode",
+    "type": "error"
+  },
+   {
+    "inputs": [],
+    "name": "LegacyMutationDisabled",
+    "type": "error"
+  },
+   {
+    "inputs": [],
+    "name": "NonCanonicalAuthorityMutationOrder",
+    "type": "error"
+  },
+   {
+    "inputs": [
+     {
+      "internalType": "address",
+      "name": "caller",
+      "type": "address"
+    },
+     {
+      "internalType": "address",
+      "name": "expectedGovernor",
+      "type": "address"
+    }
+   ],
+    "name": "OnlyGovernor",
+    "type": "error"
+  },
+   {
+    "inputs": [],
+    "name": "ZeroAddress",
+    "type": "error"
+  },
+   {
+    "inputs": [],
+    "name": "ZeroRoot",
+    "type": "error"
+  }
+ ],
+  "bytecode": "0x60c0346100f157601f611e8038819003918201601f19168301916001600160401b038311848410176100f5578084926060946040528339810103126100f157805160208201516001600160a01b038116929091908383036100f1576040015192811580156100e9575b6100da57156100cb5760805260a0525f55604051611d76908161010a82396080518181816109900152611470015260a0518181816101b701528181610b3301528181610d40015281816110db01528181611238015281816112a801526116b30152f35b63d92e233d60e01b5f5260045ffd5b63b263ae7360e01b5f5260045ffd5b508315610068565b5f80fd5b634e487b7160e01b5f52604160045260245ffdfe60806040526004361015610011575f80fd5b5f3560e01c8063014a38ac1461169557806301ffc9a7146115df57806309de3251146112675780630c340a24146112235780631626ba7e146111d25780631caee651146111b757806329a76c48146110c557806330431781146110a8578063318566e514611080578063372b08901461106657806348de7dbc1461104057806353694c151461101157806354594c6014610fec5780637d3bf7d014610fc45780637d484e9714610d2957806393d32bd314610cbe578063a242695014610c7b578063a6c4ed0d14610b1d578063ab7a00bd14610af8578063ad103120146109cf578063b3aa72cc146109b3578063c93270a314610979578063d1c8fba3146108d7578063d3fd2eae146108ab5763f9cdc6121461012c575f80fd5b346104d05760e03660031901126104d057600435602435604435906001600160401b038216928383036104d057606435926001600160401b038416908185036104d0576084359160a4356001600160401b0381116104d0576101929036906004016118e3565b9060c4356001600160401b0381116104d0576101b2903690600401611843565b9098907f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316338114158061088c575b61087657506004549160ff8360b01c166108675760ff8360a01c16158015610813575b610804575f54808a036107ed5750891580156107e5575b6107d6576001600160401b0360015416808d148015906107b2575b61079b5750600354604051633043178160e01b8152976001600160a01b039091169190602089600481865afa9889156104c5575f99610767575b5060025498898103610751575061028f8787611ab8565b604051634161818760e11b81529099906020816004816001600160a01b038b165afa9081156104c5575f91610715575b508b60649f928f958f958e928a9860209a986102dc9746306119fc565b9d8e60405196879586948593630eb1f79760e41b8552600485015260406024850152816044850152848401375f828201840152601f01601f191681010301915afa9081156104c5575f916106e6575b50156106d75760ff60b01b1916600160b01b176004555f5b8281106103de5750505060209686937f3fd00ad6df135950431e49a14af890034808b3008a10d95ed1baa7d662a288b99360809360ff60b01b19600454166004555f5493895f55816001600160401b0319600154161760015589604051957f80b42706dba7b2ae73247b1231584a945bff4dd817c40409964bd01a41dec6195f80a384528a84015260408301526060820152a4604051908152f35b6103e9818484611a93565b908061064c575b60ff6103fb83611ca6565b166104f25760ff61040f6101208401611ca6565b166104d45761042060408301611ca6565b9161042e6101008201611cb4565b303b156104d05760e06001600160401b039260ff60405196637d484e97841b885260208301356004890152166024870152606081013560448701526080810135606487015260a0810135608487015260c081013560a4870152013560c48501521660e48301525f826101048183305af19182156104c5576001926104b5575b505b01610343565b5f6104bf91611944565b5f6104ad565b6040513d5f823e3d90fd5b5f80fd5b60ff6104df83611ca6565b63fd48f0cb60e01b5f521660045260245ffd5b600160ff6104ff84611ca6565b160361059c5761050e82611cc8565b158015610585575b801561056d575b6104d457303b156104d05760206040519263a6c4ed0d60e01b8452013560048301525f8260248183305af19182156104c55760019261055d575b506104af565b5f61056791611944565b5f610557565b5060ff61057d6101208401611ca6565b16151561051d565b5060ff61059460408401611ca6565b161515610516565b600260ff6105a984611ca6565b16036104d4576105b882611cc8565b158015610635575b801561061c575b6104d4576105d86101208301611ca6565b303b156104d05760405162528e2b60e21b815260209390930135600484015260ff1660248301525f8260448183305af19182156104c55760019261055d57506104af565b50600160ff61062e6101208501611ca6565b16116105c7565b5060ff61064460408401611ca6565b1615156105c0565b5f1981018181116106c357610662908585611a93565b602083013590602081013580831092831561068f575b505050156103f057635b1776c760e01b5f5260045ffd5b149150816106a1575b505f8080610678565b905060ff806106b86106b286611ca6565b93611ca6565b16911611155f610698565b634e487b7160e01b5f52601160045260245ffd5b636d4ba35760e01b5f5260045ffd5b610708915060203d60201161070e575b6107008183611944565b810190611965565b5f61032b565b503d6106f6565b905060209e9194929e813d602011610749575b8161073560209383611944565b810103126104d05751909d9193908b6102bf565b3d9150610728565b89630df8068760e41b5f5260045260245260445ffd5b9098506020813d602011610793575b8161078360209383611944565b810103126104d05751975f610278565b3d9150610776565b8c9063f4fe82d360e01b5f5260045260245260445ffd5b5060018d016001600160401b0381116106c3576001600160401b031687141561023e565b63b263ae7360e01b5f5260045ffd5b508715610223565b89906369646f2d60e01b5f5260045260245260445ffd5b633d6a829b60e21b5f5260045ffd5b5060405163395f9df160e21b81526020816004816001600160a01b0388165afa9081156104c5575f91610848575b501561020c565b610861915060203d60201161070e576107008183611944565b5f610841565b63e51a638f60e01b5f5260045ffd5b63f503234560e01b5f523360045260245260445ffd5b503033148061089c575b156101e9565b5060ff60045460b01c16610896565b346104d05760206108cd6108be3661189a565b96959095949194939293611bcf565b6040519015158152f35b346104d0576101203660031901126104d0576004356108f4611825565b906108fd611870565b610104359160ff83168093036104d057602093815f526007855260ff60405f2054169384610960575b508361093a575b5050506040519015158152f35b610958935060c4359160a43591608435916064359160443591611bcf565b82808061092d565b5f83815260068752604090205460ff1614935085610926565b346104d0575f3660031901126104d05760206040517f00000000000000000000000000000000000000000000000000000000000000008152f35b346104d0575f3660031901126104d05760205f54604051908152f35b346104d05760203660031901126104d0575f6101006040516109f081611914565b8281528260208201528260408201528260608201528260808201528260a08201528260c08201528260e082015201526004355f52600560205261012060405f2060405190610a3d82611914565b60ff815416918281526001600160401b036001830154602083019081526002840154936040840194855260038101546060850190815260048201549060808601918252600660058401549360a0880194855201549660c0870194868916865260ff61010060e08a0199828c60401c1615158b52019960481c1615158952604051998a525160208a01525160408901525160608801525160808701525160a0860152511660c084015251151560e0830152511515610100820152f35b346104d0575f3660031901126104d057602060ff60045460a81c166040519015158152f35b346104d05760203660031901126104d0576004357f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03163381141580610c5c575b610876575060045460ff8160a01c16808091610c4e575b610c40571580610c32575b610c1c575b50805f526005602052600660405f2001805460ff8160401c1615610c095760ff8160481c16610bf65769ff000000000000000000191669010000000000000000001790557f2c3f44e2b477d9d724fd0216f04f4e90a9c8318cbba45e7a568f1f256e11b6415f80a2005b82636b04c1d360e11b5f5260045260245ffd5b82632f2fb20360e11b5f5260045260245ffd5b60ff60a81b1916600160a81b1760045581610b8c565b5060ff8160b01c1615610b87565b623b77ad60e91b5f5260045ffd5b5060ff8260b01c1615610b7c565b5030331480610c6c575b15610b65565b5060ff60045460b01c16610c66565b346104d05760203660031901126104d0576004356001600160401b0381116104d057610cb6610cb060209236906004016118e3565b90611ab8565b604051908152f35b346104d0576101403660031901126104d0576004356001600160a01b03811681036104d05760c435906001600160401b03821682036104d057602091610cb691610d06611870565b6101243592610104359260a43590608435906064359060443590602435906119fc565b346104d057610d373661189a565b949694959091907f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03163381141580610fa5575b610876575060045460ff8160a01c16808091610f97575b610c40571580610f89575b610f73575b5085158015610f6b575b8015610f63575b8015610f5b575b8015610f53575b8015610f4b575b6107d65760ff169560018711610f38576001600160401b0316928315610f2957855f52600560205260ff600660405f20015460401c16610f16579160a093917f2010deefdc46ce70145734b6c22ddc8498ef9501fb8356aeaf5e697e5848b1939593604051610e2d81611914565b89815288602082018c81526001600160401b03600660408501948a865260608101878152608082018981528d8301918b835260c08401988d8a5260e0850197600189526101008601995f8b525f52600560205260ff8060405f209751161660ff19875416178655516001860155516002850155516003840155516004830155516005820155019351166001600160401b031984541617835551151560ff60401b83549160401b169060ff60401b191617825551151560ff60481b82549160481b169060ff60481b19161790556040519485526020850152604084015260608301526080820152a4005b85639255a89d60e01b5f5260045260245ffd5b633a7a070160e11b5f5260045ffd5b8663074e113960e21b5f5260045260245ffd5b508215610dbf565b508115610db8565b508315610db1565b508415610daa565b508715610da3565b60ff60a81b1916600160a81b1760045588610d99565b5060ff8160b01c1615610d94565b5060ff8260b01c1615610d89565b5030331480610fb5575b15610d72565b5060ff60045460b01c16610faf565b346104d0575f3660031901126104d0576003546040516001600160a01b039091168152602090f35b346104d0575f3660031901126104d057602060ff60045460a01c166040519015158152f35b346104d05760203660031901126104d0576004355f526007602052602060ff60405f2054166040519015158152f35b346104d0575f3660031901126104d05760206001600160401b0360015416604051908152f35b346104d0575f3660031901126104d05760206040515f8152f35b346104d0575f3660031901126104d0576004546040516001600160a01b039091168152602090f35b346104d0575f3660031901126104d0576020600254604051908152f35b346104d05760203660031901126104d0576004357f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03163381141580611198575b610876575060045460ff8160a01c1680809161118a575b610c4057158061117c575b611166575b5080156107d6575f54815f557f80b42706dba7b2ae73247b1231584a945bff4dd817c40409964bd01a41dec6195f80a3005b60ff60a81b1916600160a81b1760045581611134565b5060ff8160b01c161561112f565b5060ff8260b01c1615611124565b50303314806111a8575b1561110d565b5060ff60045460b01c166111a2565b346104d0575f3660031901126104d057602060405160018152f35b346104d05760403660031901126104d0576024356001600160401b0381116104d0576112106112076020923690600401611843565b9060043561197d565b6040516001600160e01b03199091168152f35b346104d0575f3660031901126104d0576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b346104d05760603660031901126104d0576004356001600160a01b038116908190036104d0576044356001600160a01b03811691602435918390036104d0577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031633811415806115c0575b610876575060045460ff8160a01c166115b157811580156115a9575b80156115a0575b8015611598575b801561154e575b8015611541575b80156114c8575b8015611448575b80156113e7575b8015611384575b610867576002839055600380546001600160a01b031916851790556001600160a81b0319168117600160a01b176004557f152cfbc360b52710d5600cbc46981629dec1db76097b4f9af8f395e4be0f116b5f80a4005b50604051633043178160e01b8152602081600481885afa80156104c55784915f916113b2575b50141561132e565b9150506020813d6020116113df575b816113ce60209383611944565b810103126104d057839051866113aa565b3d91506113c1565b506040516312f17f4760e11b8152602081600481865afa9081156104c5575f91611416575b505f541415611327565b90506020813d602011611440575b8161143160209383611944565b810103126104d057518561140c565b3d9150611424565b5060405163c93270a360e01b8152602081600481865afa9081156104c5575f91611496575b507f00000000000000000000000000000000000000000000000000000000000000001415611320565b90506020813d6020116114c0575b816114b160209383611944565b810103126104d057518561146d565b3d91506114a4565b50604051634268767d60e01b8152602081600481865afa9081156104c5575f916114ff575b506001600160a01b0316301415611319565b90506020813d602011611539575b8161151a60209383611944565b810103126104d057516001600160a01b03811681036104d057856114ed565b3d915061150d565b5060ff8160a81c16611312565b5060405163395f9df160e21b8152602081600481865afa9081156104c5575f91611579575b5061130b565b611592915060203d60201161070e576107008183611944565b85611573565b508215611304565b50833b156112fd565b5083156112f6565b634831b89960e01b5f5260045ffd5b50303314806115d0575b156112da565b5060ff60045460b01c166115ca565b346104d05760203660031901126104d05760043563ffffffff60e01b81168091036104d05760209063084117c560e01b8114908115611684575b8115611673575b8115611662575b8115611651575b8115611640575b506040519015158152f35b6301ffc9a760e01b14905082611635565b630b135d3f60e11b8114915061162e565b63f013f44360e01b81149150611627565b6341f5c78d60e11b81149150611620565b637915e7e960e11b81149150611619565b346104d05760403660031901126104d0576004356116b1611825565b7f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03163381141580611806575b61087657506004549060ff8260a01c16918280936117f8575b610c405760ff9215806117eb575b6117d5575b501690600182116117c257805f52600560205260ff600660405f20015460401c161580156117a6575b61179457805f52600760205260ff60405f20541661178257805f52600760205260405f20600160ff198254161790555f52600660205260405f209060ff198254161790555f80f35b639255a89d60e01b5f5260045260245ffd5b632f2fb20360e11b5f5260045260245ffd5b50805f52600560205260ff600660405f20015460481c1661173a565b50637a25c24f60e01b5f5260045260245ffd5b60a883901b1916600160a81b1760045583611711565b50828160b01c161561170c565b5060ff8160b01c16156116fe565b5030331480611816575b156116e5565b5060ff60045460b01c16611810565b6024359060ff821682036104d057565b359060ff821682036104d057565b9181601f840112156104d0578235916001600160401b0383116104d057602083818601950101116104d057565b60e435906001600160401b03821682036104d057565b35906001600160401b03821682036104d057565b6101009060031901126104d0576004359060243560ff811681036104d0579060443590606435906084359060a4359060c4359060e4356001600160401b03811681036104d05790565b9181601f840112156104d0578235916001600160401b0383116104d05760208085019461014085020101116104d057565b61012081019081106001600160401b0382111761193057604052565b634e487b7160e01b5f52604160045260245ffd5b90601f801991011681019081106001600160401b0382111761193057604052565b908160209103126104d0575180151581036104d05790565b909160e081036119ec578260e091810103126104d057816119a06119d093611835565b916119ad60c08301611886565b9260a0830135926080810135926060820135926020604084013593013591611bcf565b156119e057630b135d3f60e11b90565b6001600160e01b031990565b506001600160e01b031992915050565b936001600160401b0395919896929386947faab195c3567a103a824f355eb7601a83e479e3ac5e9d21eb034887fa90a6b19f9b99966040519b60208d019d8e5260408d015260018060a01b031660608c015260808b015260a08a015260c089015260e088015216610100860152166101208401526101408301526101608201526101608152611a8d61018082611944565b51902090565b9190811015611aa457610140020190565b634e487b7160e01b5f52603260045260245ffd5b91907ffefe04951335cdb000e2e5d43ea8e14e1df8234d806256567a60a566ee95c912925f915b808310611aeb57505050565b909193600190611afc868486611a93565b60405160ff611b89610120602084019483611b1682611835565b1686526020810135604086015283611b3060408301611835565b16606086015260608101356080860152608081013560a086015260a081013560c086015260c081013560e086015260e08101356101008601526001600160401b03611b7e6101008301611886565b168286015201611835565b166101408201526101408152611ba161016082611944565b5190206040519060208201928352604082015260408152611bc3606082611944565b51902094019190611adf565b969491959390965f52600560205260405f209260068401549660ff8860401c169889611c96575b89611c84575b5088611c76575b5087611c68575b5086611c5a575b5085611c4c575b5084611c3e575b505082611c2b57505090565b6001600160401b03919250811691161490565b600501541492505f80611c1f565b60048201541494505f611c18565b60038301541495505f611c11565b60028401541496505f611c0a565b60018501541497505f611c03565b855460ff91821691161498505f611bfc565b985060ff8860481c161598611bf6565b3560ff811681036104d05790565b356001600160401b03811681036104d05790565b6060810135159081611d33575b81611d26575b81611d19575b81611d0c575b81611cf0575090565b6001600160401b039150610100611d079101611cb4565b161590565b60e0810135159150611ce7565b60c0810135159150611ce1565b60a0810135159150611cdb565b6080810135159150611cd556fea26469706673582212205acfe41746bbfbd1ca6458a6bbb6c68a1da4ac690fb3a99d231b99c8fb0d939064736f6c63430008210033",
+  "category": "core",
+  "contractName": "PrfLocalAuthorityAdapter",
+  "deployedBytecode": "0x60806040526004361015610011575f80fd5b5f3560e01c8063014a38ac1461169557806301ffc9a7146115df57806309de3251146112675780630c340a24146112235780631626ba7e146111d25780631caee651146111b757806329a76c48146110c557806330431781146110a8578063318566e514611080578063372b08901461106657806348de7dbc1461104057806353694c151461101157806354594c6014610fec5780637d3bf7d014610fc45780637d484e9714610d2957806393d32bd314610cbe578063a242695014610c7b578063a6c4ed0d14610b1d578063ab7a00bd14610af8578063ad103120146109cf578063b3aa72cc146109b3578063c93270a314610979578063d1c8fba3146108d7578063d3fd2eae146108ab5763f9cdc6121461012c575f80fd5b346104d05760e03660031901126104d057600435602435604435906001600160401b038216928383036104d057606435926001600160401b038416908185036104d0576084359160a4356001600160401b0381116104d0576101929036906004016118e3565b9060c4356001600160401b0381116104d0576101b2903690600401611843565b9098907f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316338114158061088c575b61087657506004549160ff8360b01c166108675760ff8360a01c16158015610813575b610804575f54808a036107ed5750891580156107e5575b6107d6576001600160401b0360015416808d148015906107b2575b61079b5750600354604051633043178160e01b8152976001600160a01b039091169190602089600481865afa9889156104c5575f99610767575b5060025498898103610751575061028f8787611ab8565b604051634161818760e11b81529099906020816004816001600160a01b038b165afa9081156104c5575f91610715575b508b60649f928f958f958e928a9860209a986102dc9746306119fc565b9d8e60405196879586948593630eb1f79760e41b8552600485015260406024850152816044850152848401375f828201840152601f01601f191681010301915afa9081156104c5575f916106e6575b50156106d75760ff60b01b1916600160b01b176004555f5b8281106103de5750505060209686937f3fd00ad6df135950431e49a14af890034808b3008a10d95ed1baa7d662a288b99360809360ff60b01b19600454166004555f5493895f55816001600160401b0319600154161760015589604051957f80b42706dba7b2ae73247b1231584a945bff4dd817c40409964bd01a41dec6195f80a384528a84015260408301526060820152a4604051908152f35b6103e9818484611a93565b908061064c575b60ff6103fb83611ca6565b166104f25760ff61040f6101208401611ca6565b166104d45761042060408301611ca6565b9161042e6101008201611cb4565b303b156104d05760e06001600160401b039260ff60405196637d484e97841b885260208301356004890152166024870152606081013560448701526080810135606487015260a0810135608487015260c081013560a4870152013560c48501521660e48301525f826101048183305af19182156104c5576001926104b5575b505b01610343565b5f6104bf91611944565b5f6104ad565b6040513d5f823e3d90fd5b5f80fd5b60ff6104df83611ca6565b63fd48f0cb60e01b5f521660045260245ffd5b600160ff6104ff84611ca6565b160361059c5761050e82611cc8565b158015610585575b801561056d575b6104d457303b156104d05760206040519263a6c4ed0d60e01b8452013560048301525f8260248183305af19182156104c55760019261055d575b506104af565b5f61056791611944565b5f610557565b5060ff61057d6101208401611ca6565b16151561051d565b5060ff61059460408401611ca6565b161515610516565b600260ff6105a984611ca6565b16036104d4576105b882611cc8565b158015610635575b801561061c575b6104d4576105d86101208301611ca6565b303b156104d05760405162528e2b60e21b815260209390930135600484015260ff1660248301525f8260448183305af19182156104c55760019261055d57506104af565b50600160ff61062e6101208501611ca6565b16116105c7565b5060ff61064460408401611ca6565b1615156105c0565b5f1981018181116106c357610662908585611a93565b602083013590602081013580831092831561068f575b505050156103f057635b1776c760e01b5f5260045ffd5b149150816106a1575b505f8080610678565b905060ff806106b86106b286611ca6565b93611ca6565b16911611155f610698565b634e487b7160e01b5f52601160045260245ffd5b636d4ba35760e01b5f5260045ffd5b610708915060203d60201161070e575b6107008183611944565b810190611965565b5f61032b565b503d6106f6565b905060209e9194929e813d602011610749575b8161073560209383611944565b810103126104d05751909d9193908b6102bf565b3d9150610728565b89630df8068760e41b5f5260045260245260445ffd5b9098506020813d602011610793575b8161078360209383611944565b810103126104d05751975f610278565b3d9150610776565b8c9063f4fe82d360e01b5f5260045260245260445ffd5b5060018d016001600160401b0381116106c3576001600160401b031687141561023e565b63b263ae7360e01b5f5260045ffd5b508715610223565b89906369646f2d60e01b5f5260045260245260445ffd5b633d6a829b60e21b5f5260045ffd5b5060405163395f9df160e21b81526020816004816001600160a01b0388165afa9081156104c5575f91610848575b501561020c565b610861915060203d60201161070e576107008183611944565b5f610841565b63e51a638f60e01b5f5260045ffd5b63f503234560e01b5f523360045260245260445ffd5b503033148061089c575b156101e9565b5060ff60045460b01c16610896565b346104d05760206108cd6108be3661189a565b96959095949194939293611bcf565b6040519015158152f35b346104d0576101203660031901126104d0576004356108f4611825565b906108fd611870565b610104359160ff83168093036104d057602093815f526007855260ff60405f2054169384610960575b508361093a575b5050506040519015158152f35b610958935060c4359160a43591608435916064359160443591611bcf565b82808061092d565b5f83815260068752604090205460ff1614935085610926565b346104d0575f3660031901126104d05760206040517f00000000000000000000000000000000000000000000000000000000000000008152f35b346104d0575f3660031901126104d05760205f54604051908152f35b346104d05760203660031901126104d0575f6101006040516109f081611914565b8281528260208201528260408201528260608201528260808201528260a08201528260c08201528260e082015201526004355f52600560205261012060405f2060405190610a3d82611914565b60ff815416918281526001600160401b036001830154602083019081526002840154936040840194855260038101546060850190815260048201549060808601918252600660058401549360a0880194855201549660c0870194868916865260ff61010060e08a0199828c60401c1615158b52019960481c1615158952604051998a525160208a01525160408901525160608801525160808701525160a0860152511660c084015251151560e0830152511515610100820152f35b346104d0575f3660031901126104d057602060ff60045460a81c166040519015158152f35b346104d05760203660031901126104d0576004357f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03163381141580610c5c575b610876575060045460ff8160a01c16808091610c4e575b610c40571580610c32575b610c1c575b50805f526005602052600660405f2001805460ff8160401c1615610c095760ff8160481c16610bf65769ff000000000000000000191669010000000000000000001790557f2c3f44e2b477d9d724fd0216f04f4e90a9c8318cbba45e7a568f1f256e11b6415f80a2005b82636b04c1d360e11b5f5260045260245ffd5b82632f2fb20360e11b5f5260045260245ffd5b60ff60a81b1916600160a81b1760045581610b8c565b5060ff8160b01c1615610b87565b623b77ad60e91b5f5260045ffd5b5060ff8260b01c1615610b7c565b5030331480610c6c575b15610b65565b5060ff60045460b01c16610c66565b346104d05760203660031901126104d0576004356001600160401b0381116104d057610cb6610cb060209236906004016118e3565b90611ab8565b604051908152f35b346104d0576101403660031901126104d0576004356001600160a01b03811681036104d05760c435906001600160401b03821682036104d057602091610cb691610d06611870565b6101243592610104359260a43590608435906064359060443590602435906119fc565b346104d057610d373661189a565b949694959091907f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03163381141580610fa5575b610876575060045460ff8160a01c16808091610f97575b610c40571580610f89575b610f73575b5085158015610f6b575b8015610f63575b8015610f5b575b8015610f53575b8015610f4b575b6107d65760ff169560018711610f38576001600160401b0316928315610f2957855f52600560205260ff600660405f20015460401c16610f16579160a093917f2010deefdc46ce70145734b6c22ddc8498ef9501fb8356aeaf5e697e5848b1939593604051610e2d81611914565b89815288602082018c81526001600160401b03600660408501948a865260608101878152608082018981528d8301918b835260c08401988d8a5260e0850197600189526101008601995f8b525f52600560205260ff8060405f209751161660ff19875416178655516001860155516002850155516003840155516004830155516005820155019351166001600160401b031984541617835551151560ff60401b83549160401b169060ff60401b191617825551151560ff60481b82549160481b169060ff60481b19161790556040519485526020850152604084015260608301526080820152a4005b85639255a89d60e01b5f5260045260245ffd5b633a7a070160e11b5f5260045ffd5b8663074e113960e21b5f5260045260245ffd5b508215610dbf565b508115610db8565b508315610db1565b508415610daa565b508715610da3565b60ff60a81b1916600160a81b1760045588610d99565b5060ff8160b01c1615610d94565b5060ff8260b01c1615610d89565b5030331480610fb5575b15610d72565b5060ff60045460b01c16610faf565b346104d0575f3660031901126104d0576003546040516001600160a01b039091168152602090f35b346104d0575f3660031901126104d057602060ff60045460a01c166040519015158152f35b346104d05760203660031901126104d0576004355f526007602052602060ff60405f2054166040519015158152f35b346104d0575f3660031901126104d05760206001600160401b0360015416604051908152f35b346104d0575f3660031901126104d05760206040515f8152f35b346104d0575f3660031901126104d0576004546040516001600160a01b039091168152602090f35b346104d0575f3660031901126104d0576020600254604051908152f35b346104d05760203660031901126104d0576004357f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03163381141580611198575b610876575060045460ff8160a01c1680809161118a575b610c4057158061117c575b611166575b5080156107d6575f54815f557f80b42706dba7b2ae73247b1231584a945bff4dd817c40409964bd01a41dec6195f80a3005b60ff60a81b1916600160a81b1760045581611134565b5060ff8160b01c161561112f565b5060ff8260b01c1615611124565b50303314806111a8575b1561110d565b5060ff60045460b01c166111a2565b346104d0575f3660031901126104d057602060405160018152f35b346104d05760403660031901126104d0576024356001600160401b0381116104d0576112106112076020923690600401611843565b9060043561197d565b6040516001600160e01b03199091168152f35b346104d0575f3660031901126104d0576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b346104d05760603660031901126104d0576004356001600160a01b038116908190036104d0576044356001600160a01b03811691602435918390036104d0577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031633811415806115c0575b610876575060045460ff8160a01c166115b157811580156115a9575b80156115a0575b8015611598575b801561154e575b8015611541575b80156114c8575b8015611448575b80156113e7575b8015611384575b610867576002839055600380546001600160a01b031916851790556001600160a81b0319168117600160a01b176004557f152cfbc360b52710d5600cbc46981629dec1db76097b4f9af8f395e4be0f116b5f80a4005b50604051633043178160e01b8152602081600481885afa80156104c55784915f916113b2575b50141561132e565b9150506020813d6020116113df575b816113ce60209383611944565b810103126104d057839051866113aa565b3d91506113c1565b506040516312f17f4760e11b8152602081600481865afa9081156104c5575f91611416575b505f541415611327565b90506020813d602011611440575b8161143160209383611944565b810103126104d057518561140c565b3d9150611424565b5060405163c93270a360e01b8152602081600481865afa9081156104c5575f91611496575b507f00000000000000000000000000000000000000000000000000000000000000001415611320565b90506020813d6020116114c0575b816114b160209383611944565b810103126104d057518561146d565b3d91506114a4565b50604051634268767d60e01b8152602081600481865afa9081156104c5575f916114ff575b506001600160a01b0316301415611319565b90506020813d602011611539575b8161151a60209383611944565b810103126104d057516001600160a01b03811681036104d057856114ed565b3d915061150d565b5060ff8160a81c16611312565b5060405163395f9df160e21b8152602081600481865afa9081156104c5575f91611579575b5061130b565b611592915060203d60201161070e576107008183611944565b85611573565b508215611304565b50833b156112fd565b5083156112f6565b634831b89960e01b5f5260045ffd5b50303314806115d0575b156112da565b5060ff60045460b01c166115ca565b346104d05760203660031901126104d05760043563ffffffff60e01b81168091036104d05760209063084117c560e01b8114908115611684575b8115611673575b8115611662575b8115611651575b8115611640575b506040519015158152f35b6301ffc9a760e01b14905082611635565b630b135d3f60e11b8114915061162e565b63f013f44360e01b81149150611627565b6341f5c78d60e11b81149150611620565b637915e7e960e11b81149150611619565b346104d05760403660031901126104d0576004356116b1611825565b7f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03163381141580611806575b61087657506004549060ff8260a01c16918280936117f8575b610c405760ff9215806117eb575b6117d5575b501690600182116117c257805f52600560205260ff600660405f20015460401c161580156117a6575b61179457805f52600760205260ff60405f20541661178257805f52600760205260405f20600160ff198254161790555f52600660205260405f209060ff198254161790555f80f35b639255a89d60e01b5f5260045260245ffd5b632f2fb20360e11b5f5260045260245ffd5b50805f52600560205260ff600660405f20015460481c1661173a565b50637a25c24f60e01b5f5260045260245ffd5b60a883901b1916600160a81b1760045583611711565b50828160b01c161561170c565b5060ff8160b01c16156116fe565b5030331480611816575b156116e5565b5060ff60045460b01c16611810565b6024359060ff821682036104d057565b359060ff821682036104d057565b9181601f840112156104d0578235916001600160401b0383116104d057602083818601950101116104d057565b60e435906001600160401b03821682036104d057565b35906001600160401b03821682036104d057565b6101009060031901126104d0576004359060243560ff811681036104d0579060443590606435906084359060a4359060c4359060e4356001600160401b03811681036104d05790565b9181601f840112156104d0578235916001600160401b0383116104d05760208085019461014085020101116104d057565b61012081019081106001600160401b0382111761193057604052565b634e487b7160e01b5f52604160045260245ffd5b90601f801991011681019081106001600160401b0382111761193057604052565b908160209103126104d0575180151581036104d05790565b909160e081036119ec578260e091810103126104d057816119a06119d093611835565b916119ad60c08301611886565b9260a0830135926080810135926060820135926020604084013593013591611bcf565b156119e057630b135d3f60e11b90565b6001600160e01b031990565b506001600160e01b031992915050565b936001600160401b0395919896929386947faab195c3567a103a824f355eb7601a83e479e3ac5e9d21eb034887fa90a6b19f9b99966040519b60208d019d8e5260408d015260018060a01b031660608c015260808b015260a08a015260c089015260e088015216610100860152166101208401526101408301526101608201526101608152611a8d61018082611944565b51902090565b9190811015611aa457610140020190565b634e487b7160e01b5f52603260045260245ffd5b91907ffefe04951335cdb000e2e5d43ea8e14e1df8234d806256567a60a566ee95c912925f915b808310611aeb57505050565b909193600190611afc868486611a93565b60405160ff611b89610120602084019483611b1682611835565b1686526020810135604086015283611b3060408301611835565b16606086015260608101356080860152608081013560a086015260a081013560c086015260c081013560e086015260e08101356101008601526001600160401b03611b7e6101008301611886565b168286015201611835565b166101408201526101408152611ba161016082611944565b5190206040519060208201928352604082015260408152611bc3606082611944565b51902094019190611adf565b969491959390965f52600560205260405f209260068401549660ff8860401c169889611c96575b89611c84575b5088611c76575b5087611c68575b5086611c5a575b5085611c4c575b5084611c3e575b505082611c2b57505090565b6001600160401b03919250811691161490565b600501541492505f80611c1f565b60048201541494505f611c18565b60038301541495505f611c11565b60028401541496505f611c0a565b60018501541497505f611c03565b855460ff91821691161498505f611bfc565b985060ff8860481c161598611bf6565b3560ff811681036104d05790565b356001600160401b03811681036104d05790565b6060810135159081611d33575b81611d26575b81611d19575b81611d0c575b81611cf0575090565b6001600160401b039150610100611d079101611cb4565b161590565b60e0810135159150611ce7565b60c0810135159150611ce1565b60a0810135159150611cdb565b6080810135159150611cd556fea26469706673582212205acfe41746bbfbd1ca6458a6bbb6c68a1da4ac690fb3a99d231b99c8fb0d939064736f6c63430008210033",
+  "deployedLinkReferences": {},
+  "immutableReferences": {
+   "73831": [
+    {
+     "length": 32,
+     "start": 2448
+   },
+    {
+     "length": 32,
+     "start": 5232
+   }
+  ],
+   "73834": [
+    {
+     "length": 32,
+     "start": 439
+   },
+    {
+     "length": 32,
+     "start": 2867
+   },
+    {
+     "length": 32,
+     "start": 3392
+   },
+    {
+     "length": 32,
+     "start": 4315
+   },
+    {
+     "length": 32,
+     "start": 4664
+   },
+    {
+     "length": 32,
+     "start": 4776
+   },
+    {
+     "length": 32,
+     "start": 5811
+   }
+  ]
+ },
+  "linkReferences": {},
+  "metadata": "eyJjb21waWxlciI6eyJ2ZXJzaW9uIjoiMC44LjMzK2NvbW1pdC42NDExOGYyMSJ9LCJsYW5ndWFnZSI6IlNvbGlkaXR5Iiwib3V0cHV0Ijp7ImFiaSI6W3siaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6InByb3RvY29sR2VuZXNpc1Jvb3RfIiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImFkZHJlc3MiLCJuYW1lIjoiZ292ZXJub3JfIiwidHlwZSI6ImFkZHJlc3MifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiaW5pdGlhbEF1dGhvcml0eVN0YXRlUm9vdF8iLCJ0eXBlIjoiYnl0ZXMzMiJ9XSwic3RhdGVNdXRhYmlsaXR5Ijoibm9ucGF5YWJsZSIsInR5cGUiOiJjb25zdHJ1Y3RvciJ9LHsiaW5wdXRzIjpbXSwidHlwZSI6ImVycm9yIiwibmFtZSI6IkF1dGhvcml0eVRyYW5zaXRpb25BbHJlYWR5RW5hYmxlZCJ9LHsiaW5wdXRzIjpbXSwidHlwZSI6ImVycm9yIiwibmFtZSI6IkF1dGhvcml0eVRyYW5zaXRpb25JbnN0YW5jZU5vdFNlYWxlZCJ9LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImV4cGVjdGVkIiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiYWN0dWFsIiwidHlwZSI6ImJ5dGVzMzIifV0sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJBdXRob3JpdHlUcmFuc2l0aW9uUG9saWN5TWlzbWF0Y2gifSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJleHBlY3RlZCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImFjdHVhbCIsInR5cGUiOiJieXRlczMyIn1dLCJ0eXBlIjoiZXJyb3IiLCJuYW1lIjoiQXV0aG9yaXR5VHJhbnNpdGlvblByZWRlY2Vzc29yTWlzbWF0Y2gifSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoidWludDY0IiwibmFtZSI6ImV4cGVjdGVkIiwidHlwZSI6InVpbnQ2NCJ9LHsiaW50ZXJuYWxUeXBlIjoidWludDY0IiwibmFtZSI6ImFjdHVhbCIsInR5cGUiOiJ1aW50NjQifV0sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJBdXRob3JpdHlUcmFuc2l0aW9uUmV2aXNpb25NaXNtYXRjaCJ9LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImRlY2lzaW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn1dLCJ0eXBlIjoiZXJyb3IiLCJuYW1lIjoiRGVjaXNpb25BbHJlYWR5RXhpc3RzIn0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiZGVjaXNpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifV0sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJEZWNpc2lvbkFscmVhZHlSZXZva2VkIn0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiZGVjaXNpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifV0sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJEZWNpc2lvbkRvZXNOb3RFeGlzdCJ9LHsiaW5wdXRzIjpbXSwidHlwZSI6ImVycm9yIiwibmFtZSI6IkVwb2NoTXVzdEJlUG9zaXRpdmUifSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoidWludDgiLCJuYW1lIjoia2luZCIsInR5cGUiOiJ1aW50OCJ9XSwidHlwZSI6ImVycm9yIiwibmFtZSI6IkludmFsaWRBdXRob3JpdHlNdXRhdGlvbiJ9LHsiaW5wdXRzIjpbXSwidHlwZSI6ImVycm9yIiwibmFtZSI6IkludmFsaWRBdXRob3JpdHlUcmFuc2l0aW9uQXR0ZXN0YXRpb24ifSx7ImlucHV0cyI6W10sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJJbnZhbGlkQXV0aG9yaXR5VHJhbnNpdGlvbkJpbmRpbmcifSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoidWludDgiLCJuYW1lIjoicHJvb2ZNb2RlIiwidHlwZSI6InVpbnQ4In1dLCJ0eXBlIjoiZXJyb3IiLCJuYW1lIjoiSW52YWxpZFByb29mTW9kZSJ9LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJ1aW50OCIsIm5hbWUiOiJ0YXJnZXRNb2RlIiwidHlwZSI6InVpbnQ4In1dLCJ0eXBlIjoiZXJyb3IiLCJuYW1lIjoiSW52YWxpZFRhcmdldE1vZGUifSx7ImlucHV0cyI6W10sInR5cGUiOiJlcnJvciIsIm5hbWUiOiJMZWdhY3lNdXRhdGlvbkRpc2FibGVkIn0seyJpbnB1dHMiOltdLCJ0eXBlIjoiZXJyb3IiLCJuYW1lIjoiTm9uQ2Fub25pY2FsQXV0aG9yaXR5TXV0YXRpb25PcmRlciJ9LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJhZGRyZXNzIiwibmFtZSI6ImNhbGxlciIsInR5cGUiOiJhZGRyZXNzIn0seyJpbnRlcm5hbFR5cGUiOiJhZGRyZXNzIiwibmFtZSI6ImV4cGVjdGVkR292ZXJub3IiLCJ0eXBlIjoiYWRkcmVzcyJ9XSwidHlwZSI6ImVycm9yIiwibmFtZSI6Ik9ubHlHb3Zlcm5vciJ9LHsiaW5wdXRzIjpbXSwidHlwZSI6ImVycm9yIiwibmFtZSI6Ilplcm9BZGRyZXNzIn0seyJpbnB1dHMiOltdLCJ0eXBlIjoiZXJyb3IiLCJuYW1lIjoiWmVyb1Jvb3QifSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJvbGRBdXRob3JpdHlTdGF0ZVJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOnRydWV9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJuZXdBdXRob3JpdHlTdGF0ZVJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOnRydWV9XSwidHlwZSI6ImV2ZW50IiwibmFtZSI6IkF1dGhvcml0eVN0YXRlUm9vdFVwZGF0ZWQiLCJhbm9ueW1vdXMiOmZhbHNlfSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJleGVjdXRpb25Db21taXRtZW50IiwidHlwZSI6ImJ5dGVzMzIiLCJpbmRleGVkIjp0cnVlfSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoicHJldmlvdXNSb290IiwidHlwZSI6ImJ5dGVzMzIiLCJpbmRleGVkIjp0cnVlfSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoic3VjY2Vzc29yUm9vdCIsInR5cGUiOiJieXRlczMyIiwiaW5kZXhlZCI6dHJ1ZX0seyJpbnRlcm5hbFR5cGUiOiJ1aW50NjQiLCJuYW1lIjoicHJldmlvdXNSZXZpc2lvbiIsInR5cGUiOiJ1aW50NjQiLCJpbmRleGVkIjpmYWxzZX0seyJpbnRlcm5hbFR5cGUiOiJ1aW50NjQiLCJuYW1lIjoic3VjY2Vzc29yUmV2aXNpb24iLCJ0eXBlIjoidWludDY0IiwiaW5kZXhlZCI6ZmFsc2V9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJtdXRhdGlvblJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOmZhbHNlfSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiZGVjaXNpb25QcmVpbWFnZXNSb290IiwidHlwZSI6ImJ5dGVzMzIiLCJpbmRleGVkIjpmYWxzZX1dLCJ0eXBlIjoiZXZlbnQiLCJuYW1lIjoiQXV0aG9yaXR5U3RhdGVUcmFuc2l0aW9uQXBwbGllZCIsImFub255bW91cyI6ZmFsc2V9LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJhZGRyZXNzIiwibmFtZSI6ImdlbmVzaXMiLCJ0eXBlIjoiYWRkcmVzcyIsImluZGV4ZWQiOnRydWV9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJwb2xpY3lSb290IiwidHlwZSI6ImJ5dGVzMzIiLCJpbmRleGVkIjp0cnVlfSx7ImludGVybmFsVHlwZSI6ImFkZHJlc3MiLCJuYW1lIjoidmFsaWRhdG9yIiwidHlwZSI6ImFkZHJlc3MiLCJpbmRleGVkIjp0cnVlfV0sInR5cGUiOiJldmVudCIsIm5hbWUiOiJBdXRob3JpdHlUcmFuc2l0aW9uc0VuYWJsZWQiLCJhbm9ueW1vdXMiOmZhbHNlfSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJkZWNpc2lvblJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOnRydWV9LHsiaW50ZXJuYWxUeXBlIjoidWludDgiLCJuYW1lIjoidGFyZ2V0TW9kZSIsInR5cGUiOiJ1aW50OCIsImluZGV4ZWQiOnRydWV9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJ0YXJnZXRSb290IiwidHlwZSI6ImJ5dGVzMzIiLCJpbmRleGVkIjp0cnVlfSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoicGFyZW50Q29uZmlndXJhdGlvblJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOmZhbHNlfSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoibmV3Q29uZmlndXJhdGlvblJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOmZhbHNlfSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoicGFyZW50VmVyaWZpZXJSZWdpc3RyeVJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOmZhbHNlfSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoibmV3VmVyaWZpZXJSZWdpc3RyeVJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiIsImluZGV4ZWQiOmZhbHNlfSx7ImludGVybmFsVHlwZSI6InVpbnQ2NCIsIm5hbWUiOiJlcG9jaCIsInR5cGUiOiJ1aW50NjQiLCJpbmRleGVkIjpmYWxzZX1dLCJ0eXBlIjoiZXZlbnQiLCJuYW1lIjoiRGVjaXNpb25BdXRob3Jpc2VkIiwiYW5vbnltb3VzIjpmYWxzZX0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiZGVjaXNpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIiLCJpbmRleGVkIjp0cnVlfV0sInR5cGUiOiJldmVudCIsIm5hbWUiOiJEZWNpc2lvblJldm9rZWQiLCJhbm9ueW1vdXMiOmZhbHNlfSx7ImlucHV0cyI6W10sInN0YXRlTXV0YWJpbGl0eSI6InZpZXciLCJ0eXBlIjoiZnVuY3Rpb24iLCJuYW1lIjoiVEFSR0VUX0RJUkVDVCIsIm91dHB1dHMiOlt7ImludGVybmFsVHlwZSI6InVpbnQ4IiwibmFtZSI6IiIsInR5cGUiOiJ1aW50OCJ9XX0seyJpbnB1dHMiOltdLCJzdGF0ZU11dGFiaWxpdHkiOiJ2aWV3IiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6IlRBUkdFVF9TRVQiLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJ1aW50OCIsIm5hbWUiOiIiLCJ0eXBlIjoidWludDgifV19LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImV4cGVjdGVkUHJldmlvdXNSb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoic3VjY2Vzc29yUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJ1aW50NjQiLCJuYW1lIjoicHJldmlvdXNSZXZpc2lvbiIsInR5cGUiOiJ1aW50NjQifSx7ImludGVybmFsVHlwZSI6InVpbnQ2NCIsIm5hbWUiOiJzdWNjZXNzb3JSZXZpc2lvbiIsInR5cGUiOiJ1aW50NjQifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiZGVjaXNpb25QcmVpbWFnZXNSb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6InN0cnVjdCBJUHJmQXV0aG9yaXR5VHJhbnNpdGlvbkFkbWluLkF1dGhvcml0eU11dGF0aW9uW10iLCJuYW1lIjoibXV0YXRpb25zIiwidHlwZSI6InR1cGxlW10iLCJjb21wb25lbnRzIjpbeyJpbnRlcm5hbFR5cGUiOiJ1aW50OCIsIm5hbWUiOiJraW5kIiwidHlwZSI6InVpbnQ4In0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImRlY2lzaW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJ1aW50OCIsIm5hbWUiOiJ0YXJnZXRNb2RlIiwidHlwZSI6InVpbnQ4In0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6InRhcmdldFJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJwYXJlbnRDb25maWd1cmF0aW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6Im5ld0NvbmZpZ3VyYXRpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoicGFyZW50VmVyaWZpZXJSZWdpc3RyeVJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJuZXdWZXJpZmllclJlZ2lzdHJ5Um9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJ1aW50NjQiLCJuYW1lIjoiZXBvY2giLCJ0eXBlIjoidWludDY0In0seyJpbnRlcm5hbFR5cGUiOiJ1aW50OCIsIm5hbWUiOiJwcm9vZk1vZGUiLCJ0eXBlIjoidWludDgifV19LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMiLCJuYW1lIjoiYXR0ZXN0YXRpb24iLCJ0eXBlIjoiYnl0ZXMifV0sInN0YXRlTXV0YWJpbGl0eSI6Im5vbnBheWFibGUiLCJ0eXBlIjoiZnVuY3Rpb24iLCJuYW1lIjoiYXBwbHlBdXRob3JpdHlTdGF0ZVRyYW5zaXRpb24iLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImV4ZWN1dGlvbkNvbW1pdG1lbnQiLCJ0eXBlIjoiYnl0ZXMzMiJ9XX0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiZGVjaXNpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6InVpbnQ4IiwibmFtZSI6InRhcmdldE1vZGUiLCJ0eXBlIjoidWludDgifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoidGFyZ2V0Um9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6InBhcmVudENvbmZpZ3VyYXRpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoibmV3Q29uZmlndXJhdGlvblJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJwYXJlbnRWZXJpZmllclJlZ2lzdHJ5Um9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6Im5ld1ZlcmlmaWVyUmVnaXN0cnlSb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6InVpbnQ2NCIsIm5hbWUiOiJlcG9jaCIsInR5cGUiOiJ1aW50NjQifV0sInN0YXRlTXV0YWJpbGl0eSI6Im5vbnBheWFibGUiLCJ0eXBlIjoiZnVuY3Rpb24iLCJuYW1lIjoiYXV0aG9yaXNlRGVjaXNpb24ifSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJkZWNpc2lvblJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoidWludDgiLCJuYW1lIjoicHJvb2ZNb2RlIiwidHlwZSI6InVpbnQ4In1dLCJzdGF0ZU11dGFiaWxpdHkiOiJub25wYXlhYmxlIiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImF1dGhvcmlzZURlY2lzaW9uUHJvb2ZNb2RlIn0seyJpbnB1dHMiOltdLCJzdGF0ZU11dGFiaWxpdHkiOiJ2aWV3IiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImF1dGhvcml0eUluc3RhbmNlR2VuZXNpcyIsIm91dHB1dHMiOlt7ImludGVybmFsVHlwZSI6ImNvbnRyYWN0IElQcmZDaGFpbkluc3RhbmNlR2VuZXNpcyIsIm5hbWUiOiIiLCJ0eXBlIjoiYWRkcmVzcyJ9XX0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6InN0cnVjdCBJUHJmQXV0aG9yaXR5VHJhbnNpdGlvbkFkbWluLkF1dGhvcml0eU11dGF0aW9uW10iLCJuYW1lIjoibXV0YXRpb25zIiwidHlwZSI6InR1cGxlW10iLCJjb21wb25lbnRzIjpbeyJpbnRlcm5hbFR5cGUiOiJ1aW50OCIsIm5hbWUiOiJraW5kIiwidHlwZSI6InVpbnQ4In0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImRlY2lzaW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJ1aW50OCIsIm5hbWUiOiJ0YXJnZXRNb2RlIiwidHlwZSI6InVpbnQ4In0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6InRhcmdldFJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJwYXJlbnRDb25maWd1cmF0aW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6Im5ld0NvbmZpZ3VyYXRpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoicGFyZW50VmVyaWZpZXJSZWdpc3RyeVJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJuZXdWZXJpZmllclJlZ2lzdHJ5Um9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJ1aW50NjQiLCJuYW1lIjoiZXBvY2giLCJ0eXBlIjoidWludDY0In0seyJpbnRlcm5hbFR5cGUiOiJ1aW50OCIsIm5hbWUiOiJwcm9vZk1vZGUiLCJ0eXBlIjoidWludDgifV19XSwic3RhdGVNdXRhYmlsaXR5IjoicHVyZSIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJhdXRob3JpdHlNdXRhdGlvblJvb3QiLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6InJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9XX0seyJpbnB1dHMiOltdLCJzdGF0ZU11dGFiaWxpdHkiOiJ2aWV3IiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImF1dGhvcml0eVJldmlzaW9uIiwib3V0cHV0cyI6W3siaW50ZXJuYWxUeXBlIjoidWludDY0IiwibmFtZSI6IiIsInR5cGUiOiJ1aW50NjQifV19LHsiaW5wdXRzIjpbXSwic3RhdGVNdXRhYmlsaXR5IjoidmlldyIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJhdXRob3JpdHlTdGF0ZVJvb3QiLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6IiIsInR5cGUiOiJieXRlczMyIn1dfSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYWRkcmVzcyIsIm5hbWUiOiJhZGFwdGVyIiwidHlwZSI6ImFkZHJlc3MifSx7ImludGVybmFsVHlwZSI6InVpbnQyNTYiLCJuYW1lIjoiY2hhaW5JZCIsInR5cGUiOiJ1aW50MjU2In0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6Imluc3RhbmNlUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImV4cGVjdGVkUHJldmlvdXNSb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoic3VjY2Vzc29yUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6InBvbGljeVJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoidWludDY0IiwibmFtZSI6InByZXZpb3VzUmV2aXNpb24iLCJ0eXBlIjoidWludDY0In0seyJpbnRlcm5hbFR5cGUiOiJ1aW50NjQiLCJuYW1lIjoic3VjY2Vzc29yUmV2aXNpb24iLCJ0eXBlIjoidWludDY0In0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6Im11dGF0aW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImRlY2lzaW9uUHJlaW1hZ2VzUm9vdCIsInR5cGUiOiJieXRlczMyIn1dLCJzdGF0ZU11dGFiaWxpdHkiOiJwdXJlIiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImF1dGhvcml0eVRyYW5zaXRpb25FeGVjdXRpb25Db21taXRtZW50Iiwib3V0cHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiIiLCJ0eXBlIjoiYnl0ZXMzMiJ9XX0seyJpbnB1dHMiOltdLCJzdGF0ZU11dGFiaWxpdHkiOiJ2aWV3IiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImF1dGhvcml0eVRyYW5zaXRpb25WYWxpZGF0b3IiLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJjb250cmFjdCBJUHJmQXV0aG9yaXR5VHJhbnNpdGlvblZhbGlkYXRvciIsIm5hbWUiOiIiLCJ0eXBlIjoiYWRkcmVzcyJ9XX0seyJpbnB1dHMiOltdLCJzdGF0ZU11dGFiaWxpdHkiOiJ2aWV3IiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImF1dGhvcml0eVRyYW5zaXRpb25zRW5hYmxlZCIsIm91dHB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJvb2wiLCJuYW1lIjoiIiwidHlwZSI6ImJvb2wifV19LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJjb250cmFjdCBJUHJmQ2hhaW5JbnN0YW5jZUdlbmVzaXMiLCJuYW1lIjoiZ2VuZXNpc18iLCJ0eXBlIjoiYWRkcmVzcyJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJsb2NhbEF1dGhvcml0eVBvbGljeVJvb3RfIiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImNvbnRyYWN0IElQcmZBdXRob3JpdHlUcmFuc2l0aW9uVmFsaWRhdG9yIiwibmFtZSI6InZhbGlkYXRvcl8iLCJ0eXBlIjoiYWRkcmVzcyJ9XSwic3RhdGVNdXRhYmlsaXR5Ijoibm9ucGF5YWJsZSIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJlbmFibGVBdXRob3JpdHlUcmFuc2l0aW9ucyJ9LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImRlY2lzaW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn1dLCJzdGF0ZU11dGFiaWxpdHkiOiJ2aWV3IiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImdldERlY2lzaW9uQXV0aG9yaXphdGlvbiIsIm91dHB1dHMiOlt7ImludGVybmFsVHlwZSI6InN0cnVjdCBJU2V3R292ZXJuYW5jZUF1dGhvcml0eS5EZWNpc2lvbkF1dGhvcml6YXRpb24iLCJuYW1lIjoiIiwidHlwZSI6InR1cGxlIiwiY29tcG9uZW50cyI6W3siaW50ZXJuYWxUeXBlIjoidWludDgiLCJuYW1lIjoidGFyZ2V0TW9kZSIsInR5cGUiOiJ1aW50OCJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJ0YXJnZXRSb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoicGFyZW50Q29uZmlndXJhdGlvblJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJuZXdDb25maWd1cmF0aW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6InBhcmVudFZlcmlmaWVyUmVnaXN0cnlSb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoibmV3VmVyaWZpZXJSZWdpc3RyeVJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoidWludDY0IiwibmFtZSI6ImVwb2NoIiwidHlwZSI6InVpbnQ2NCJ9LHsiaW50ZXJuYWxUeXBlIjoiYm9vbCIsIm5hbWUiOiJleGlzdHMiLCJ0eXBlIjoiYm9vbCJ9LHsiaW50ZXJuYWxUeXBlIjoiYm9vbCIsIm5hbWUiOiJyZXZva2VkIiwidHlwZSI6ImJvb2wifV19XX0seyJpbnB1dHMiOltdLCJzdGF0ZU11dGFiaWxpdHkiOiJ2aWV3IiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImdvdmVybm9yIiwib3V0cHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYWRkcmVzcyIsIm5hbWUiOiIiLCJ0eXBlIjoiYWRkcmVzcyJ9XX0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiZGVjaXNpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifV0sInN0YXRlTXV0YWJpbGl0eSI6InZpZXciLCJ0eXBlIjoiZnVuY3Rpb24iLCJuYW1lIjoiaGFzRGVjaXNpb25Qcm9vZk1vZGUiLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJib29sIiwibmFtZSI6IiIsInR5cGUiOiJib29sIn1dfSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJkZWNpc2lvblJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoidWludDgiLCJuYW1lIjoidGFyZ2V0TW9kZSIsInR5cGUiOiJ1aW50OCJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJ0YXJnZXRSb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoicGFyZW50Q29uZmlndXJhdGlvblJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJuZXdDb25maWd1cmF0aW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6InBhcmVudFZlcmlmaWVyUmVnaXN0cnlSb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoibmV3VmVyaWZpZXJSZWdpc3RyeVJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoidWludDY0IiwibmFtZSI6ImVwb2NoIiwidHlwZSI6InVpbnQ2NCJ9XSwic3RhdGVNdXRhYmlsaXR5IjoidmlldyIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJpc0F1dGhvcmlzZWREZWNpc2lvbiIsIm91dHB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJvb2wiLCJuYW1lIjoiIiwidHlwZSI6ImJvb2wifV19LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6ImRlY2lzaW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJ1aW50OCIsIm5hbWUiOiJ0YXJnZXRNb2RlIiwidHlwZSI6InVpbnQ4In0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6InRhcmdldFJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJwYXJlbnRDb25maWd1cmF0aW9uUm9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6Im5ld0NvbmZpZ3VyYXRpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoicGFyZW50VmVyaWZpZXJSZWdpc3RyeVJvb3QiLCJ0eXBlIjoiYnl0ZXMzMiJ9LHsiaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJuZXdWZXJpZmllclJlZ2lzdHJ5Um9vdCIsInR5cGUiOiJieXRlczMyIn0seyJpbnRlcm5hbFR5cGUiOiJ1aW50NjQiLCJuYW1lIjoiZXBvY2giLCJ0eXBlIjoidWludDY0In0seyJpbnRlcm5hbFR5cGUiOiJ1aW50OCIsIm5hbWUiOiJwcm9vZk1vZGUiLCJ0eXBlIjoidWludDgifV0sInN0YXRlTXV0YWJpbGl0eSI6InZpZXciLCJ0eXBlIjoiZnVuY3Rpb24iLCJuYW1lIjoiaXNBdXRob3Jpc2VkRGVjaXNpb25Qcm9vZk1vZGUiLCJvdXRwdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJib29sIiwibmFtZSI6IiIsInR5cGUiOiJib29sIn1dfSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiJoYXNoIiwidHlwZSI6ImJ5dGVzMzIifSx7ImludGVybmFsVHlwZSI6ImJ5dGVzIiwibmFtZSI6InNpZ25hdHVyZSIsInR5cGUiOiJieXRlcyJ9XSwic3RhdGVNdXRhYmlsaXR5IjoidmlldyIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJpc1ZhbGlkU2lnbmF0dXJlIiwib3V0cHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXM0IiwibmFtZSI6IiIsInR5cGUiOiJieXRlczQifV19LHsiaW5wdXRzIjpbXSwic3RhdGVNdXRhYmlsaXR5IjoidmlldyIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJsZWdhY3lBdXRob3JpdHlNdXRhdGlvbk9jY3VycmVkIiwib3V0cHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYm9vbCIsIm5hbWUiOiIiLCJ0eXBlIjoiYm9vbCJ9XX0seyJpbnB1dHMiOltdLCJzdGF0ZU11dGFiaWxpdHkiOiJ2aWV3IiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6ImxvY2FsQXV0aG9yaXR5UG9saWN5Um9vdCIsIm91dHB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiIiwidHlwZSI6ImJ5dGVzMzIifV19LHsiaW5wdXRzIjpbXSwic3RhdGVNdXRhYmlsaXR5IjoidmlldyIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJwcm90b2NvbEdlbmVzaXNSb290Iiwib3V0cHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXMzMiIsIm5hbWUiOiIiLCJ0eXBlIjoiYnl0ZXMzMiJ9XX0seyJpbnB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJ5dGVzMzIiLCJuYW1lIjoiZGVjaXNpb25Sb290IiwidHlwZSI6ImJ5dGVzMzIifV0sInN0YXRlTXV0YWJpbGl0eSI6Im5vbnBheWFibGUiLCJ0eXBlIjoiZnVuY3Rpb24iLCJuYW1lIjoicmV2b2tlRGVjaXNpb24ifSx7ImlucHV0cyI6W3siaW50ZXJuYWxUeXBlIjoiYnl0ZXM0IiwibmFtZSI6ImludGVyZmFjZUlkIiwidHlwZSI6ImJ5dGVzNCJ9XSwic3RhdGVNdXRhYmlsaXR5IjoidmlldyIsInR5cGUiOiJmdW5jdGlvbiIsIm5hbWUiOiJzdXBwb3J0c0ludGVyZmFjZSIsIm91dHB1dHMiOlt7ImludGVybmFsVHlwZSI6ImJvb2wiLCJuYW1lIjoiIiwidHlwZSI6ImJvb2wifV19LHsiaW5wdXRzIjpbeyJpbnRlcm5hbFR5cGUiOiJieXRlczMyIiwibmFtZSI6Im5ld0F1dGhvcml0eVN0YXRlUm9vdCIsInR5cGUiOiJieXRlczMyIn1dLCJzdGF0ZU11dGFiaWxpdHkiOiJub25wYXlhYmxlIiwidHlwZSI6ImZ1bmN0aW9uIiwibmFtZSI6InVwZGF0ZUF1dGhvcml0eVN0YXRlUm9vdCJ9XSwiZGV2ZG9jIjp7ImtpbmQiOiJkZXYiLCJtZXRob2RzIjp7ImFwcGx5QXV0aG9yaXR5U3RhdGVUcmFuc2l0aW9uKGJ5dGVzMzIsYnl0ZXMzMix1aW50NjQsdWludDY0LGJ5dGVzMzIsKHVpbnQ4LGJ5dGVzMzIsdWludDgsYnl0ZXMzMixieXRlczMyLGJ5dGVzMzIsYnl0ZXMzMixieXRlczMyLHVpbnQ2NCx1aW50OClbXSxieXRlcykiOnsiZGV0YWlscyI6IlRoZSBwb2xpY3ktcGlubmVkIHZhbGlkYXRvciBhdXRoZW50aWNhdGVzIGNhbm9uaWNhbCBzdGF0ZSBzZW1hbnRpY3MsICAgICAgY2FwYWJpbGl0aWVzIGFuZCBkZWNpc2lvbiBwcmVpbWFnZXMuIFRoZSBhZGFwdGVyIGluZGVwZW5kZW50bHkgYmluZHMgICAgICB0aGUgZXhhY3QgRVZNIG11dGF0aW9uIHBheWxvYWQsIGluc3RhbmNlLCByb290cywgcG9saWN5IGFuZCByZXZpc2lvbnMuIn0sImVuYWJsZUF1dGhvcml0eVRyYW5zaXRpb25zKGFkZHJlc3MsYnl0ZXMzMixhZGRyZXNzKSI6eyJkZXRhaWxzIjoiQ2FsbCBiZWZvcmUgZ2VuZXNpcyBzZWFsaW5nLiBJdCByZXF1aXJlcyB0aGUgYWRhcHRlcidzIGV4YWN0IGluaXRpYWwgICAgICByb290IGFuZCBpZGVudGl0eSB0byBtYXRjaCB0aGUgcGVuZGluZyBnZW5lc2lzLCB0aGVuIGRpc2FibGVzIGV2ZXJ5ICAgICAgbGVnYWN5IHN0YW5kYWxvbmUgbXV0YXRpb24gcm91dGUuIn0sImlzVmFsaWRTaWduYXR1cmUoYnl0ZXMzMixieXRlcykiOnsiZGV0YWlscyI6ImBoYXNoYCBpcyB0aGUgUFJGL1NFVyBkZWNpc2lvbiByb290LiBgc2lnbmF0dXJlYCBpcyBhbiBBQkktZW5jb2RlZCBhdXRob3JpemF0aW9uIGVudmVsb3BlOiBgKHVpbnQ4IHRhcmdldE1vZGUsIGJ5dGVzMzIgdGFyZ2V0Um9vdCwgYnl0ZXMzMiBwYXJlbnRDb25maWd1cmF0aW9uUm9vdCwgICBieXRlczMyIG5ld0NvbmZpZ3VyYXRpb25Sb290LCBieXRlczMyIHBhcmVudFZlcmlmaWVyUmVnaXN0cnlSb290LCAgIGJ5dGVzMzIgbmV3VmVyaWZpZXJSZWdpc3RyeVJvb3QsIHVpbnQ2NCBlcG9jaClgLiBUaGlzIGludGVudGlvbmFsbHkgcmVwcmVzZW50cyBjb250cmFjdC9nb3Zlcm5hbmNlIGF1dGhvcml0eSByYXRoZXIgdGhhbiBhbiBFT0Egc2lnbmF0dXJlLiJ9fSwidmVyc2lvbiI6MX0sInVzZXJkb2MiOnsia2luZCI6InVzZXIiLCJtZXRob2RzIjp7ImFwcGx5QXV0aG9yaXR5U3RhdGVUcmFuc2l0aW9uKGJ5dGVzMzIsYnl0ZXMzMix1aW50NjQsdWludDY0LGJ5dGVzMzIsKHVpbnQ4LGJ5dGVzMzIsdWludDgsYnl0ZXMzMixieXRlczMyLGJ5dGVzMzIsYnl0ZXMzMixieXRlczMyLHVpbnQ2NCx1aW50OClbXSxieXRlcykiOnsibm90aWNlIjoiQXBwbHkgY292ZXJlZCBhdXRob3JpdHkgbXV0YXRpb25zIGFuZCB0aGVpciBzdWNjZXNzb3Igcm9vdCBhdG9taWNhbGx5LiJ9LCJlbmFibGVBdXRob3JpdHlUcmFuc2l0aW9ucyhhZGRyZXNzLGJ5dGVzMzIsYWRkcmVzcykiOnsibm90aWNlIjoiSXJyZXZlcnNpYmx5IGVuYWJsZSBwb2xpY3ktcGlubmVkLCB2YWxpZGF0ZWQgYXV0aG9yaXR5IHRyYW5zaXRpb25zLiJ9LCJpc1ZhbGlkU2lnbmF0dXJlKGJ5dGVzMzIsYnl0ZXMpIjp7Im5vdGljZSI6IkVSQy0xMjcxIGNvbXBhdGliaWxpdHkgZm9yIGEgZ292ZXJuYW5jZS1hdXRob3Jpc2VkIGNhbm9uaWNhbCBkZWNpc2lvbiByb290LiJ9fSwidmVyc2lvbiI6MX19LCJzZXR0aW5ncyI6eyJyZW1hcHBpbmdzIjpbIkBvcGVuemVwcGVsaW4vPWxpYi9vcGVuemVwcGVsaW4tY29udHJhY3RzLyIsIkBzcDEtY29udHJhY3RzLz1saWIvc3AxLWNvbnRyYWN0cy9jb250cmFjdHMvc3JjLyIsImRzLXRlc3QvPWxpYi9zcDEtY29udHJhY3RzL2NvbnRyYWN0cy9saWIvb3BlbnplcHBlbGluLWNvbnRyYWN0cy9saWIvZm9yZ2Utc3RkL2xpYi9kcy10ZXN0L3NyYy8iLCJlcmM0NjI2LXRlc3RzLz1saWIvc3AxLWNvbnRyYWN0cy9jb250cmFjdHMvbGliL29wZW56ZXBwZWxpbi1jb250cmFjdHMvbGliL2VyYzQ2MjYtdGVzdHMvIiwiZm9yZ2Utc3RkLz1saWIvZm9yZ2Utc3RkL3NyYy8iLCJvcGVuemVwcGVsaW4tY29udHJhY3RzLz1saWIvb3BlbnplcHBlbGluLWNvbnRyYWN0cy8iLCJzcDEtY29udHJhY3RzLz1saWIvc3AxLWNvbnRyYWN0cy9jb250cmFjdHMvIl0sIm9wdGltaXplciI6eyJlbmFibGVkIjp0cnVlLCJydW5zIjoyMDB9LCJtZXRhZGF0YSI6eyJieXRlY29kZUhhc2giOiJpcGZzIn0sImNvbXBpbGF0aW9uVGFyZ2V0Ijp7InNyYy9jb3JlL1ByZkxvY2FsQXV0aG9yaXR5QWRhcHRlci5zb2wiOiJQcmZMb2NhbEF1dGhvcml0eUFkYXB0ZXIifSwiZXZtVmVyc2lvbiI6Im9zYWthIiwibGlicmFyaWVzIjp7fSwidmlhSVIiOnRydWV9LCJzb3VyY2VzIjp7ImxpYi9vcGVuemVwcGVsaW4tY29udHJhY3RzL2NvbnRyYWN0cy9pbnRlcmZhY2VzL0lFUkMxMjcxLnNvbCI6eyJrZWNjYWsyNTYiOiIweDY2YzdlYzQyYzZjNDM3MTJiZTIxMDdhNTBhYjQ1MjkzNzliYzc2YTYzMmI0MjViYWJlYzY5OGQ5ZGE5MjFhYzYiLCJ1cmxzIjpbImJ6ei1yYXc6Ly9kY2UyNzc4ZjBiNjM4YWRmYzViYTI5YzJjNjE4Yzg1NWZlNzI1ZmE3NGExNjg0NjM4NmFhMWQ1NmE4MzRhYTA0IiwiZHdlYjovaXBmcy9RbVBWOW9XbnpRZGk1OG9kMjY2ajYyeHZ2aWF2TE5IcUtMWmZtNmsySzFxeTlFIl0sImxpY2Vuc2UiOiJNSVQifSwibGliL29wZW56ZXBwZWxpbi1jb250cmFjdHMvY29udHJhY3RzL3V0aWxzL2ludHJvc3BlY3Rpb24vRVJDMTY1LnNvbCI6eyJrZWNjYWsyNTYiOiIweDJkOWRjMmZlMjYxODBmNzRjMTFjMTM2NjM2NDdkMzhlMjU5ZTQ1Zjk1ZWI4OGY1N2I2MWQyMTYwYjAxMDlkM2UiLCJ1cmxzIjpbImJ6ei1yYXc6Ly84MTIzM2QxZjk4MDYwMTEzZDk5MjIxODBiYjBmMTRmODMzNTg1NmZlOWYzMzkxMzRiMDkzMzVlOWY2NzhjMzc3IiwiZHdlYjovaXBmcy9RbVdoNlIzNVNhcmhBbjR6MndIOFNVNDU2akpTWUwyRmd1Y2ZURmdiSEpKTjRFIl0sImxpY2Vuc2UiOiJNSVQifSwibGliL29wZW56ZXBwZWxpbi1jb250cmFjdHMvY29udHJhY3RzL3V0aWxzL2ludHJvc3BlY3Rpb24vSUVSQzE2NS5zb2wiOnsia2VjY2FrMjU2IjoiMHg4ODkxNzM4ZmZlOTEwZjBjZjJkYTA5NTY2OTI4NTg5YmY1ZDYzZjQ1MjRkZDczNGZkOWNlZGJhYzMyNzRkZDVjIiwidXJscyI6WyJienotcmF3Oi8vOTcxZjk1NDQ0MmRmNWMyZWY1YjVlYmYxZWIyNDVkNzEwNWQ5ZmJhY2M3Mzg2ZWU1Yzc5NmRmMWQ0NWIyMTYxNyIsImR3ZWI6L2lwZnMvUW1hZFJqSGJraWN3cXd3aDYxcmFVRWFwYVZFdGFMTWNZYlFaV3M5Z1VrZ2ozdSJdLCJsaWNlbnNlIjoiTUlUIn0sInNyYy9jb3JlL1ByZkxvY2FsQXV0aG9yaXR5QWRhcHRlci5zb2wiOnsia2VjY2FrMjU2IjoiMHgxNTUxYWIwNjg0NzZkNmZiMDM0YjNkZGVmNWM1MmY1ZTg3ODY1ZDIxZDU5ZDU1ZDNmODUwOGZlM2RlYzczZTU1IiwidXJscyI6WyJienotcmF3Oi8vMmQzOGFkY2RkNGYwZGNlNDE0NmQyNTE4ZTFjNDI1ZmMwZTFlNDM1NGE0YzZhYjI0NGVmYWE1ZDcwMGJlZGYxZSIsImR3ZWI6L2lwZnMvUW1mR1k5VjZoRWVZRmVlclFEeXpHanVZVXZ5dFo3Qll2ZnhjcDRCbmhKWGQzUyJdLCJsaWNlbnNlIjoiQXBhY2hlLTIuMCJ9LCJzcmMvaW50ZXJmYWNlcy9JUHJmQXV0aG9yaXR5LnNvbCI6eyJrZWNjYWsyNTYiOiIweGNkZTY0ZjkxNzg1YzExZmIzODEyMTk4NWM2NTBmM2Q0Yzc0OTExYmEwYmIzNWE1MmQ4ODA3MGEyMWNlMTU4MDciLCJ1cmxzIjpbImJ6ei1yYXc6Ly83ZDg0N2NiMzhkZmZiNWUwNDk4YzIxZThjODk4NTFiMGQ2NjJhNTU5Zjc1ZWJkNzJlMzZmMGE5MGRjNWI0MTBjIiwiZHdlYjovaXBmcy9RbVhpSmNkM3BXREFWcUc1dTYyNGFWZkZZYzFtNTNDU3JpaHBqVE5SRTRHOHlZIl0sImxpY2Vuc2UiOiJBcGFjaGUtMi4wIn0sInNyYy9pbnRlcmZhY2VzL0lQcmZBdXRob3JpdHlUcmFuc2l0aW9uQWRtaW4uc29sIjp7ImtlY2NhazI1NiI6IjB4NzI1NjI4MTQyMDBmYWE1ZThlN2VjOTY3YzFlMTEwMGYzNmY3NTQ2ZDRmODVhYmM1Mzk5OTM0ZGM5MjM3NzNiMSIsInVybHMiOlsiYnp6LXJhdzovLzg0N2U3MjBhNjQ5OGUwZjVjMTRiNDExMTM5ODFjZGYwMGQyYzg1YmRhZWZmMjhkN2MwYzRmMzU1OTBmZTk4ZDUiLCJkd2ViOi9pcGZzL1FtUG10NU5LVzdqYms0c3Zrc3BhWlhpY1ZMaVE5NE1Cc01RU1c0UlZmQm0xSnAiXSwibGljZW5zZSI6IkFwYWNoZS0yLjAifSwic3JjL2ludGVyZmFjZXMvSVByZkF1dGhvcml0eVRyYW5zaXRpb25WYWxpZGF0b3Iuc29sIjp7ImtlY2NhazI1NiI6IjB4ZTBjN2Y3OGVkMDk2ZGU0MjE0ZTE4MzcyYmY5ZWNlZDE3YTY1YTA4NDRiZDdiYWI4MWU2MDYyMWZlNTU0NGNkMiIsInVybHMiOlsiYnp6LXJhdzovLzAzMWRjZjAyNGEyY2NhMzBmZTI3ODI5ZjFlOWE1OGFiZWQ1ODE2MmUzNDE1NDRhZTllYmFjOWQyOTQyOTgxZWYiLCJkd2ViOi9pcGZzL1FtVGpEQWlFekxVQkNCVWNtOHd2b2F1aXFFeXo3YjJVaGI3OUhXb2ViZWZIdEoiXSwibGljZW5zZSI6IkFwYWNoZS0yLjAifSwic3JjL2ludGVyZmFjZXMvSVByZkNoYWluSW5zdGFuY2VHZW5lc2lzLnNvbCI6eyJrZWNjYWsyNTYiOiIweDkxNTQ4ZmI0YmFmOGFiMTc2OWUyNTc2ZmUwMmJiZDZkYzMxN2FjYmRmMmVmOGYxNDk1NmQ1ZTVmYWZlNmUxNzYiLCJ1cmxzIjpbImJ6ei1yYXc6Ly9jODUzYThhZWUwZDgxMzUyZDM3NDU1Y2IyMTRlZGYzMTlhYjAyZWUzNDNmODE5MDA0MzhmMmYyYzA5NGQ5OWQ3IiwiZHdlYjovaXBmcy9RbWFqQmo2UGsyRmNnTmtia3Jkd3VXZ0thR1JSV1ZRSGNVVjJqb3MxVXBWU2RTIl0sImxpY2Vuc2UiOiJBcGFjaGUtMi4wIn0sInNyYy9pbnRlcmZhY2VzL0lTZXdHb3Zlcm5hbmNlQXV0aG9yaXR5LnNvbCI6eyJrZWNjYWsyNTYiOiIweDNhZTE3YjQwZjhkYjMzYTQxZWY0NmMwNzc0Njc1YzY2NDUwOTA4Zjc3MWYyNjA1MTQ0MWNhOTVjZTU3YTAwYTIiLCJ1cmxzIjpbImJ6ei1yYXc6Ly84NDZlN2ExYzc0NzNmMGQwNDg0ZjRiOWQyMmZkNmY1YTU3ZDI1OTA2ZTE2ZjM5Y2VmZDM3YjE2ZmI3OWQ4NzVmIiwiZHdlYjovaXBmcy9RbWJrNG1ybWRhSjY2YjJ4MWNBWTlxekJyVU5CTkV2MmpadzU4NkEybjFrRUJwIl0sImxpY2Vuc2UiOiJBcGFjaGUtMi4wIn0sInNyYy9pbnRlcmZhY2VzL0lTZXdHb3Zlcm5hbmNlUHJvb2ZNb2RlQXV0aG9yaXR5LnNvbCI6eyJrZWNjYWsyNTYiOiIweGZiYjdlZDM2MjE0NDZkMThhYzFlN2M5MGExMmViMmIzYTBhNWUwYWJhNTg0MmM5NmEzM2E3MWJkM2I0YmI2OTUiLCJ1cmxzIjpbImJ6ei1yYXc6Ly8zMGViM2QwNDViOWM1MmNhMzhlNTNmNWQ1ZjE1MDNlZmNmMTVmZjllYzI0MjNjODNmNzRlZjkwNjVmZDhhNzRhIiwiZHdlYjovaXBmcy9RbWNrNHJBdmNiUzhOYnpCcDVGREpHa1g1VUNOVEpMVkdhRTVER0tCakg3c240Il0sImxpY2Vuc2UiOiJBcGFjaGUtMi4wIn19LCJ2ZXJzaW9uIjoxfQ==",
+  "name": "PrfLocalAuthorityAdapter",
+  "origin": "prf",
+  "scopeHint": "prf",
+  "sourcePath": "src/core/PrfLocalAuthorityAdapter.sol"
+}

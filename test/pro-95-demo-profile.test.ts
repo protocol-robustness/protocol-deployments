@@ -12,6 +12,9 @@ describe('PRO-95 Base Sepolia demo intake profile', () => {
     expect(profile.readiness.broadcastAllowed).toBe(false);
     expect(profile.transactionPolicy.ethSpendCapWei).toBeNull();
     expect(profile.canonicalRoots.chainInstanceGenesisRoot).toBeNull();
+    expect(profile.deploymentPackage.status).toBe('local-v3-candidate-not-pinned-or-base-qualified');
+    expect(profile.deploymentPackage.pinnedArtifactBundle.bundleRoot).toBe('d416816527400fcc7bc7455a1486c1bc20cb94ed556473d0c695a83ea09e2dba');
+    expect(profile.deploymentPackage.deploymentPlan).toBeNull();
   });
 
   it('rejects a profile that omits or demotes the finality qualification', () => {

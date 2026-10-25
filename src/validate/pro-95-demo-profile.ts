@@ -45,7 +45,21 @@ export function validatePro95DemoProfile(input: unknown): Pro95ProfileValidation
   const expectedRecipients = { alice: '0x8bdd01c7dead0abe3e855b458b820d9d727bccbf', bob: '0x867caab852f942ff80b6409109f1db76d4ecb36b', carol: '0xa57f019d83d1fbbc48500047ba27d21523fe55a8' };
   if (JSON.stringify(p.recipients && { alice: p.recipients.alice, bob: p.recipients.bob, carol: p.recipients.carol }) !== JSON.stringify(expectedRecipients)) errors.push('recipient addresses differ from the approved pseudonymous demo map');
   if (p.trustBoundary?.finalityClaim !== 'none' || p.trustBoundary?.sameBlockConcurrencyClaim !== false || p.trustBoundary?.sourceAuthentication !== 'not-performed-for-modelled-inputs') errors.push('trust and qualification limits are required');
-  if (p.deploymentPackage?.status !== 'not-available-for-exact-v3-composition' || p.deploymentPackage?.pinnedArtifactBundle !== null || p.deploymentPackage?.deploymentPlan !== null) errors.push('exact V3 artifacts and plan must not be presented as available');
+  const v3Bundle = p.deploymentPackage?.pinnedArtifactBundle;
+  if (
+    p.deploymentPackage?.status !== 'local-v3-candidate-not-pinned-or-base-qualified' ||
+    !isObject(v3Bundle) ||
+    v3Bundle.packageName !== '@protocol-robustness/prf-evm-deployables' ||
+    v3Bundle.version !== '0.4.3' ||
+    v3Bundle.bundleRoot !== 'd416816527400fcc7bc7455a1486c1bc20cb94ed556473d0c695a83ea09e2dba' ||
+    v3Bundle.sourceRevision !== 'f23fcfc2d0f58e2be5732c0c37ddb179c323d513' ||
+    v3Bundle.sourceCommitSource !== 'env' ||
+    v3Bundle.sourceCommitOverride !== true ||
+    v3Bundle.sourcePublished !== false ||
+    v3Bundle.artifactCount !== 32 ||
+    v3Bundle.fixturePath !== 'fixtures/releases/0.4.3/packages/@protocol-robustness/prf-evm-deployables' ||
+    p.deploymentPackage?.deploymentPlan !== null
+  ) errors.push('V3 bundle must remain explicitly local-candidate only, with no Base deployment plan');
   if (p.transactionPolicy?.transactionCountMaximum !== null || p.transactionPolicy?.ethSpendCapWei !== null || p.transactionPolicy?.signing !== 'not-authorized-by-this-profile' || p.transactionPolicy?.broadcast !== 'not-authorized-by-this-profile') errors.push('no transaction caps or signing/broadcast authority may be implied');
   if (!Array.isArray(p.limitations) || !String(p.limitations[0] ?? '').startsWith('no Base or Ethereum consensus finality is established') || !String(p.limitations[0] ?? '').includes('no Base transaction or receipt currently exists')) errors.push('finality and absence of public-chain receipt evidence must be the first qualification');
   if (!Array.isArray(p.unresolvedDependencies) || p.unresolvedDependencies.length < 7) errors.push('unresolved dependencies must remain explicit');

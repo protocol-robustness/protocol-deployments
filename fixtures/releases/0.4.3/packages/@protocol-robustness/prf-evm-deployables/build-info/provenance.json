@@ -1,0 +1,27 @@
+{
+  "build": {
+   "artifactSource": "forge",
+   "compiler": {
+    "name": "solc",
+    "version": "0.8.33+commit.64118f21"
+  },
+   "profile": "default",
+   "settings": {
+    "evmVersion": "osaka",
+    "optimizerRuns": 200,
+    "viaIR": true
+  }
+ },
+  "generated": {
+   "exporter": "prf-evm/deployables-export",
+   "manifestSchemaVersion": 1
+ },
+  "schemaVersion": 1,
+  "source": {
+   "commit": "f23fcfc2d0f58e2be5732c0c37ddb179c323d513",
+   "commitOverride": true,
+   "commitSource": "env",
+   "dirty": false,
+   "repository": "protocol-robustness/prf-evm"
+ }
+}
