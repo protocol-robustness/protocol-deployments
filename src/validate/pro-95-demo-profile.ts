@@ -47,6 +47,7 @@ export function validatePro95DemoProfile(input: unknown): Pro95ProfileValidation
   if (p.trustBoundary?.finalityClaim !== 'none' || p.trustBoundary?.sameBlockConcurrencyClaim !== false || p.trustBoundary?.sourceAuthentication !== 'not-performed-for-modelled-inputs') errors.push('trust and qualification limits are required');
   if (p.deploymentPackage?.status !== 'not-available-for-exact-v3-composition' || p.deploymentPackage?.pinnedArtifactBundle !== null || p.deploymentPackage?.deploymentPlan !== null) errors.push('exact V3 artifacts and plan must not be presented as available');
   if (p.transactionPolicy?.transactionCountMaximum !== null || p.transactionPolicy?.ethSpendCapWei !== null || p.transactionPolicy?.signing !== 'not-authorized-by-this-profile' || p.transactionPolicy?.broadcast !== 'not-authorized-by-this-profile') errors.push('no transaction caps or signing/broadcast authority may be implied');
+  if (!Array.isArray(p.limitations) || !String(p.limitations[0] ?? '').startsWith('no Base or Ethereum consensus finality is established') || !String(p.limitations[0] ?? '').includes('no Base transaction or receipt currently exists')) errors.push('finality and absence of public-chain receipt evidence must be the first qualification');
   if (!Array.isArray(p.unresolvedDependencies) || p.unresolvedDependencies.length < 7) errors.push('unresolved dependencies must remain explicit');
 
   return { valid: errors.length === 0, errors };

@@ -8,9 +8,16 @@ const profile = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../config/pr
 describe('PRO-95 Base Sepolia demo intake profile', () => {
   it('keeps the approved scenario explicit and deployment blocked', () => {
     expect(validatePro95DemoProfile(profile)).toEqual({ valid: true, errors: [] });
+    expect(profile.limitations[0]).toContain('no Base or Ethereum consensus finality is established');
     expect(profile.readiness.broadcastAllowed).toBe(false);
     expect(profile.transactionPolicy.ethSpendCapWei).toBeNull();
     expect(profile.canonicalRoots.chainInstanceGenesisRoot).toBeNull();
+  });
+
+  it('rejects a profile that omits or demotes the finality qualification', () => {
+    const changed = structuredClone(profile);
+    changed.limitations.reverse();
+    expect(validatePro95DemoProfile(changed).valid).toBe(false);
   });
 
   it('rejects a demo profile presented as deployable', () => {

@@ -154,12 +154,14 @@
     "broadcast": "not-authorized-by-this-profile"
   },
   "limitations": [
+    "no Base or Ethereum consensus finality is established; the intended maximum public-chain claim is receipt inclusion under an independently reviewed external header pin, not Base safe/finalized status or Ethereum L1 settlement/finality; no Base transaction or receipt currently exists",
+    "retained V3 execution is local Foundry evidence on chain ID 31337 and does not establish Base Sepolia execution; deployment, operation, signing and broadcast remain disabled",
+    "source authentication has not been performed for modelled inputs; recipient addresses are pseudonymous test wallets and establish neither claimant identity nor external obligations",
+    "Circle Base Sepolia USDC is testnet-only, not mainnet redeemable and not real-value liquidity; read-only code and metadata observations do not authenticate issuer sources or test transfer behavior",
+    "not an operating stablecoin, reserve-backing, redemption, compliance, production-readiness or pre-mainnet-release qualification",
     "public-testnet demonstration only; not a pre-mainnet release",
     "no contracts deployed and no transactions signed or broadcast",
-    "not an operating stablecoin, redemption, reserve-backing, compliance or settlement service",
-    "no public-chain consensus finality claim",
-    "no independently authenticated external source data",
-    "local Foundry evidence does not establish Base Sepolia execution"
+    "no independently authenticated external source data"
   ],
   "authority": {
     "model": "single-test-only-deployer-funder-configuration-authority-and-relayer",

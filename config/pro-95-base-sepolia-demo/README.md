@@ -7,6 +7,28 @@ This isolated profile records the approved Base Sepolia USDC scenario and its
 evidence boundary. It does not select the existing generic Base Sepolia
 SEW deployment, the USDC successor profile, or a V2 artifact package.
 
+## Critical qualifications
+
+1. **Finality:** No Base or Ethereum consensus finality is established. The
+   intended maximum public-chain claim is receipt inclusion under an
+   independently reviewed external header pin. That would not establish Base
+   `safe`/`finalized` status or Ethereum L1 settlement/finality. No Base
+   transaction or receipt currently exists, so even receipt inclusion has not
+   yet been demonstrated.
+2. **Execution:** The retained V3 run is local Foundry evidence on chain ID
+   `31337`; it does not establish Base Sepolia execution. Deployment,
+   operation, signing and broadcast remain disabled.
+3. **Inputs and identity:** Source authentication has not been performed for
+   the modelled inputs. Recipient addresses are pseudonymous test wallets and
+   do not establish claimant identity or external obligations.
+4. **Asset:** Circle Base Sepolia USDC is testnet-only, is not mainnet
+   redeemable, and does not represent real-value liquidity. Read-only code and
+   metadata observations do not authenticate issuer sources or test transfer
+   behavior.
+5. **Application and release scope:** This does not demonstrate an operating
+   stablecoin, reserve backing, redemption, compliance, production readiness,
+   or a pre-mainnet release.
+
 ## Scenario
 
 - Requests: Alice 50, Bob 30, Carol 20 USDC (100 total; 6-decimal base units are 50,000,000 / 30,000,000 / 20,000,000).
